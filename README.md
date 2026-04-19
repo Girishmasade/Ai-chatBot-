@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 NeuralChat AI
+# 💬 GCHat
 
 ### _An Intelligent, Context-Aware Chatbot powered by LangChain · RAG · Vector Embeddings_
 
@@ -12,11 +12,13 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![LangChain](https://img.shields.io/badge/🦜_LangChain-1C3C3C?style=for-the-badge)
 ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
+![Redux](https://img.shields.io/badge/Redux_Toolkit-764ABC?style=for-the-badge&logo=redux&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 
 <br/>
 
-> **NeuralChat AI** is a full-stack, production-ready AI chatbot that understands your documents.  
-> Upload PDFs, paste URLs, or drop text — the bot answers questions using **Retrieval-Augmented Generation (RAG)**,  
+> **GCHat** is a full-stack, production-ready AI chatbot that understands your documents.  
+> Upload PDFs, paste URLs, or drop text — GCHat answers questions using **Retrieval-Augmented Generation (RAG)**,  
 > meaning every answer is grounded in _your_ data, not hallucination.
 
 <br/>
@@ -62,6 +64,7 @@
 | 👑 **Admin Dashboard** | User management, chat monitoring, analytics & billing |
 | 🗣️ **Chat History** | Persistent, searchable conversation memory |
 | 🌐 **Multi-session** | Each user has isolated, independent chat contexts |
+| ⚡ **Redis Caching** | Lightning-fast repeat queries served from cache |
 | 📊 **Embeddings Viewer** | Visualize document chunk embeddings |
 | 🔄 **Streaming LLM** | Token-by-token streaming for a live typing effect |
 
@@ -77,7 +80,7 @@
 │  │  Chat UI │  │  Upload  │  │  Admin   │  │   Auth Pages       │ │
 │  │          │  │  Panel   │  │Dashboard │  │  Login / Register  │ │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬───────────┘ │
-│       │              │              │                  │             │
+│       │   Redux Toolkit + RTK Query (State & API)     │             │
 └───────┼──────────────┼──────────────┼──────────────────┼────────────┘
         │  REST API    │              │                  │
         │  +Socket.io  │              │                  │
@@ -114,13 +117,20 @@
       │  Chats      │   │   pgvector)   │   │   Gemini)        │
       │  Docs Meta  │   │               │   │                  │
       └─────────────┘   └───────────────┘   └──────────────────┘
+             │
+      ┌──────▼──────┐
+      │    Redis    │
+      │  Response   │
+      │  Cache +    │
+      │  Sessions   │
+      └─────────────┘
 ```
 
 ---
 
 ## 🧠 AI Pipeline (RAG)
 
-The core intelligence of NeuralChat is its **Retrieval-Augmented Generation** pipeline:
+The core intelligence of GCHat is its **Retrieval-Augmented Generation** pipeline:
 
 ```
                          ┌──────────────────────────────────────────┐
@@ -149,27 +159,31 @@ The core intelligence of NeuralChat is its **Retrieval-Augmented Generation** pi
    ──────────────        │   1. User sends a question               │
    (Every chat msg)      │              │                           │
                          │              ▼                           │
-                         │   2. Embed the query                     │
+                         │   2. Check Redis Cache                   │
+                         │      Return instantly if hit ⚡          │
+                         │              │ (cache miss)              │
+                         │              ▼                           │
+                         │   3. Embed the query                     │
                          │      Same embedding model                │
                          │              │                           │
                          │              ▼                           │
-                         │   3. Similarity Search (Top-K)          │
+                         │   4. Similarity Search (Top-K)          │
                          │      Cosine similarity in vector space   │
                          │              │                           │
                          │              ▼                           │
-                         │   4. Retrieved Context chunks            │
+                         │   5. Retrieved Context chunks            │
                          │      Most relevant document passages     │
                          │              │                           │
                          │              ▼                           │
-                         │   5. LangChain RAG Prompt                │
+                         │   6. LangChain RAG Prompt                │
                          │      "Answer based on context: {ctx}"   │
                          │              │                           │
                          │              ▼                           │
-                         │   6. LLM (GPT-4 / Claude / Gemini)      │
+                         │   7. LLM (GPT-4 / Claude / Gemini)      │
                          │      Generates grounded answer           │
                          │              │                           │
                          │              ▼                           │
-                         │   7. Streamed Response to User           │
+                         │   8. Cache in Redis + Stream to User     │
                          │                                          │
                          └──────────────────────────────────────────┘
 ```
@@ -179,7 +193,7 @@ The core intelligence of NeuralChat is its **Retrieval-Augmented Generation** pi
 ## 🗂️ Project Structure
 
 ```
-ai-chatbot/
+gchat/
 │
 ├── 📁 client/                          # Frontend (React + Vite + TypeScript)
 │   ├── 📁 src/
@@ -200,12 +214,15 @@ ai-chatbot/
 │   │   │       ├── Analytics.tsx       # Usage analytics
 │   │   │       ├── Billing.tsx         # Billing & token usage
 │   │   │       └── AdminSettings.tsx   # System configuration
+│   │   ├── 📁 store/
+│   │   │   ├── store.ts               # Redux store setup
+│   │   │   ├── chatSlice.ts           # RTK slice — messages, loading, errors
+│   │   │   └── apiSlice.ts            # RTK Query — API endpoints & caching
 │   │   ├── 📁 hooks/
 │   │   │   ├── useChat.ts             # Chat state & socket logic
 │   │   │   └── useAuth.ts             # Auth context hook
 │   │   ├── 📁 services/
 │   │   │   └── api.ts                 # Axios API client
-│   │   └── 📁 store/                  # Zustand / Redux state
 │   └── package.json
 │
 ├── 📁 server/                          # Backend (Node.js + Express + TypeScript)
@@ -233,6 +250,8 @@ ai-chatbot/
 │       │   ├── vectorStore.service.ts # Pinecone / Chroma client
 │       │   ├── rag.service.ts         # Full RAG pipeline orchestration
 │       │   └── document.service.ts    # Document parsing & chunking
+│       ├── 📁 cache/
+│       │   └── redis.ts               # Redis client + cache helpers
 │       ├── 📁 socket/
 │       │   └── chatSocket.ts          # Socket.io event handlers
 │       ├── 📁 lib/
@@ -259,9 +278,10 @@ ai-chatbot/
 | **React 18** | UI Framework |
 | **TypeScript** | Type safety |
 | **Vite** | Lightning-fast build tool |
+| **Redux Toolkit (RTK)** | Global state — chat history, sessions, UI state |
+| **RTK Query** | Smart data fetching, caching & API synchronization |
 | **Socket.io Client** | Real-time communication |
 | **Axios** | HTTP requests |
-| **Zustand** | Lightweight state management |
 | **React Router v6** | Client-side routing |
 | **TailwindCSS** | Utility-first styling |
 
@@ -273,6 +293,7 @@ ai-chatbot/
 | **TypeScript** | Type safety |
 | **Socket.io** | Real-time WebSocket layer |
 | **Mongoose** | MongoDB ODM |
+| **Redis** | Response caching, session management & rate limiting |
 | **JWT + bcryptjs** | Authentication & security |
 | **crypto-js** | Data encryption |
 | **dotenv** | Environment management |
@@ -304,18 +325,19 @@ npm   >= 9.0.0
 yarn  >= 1.22.0
 ```
 
-You'll also need accounts for:
+You'll also need accounts / services for:
 - [OpenAI](https://platform.openai.com/) or [Google AI Studio](https://aistudio.google.com/) (LLM provider)
 - [Pinecone](https://www.pinecone.io/) (Vector DB) _or_ run ChromaDB locally
 - [MongoDB Atlas](https://www.mongodb.com/atlas) or a local MongoDB instance
+- [Redis](https://redis.io/) (local) or [Redis Cloud](https://redis.com/try-free/)
 
 ---
 
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/ai-chatbot.git
-cd ai-chatbot
+git clone https://github.com/Girishmasade/Ai-chatBot-.git
+cd Ai-chatBot-
 ```
 
 ---
@@ -325,18 +347,8 @@ cd ai-chatbot
 ```bash
 cd server
 npm install
-```
-
-Copy and fill in your environment variables:
-
-```bash
 cp .env.example .env
-# Then edit .env with your keys
-```
-
-Start the development server:
-
-```bash
+# Fill in your keys in .env
 npm run dev
 ```
 
@@ -374,7 +386,7 @@ PORT=5000
 NODE_ENV=development
 
 # ── MongoDB ───────────────────────────────────
-MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/neuralchat
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/gchat
 
 # ── Authentication ────────────────────────────
 JWT_SECRET=your_super_secret_jwt_key_here
@@ -382,7 +394,6 @@ JWT_EXPIRES_IN=7d
 BCRYPT_SALT_ROUNDS=12
 
 # ── LLM Provider ─────────────────────────────
-# Choose one:
 OPENAI_API_KEY=sk-...
 # GOOGLE_GEMINI_API_KEY=AI...
 # ANTHROPIC_API_KEY=sk-ant-...
@@ -395,13 +406,16 @@ LLM_MAX_TOKENS=2048
 EMBEDDING_MODEL=text-embedding-ada-002
 
 # ── Vector Store ──────────────────────────────
-# Pinecone
 PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_INDEX=neuralchat-index
+PINECONE_INDEX=gchat-index
 PINECONE_ENVIRONMENT=us-east-1-aws
 
 # OR ChromaDB (local)
 # CHROMA_URL=http://localhost:8000
+
+# ── Redis ─────────────────────────────────────
+REDIS_URL=redis://localhost:6379
+REDIS_TTL=3600
 
 # ── RAG Settings ──────────────────────────────
 CHUNK_SIZE=512
@@ -485,6 +499,8 @@ Real-time communication is handled via **Socket.io**:
 - [x] JWT Authentication & User Management
 - [x] Real-time WebSocket chat (Socket.io)
 - [x] Admin Dashboard (Users, Analytics, Billing)
+- [x] Redux Toolkit + RTK Query frontend state
+- [x] Redis caching & session management
 - [ ] 🧠 LangChain RAG pipeline integration
 - [ ] 📄 PDF / URL document ingestion
 - [ ] 🔍 Vector store integration (Pinecone / Chroma)
@@ -520,12 +536,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-Made with ❤️ and a lot of ☕
+Made with ❤️ and a lot of ☕ by [Girish Masade](https://github.com/Girishmasade)
 
-**[⬆ Back to Top](#-neuralchat-ai)**
+**[⬆ Back to Top](#-gchat)**
 
 </div>
-<<<<<<< HEAD
-=======
-# Ai-chatBot-
->>>>>>> 33049b8 (first commit)
