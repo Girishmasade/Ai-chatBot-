@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💬 GCHat
+# 💬 goChat-AI
 
 ### _An Intelligent, Context-Aware Chatbot powered by LangChain · RAG · Vector Embeddings_
 
@@ -17,7 +17,7 @@
 
 <br/>
 
-> **GCHat** is a full-stack, production-ready AI chatbot that understands your documents.  
+> **goChat-AI** is a full-stack, production-ready AI chatbot that understands your documents.  
 > Upload PDFs, paste URLs, or drop text — GCHat answers questions using **Retrieval-Augmented Generation (RAG)**,  
 > meaning every answer is grounded in _your_ data, not hallucination.
 
