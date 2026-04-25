@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const authSchema = z.object({
-  username: z.string().trim().min(1, "Username is required"),
+  username: z.string().trim().min(6, "Username must be at least 6 characters"),
 
   avatar: z.string().url("Invalid avatar URL").optional(),
 
