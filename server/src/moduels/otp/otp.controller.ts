@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 import redisClient from "../../config/redis.config.js";
-import { successHandler } from "@/utils/successHandler.util.js";
+import { successHandler } from "../../utils/successHandler.util.js";
 import crypto from "crypto";
 import { AuthModel } from "../auth/auth.models.js";
 import type { SendOTPInput, VerifyOTPInput } from "./otp.validator.js";
-import { sendEmail } from "@/services/mailer.utils.js";
-import { errorHandler } from "@/utils/errorHandler.util.js";
+import { sendEmail } from "../../services/mailer.utils.js";
+import { errorHandler } from "../../utils/errorHandler.util.js";
 
 // redis keys
 
@@ -83,8 +83,8 @@ export const sendOTP = async (
 // The function to verify otp */*/*/*/*/*
 
 export const verifyOTP = async (
-  res: Response,
   req: Request,
+  res: Response,
   next: NextFunction,
 ) => {
   try {

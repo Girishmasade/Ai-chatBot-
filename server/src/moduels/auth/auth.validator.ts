@@ -4,7 +4,6 @@ export const authSchema = z.object({
   username: z.string().trim().min(6, "Username must be at least 6 characters"),
   avatar:   z.string().url("Invalid avatar URL").optional(),
   email:    z.string().email("Invalid email address").toLowerCase(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   role:     z.enum(["user", "admin"]).default("user"),
   isAdmin:  z.boolean().default(false),
   isVerified: z.boolean().default(false),
@@ -13,13 +12,11 @@ export const authSchema = z.object({
 export const registerSchema = authSchema.pick({
   username: true,
   email: true,
-  password: true,
   avatar: true,
 });
 
 export const loginSchema = authSchema.pick({
   email: true,
-  password: true,
 });
 
 export const updateProfileSchema = authSchema
