@@ -83,11 +83,29 @@ export const loginAccount = async (
       return errorHandler(res, 400, false, "User is not verified", {});
     }
 
+    // track login attempts
+     const loginAttempts = await redisClient.get(`login:attempts:${email}`);
+
+     if(loginAttempts && parseInt(loginAttempts) >= 3){
+      return errorHandler(res, 400, false, "Too many attempts. Please try again later.", {});
+     }
+
+     // track retries
+     const retries = await redisClient.get(`${RETRY_PREFIX}${email}`);
+
+     if(retries && parseInt(retries) >= 5){
+      return errorHandler(res, 400, false, "Too many attempts. Please try again later.", {});
+     }
+
     const otp = generateOTP();
 
     await redisClient.setEx(`${OTP_PREFIX}${email}`, OTP_TTL, otp);
     await redisClient.incr(`${RETRY_PREFIX}${email}`);
     await redisClient.expire(`${RETRY_PREFIX}${email}`, RETRY_TTL);
+    
+    // track login attempts
+    await redisClient.incr(`login:attempts:${email}`);
+    await redisClient.expire(`login:attempts:${email}`, 60 * 60); // 1 hour
 
     const sendotp = await sendEmail({
       to: email,
