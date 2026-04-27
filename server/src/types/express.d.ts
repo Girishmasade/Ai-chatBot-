@@ -6,6 +6,11 @@ declare global {
       user?: {
         id: string;
         role: "user" | "admin";
+        email: string;
+        username: string;
+        googleId?: string;
+        githubId?: string;
+        facebookId?: string;
       };
     }
   }

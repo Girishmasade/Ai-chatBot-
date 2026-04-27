@@ -6,6 +6,9 @@ export interface Auth extends Document {
   email: string;
   role: "user" | "admin";
   isVerified: boolean;
+  googleId?: string;
+  githubId?: string;
+  facebookId?: string;
 }
 
 const authSchema = new Schema<Auth>(
@@ -15,6 +18,9 @@ const authSchema = new Schema<Auth>(
     email:    { type: String, required: true, unique: true, lowercase: true },
     role:     { type: String, enum: ["user", "admin"], default: "user" },
     isVerified: { type: Boolean, default: false },
+    googleId: { type: String },
+    githubId: { type: String },
+    facebookId: { type: String },
   },
   { timestamps: true }
 );

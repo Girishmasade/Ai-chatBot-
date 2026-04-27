@@ -6,6 +6,9 @@ export const authSchema = z.object({
   email:    z.string().email("Invalid email address").toLowerCase(),
   role:     z.enum(["user", "admin"]).default("user"),
   isVerified: z.boolean().default(false),
+  googleId: z.string().optional(),
+  githubId: z.string().optional(),
+  facebookId: z.string().optional(),
 });
 
 export const registerSchema = authSchema.pick({
@@ -23,4 +26,10 @@ export const updateProfileSchema = authSchema
 
 export const updateRoleSchema = z.object({
   role:    z.enum(["user", "admin"]),
+});
+
+export const socialLoginSchema = z.object({
+  googleId: z.string().optional(),
+  githubId: z.string().optional(),
+  facebookId: z.string().optional(),
 });

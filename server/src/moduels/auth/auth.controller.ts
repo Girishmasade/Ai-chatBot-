@@ -120,7 +120,15 @@ export const loginAccount = async (
     console.log("error to login Account :", error);
     next(error);
   }
-};
+}; 
+
+
+// export const googleLogin = (req: Request, res: Response, next: NextFunction) => {
+//   passport.authenticate("google", {
+//     scope: ["profile", "email"],
+//     prompt: "select_account",
+//   })(req, res, next);
+// };
 
 // logout
 
