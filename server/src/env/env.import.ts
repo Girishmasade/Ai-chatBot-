@@ -24,4 +24,37 @@ const redisUrl = process.env.REDIS_URL as string;
 const SMTP_EMAIL = process.env.SMTP_EMAIL as string;
 const SMTP_PASSWORD = process.env.SMTP_PASSWORD as string;
 
-export { redisUrl, SMTP_EMAIL, SMTP_PASSWORD, MONGO_URI, jwtSecret, jwtExpiry };
+// google auth keys
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID as string;
+const googleSecret = process.env.GOOGLE_CLIENT_SECRET as string;
+const googleFallbackUrl = process.env.GOOGLE_FALLBACK_URL as string;
+// facebook auth keys
+
+const facebookClientId = process.env.FACEBOOK_APP_ID as string;
+const facebookSecret = process.env.FACEBOOK_SECRET as string;
+const facebookFallbackUrl = process.env.FACEBOOK_FALLBACK_URL as string;
+
+// github auth keys
+
+const githubClientId = process.env.GITHUB_APP_ID as string;
+const githubSecret = process.env.GITHUB_SECRET as string;
+const githubFallbackUrl = process.env.GITHUB_FALLBACK_URL as string;
+
+export {
+  redisUrl,
+  SMTP_EMAIL,
+  SMTP_PASSWORD,
+  MONGO_URI,
+  jwtSecret,
+  jwtExpiry,
+  googleClientId,
+  googleSecret,
+  googleFallbackUrl,
+  facebookClientId,
+  facebookSecret,
+  facebookFallbackUrl,
+  githubClientId,
+  githubSecret,
+  githubFallbackUrl
+};

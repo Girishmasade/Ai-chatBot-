@@ -6,11 +6,21 @@ import { sendEmail } from "../../services/mailer.utils.js";
 import { successHandler } from "../../utils/successHandler.util.js";
 import type { LoginInput, RegisterInput } from "./auth.types.js";
 import { errorHandler } from "../../utils/errorHandler.util.js";
+import passport from "passport";
+import { jwtSecret, jwtExpiry } from "../../env/env.import.js";
+import jwt, { type SignOptions } from "jsonwebtoken";
 
 const OTP_PREFIX = "otp:";
 const OTP_TTL = 200;
 const RETRY_PREFIX = "otp:retries:";
 const RETRY_TTL = 200;
+
+interface JwtPayload {
+  userId: string;
+  email?: string;
+  username?: string;
+  avatar?: string;
+}
 
 const generateOTP = (): string => crypto.randomInt(100000, 999999).toString();
 
@@ -84,25 +94,37 @@ export const loginAccount = async (
     }
 
     // track login attempts
-     const loginAttempts = await redisClient.get(`login:attempts:${email}`);
+    const loginAttempts = await redisClient.get(`login:attempts:${email}`);
 
-     if(loginAttempts && parseInt(loginAttempts) >= 3){
-      return errorHandler(res, 400, false, "Too many attempts. Please try again later.", {});
-     }
+    if (loginAttempts && parseInt(loginAttempts) >= 3) {
+      return errorHandler(
+        res,
+        400,
+        false,
+        "Too many attempts. Please try again later.",
+        {},
+      );
+    }
 
-     // track retries
-     const retries = await redisClient.get(`${RETRY_PREFIX}${email}`);
+    // track retries
+    const retries = await redisClient.get(`${RETRY_PREFIX}${email}`);
 
-     if(retries && parseInt(retries) >= 5){
-      return errorHandler(res, 400, false, "Too many attempts. Please try again later.", {});
-     }
+    if (retries && parseInt(retries) >= 5) {
+      return errorHandler(
+        res,
+        400,
+        false,
+        "Too many attempts. Please try again later.",
+        {},
+      );
+    }
 
     const otp = generateOTP();
 
     await redisClient.setEx(`${OTP_PREFIX}${email}`, OTP_TTL, otp);
     await redisClient.incr(`${RETRY_PREFIX}${email}`);
     await redisClient.expire(`${RETRY_PREFIX}${email}`, RETRY_TTL);
-    
+
     // track login attempts
     await redisClient.incr(`login:attempts:${email}`);
     await redisClient.expire(`login:attempts:${email}`, 60 * 60); // 1 hour
@@ -120,15 +142,55 @@ export const loginAccount = async (
     console.log("error to login Account :", error);
     next(error);
   }
-}; 
+};
 
+// google login
 
-// export const googleLogin = (req: Request, res: Response, next: NextFunction) => {
-//   passport.authenticate("google", {
-//     scope: ["profile", "email"],
-//     prompt: "select_account",
-//   })(req, res, next);
-// };
+export const googleLogin = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    prompt: "select_account",
+  })(req, res, next);
+};
+
+// google callback url
+
+export const googleCallback = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  passport.authenticate(
+    "google",
+    { failureRedirect: "/signin" },
+    (err, user) => {
+      if (err || !user) return res.redirect("/signin");
+
+      // Generate JWT
+      const payload: JwtPayload = {
+        userId: user._id.toString(),
+        email: user.email,
+        username: user.username,
+        avatar: user.avatar,
+      };
+
+      const options: SignOptions = {
+        // it's used for the jwt token signOptions
+        expiresIn: jwtExpiry as SignOptions["expiresIn"],
+      };
+
+      const token = jwt.sign(payload, jwtSecret as string, options);
+
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/oauth-success?token=${token}`,
+      );
+    },
+  )(req, res, next);
+};
 
 // logout
 
