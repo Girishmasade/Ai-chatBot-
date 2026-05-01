@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// node Env
+
+const node_env = process.env.NODE_ENV as String
+
 // port
 
 export const PORT = process.env.PORT || (5000 as unknown as number);
@@ -12,8 +16,8 @@ const MONGO_PASS = process.env.MONGO_PASS as string;
 
 // jwt
 
-const jwtSecret = process.env.JWT_SECRET as string;
-const jwtExpiry = process.env.JWT_EXPIRY as string;
+const jwtAccessSecret = process.env.ACCESS_TOKEN_SECRET as string;
+const jwtRefreshSecret = process.env.REFRESH_TOKEN_SECRET as string;
 
 // redis
 
@@ -42,12 +46,13 @@ const githubSecret = process.env.GITHUB_SECRET as string;
 const githubFallbackUrl = process.env.GITHUB_FALLBACK_URL as string;
 
 export {
+  node_env,
   redisUrl,
   SMTP_EMAIL,
   SMTP_PASSWORD,
   MONGO_URI,
-  jwtSecret,
-  jwtExpiry,
+  jwtAccessSecret,
+  jwtRefreshSecret,
   googleClientId,
   googleSecret,
   googleFallbackUrl,

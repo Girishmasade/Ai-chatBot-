@@ -1,45 +1,27 @@
 import type { NextFunction, Request, Response } from "express";
 import passport from "passport";
-import { jwtSecret, jwtExpiry } from "../../env/env.import.js";
-import jwt, { type SignOptions } from "jsonwebtoken";
-
-interface JwtPayload {
-  userId: string;
-  email?: string;
-  username?: string;
-  avatar?: string;
-}
-
-
-const generateToken = (user: any): string => {
-  const payload: JwtPayload = {
-    userId: user._id.toString(),
-    email: user.email,
-    username: user.username,
-    avatar: user.avatar,
-  };
-
-  const options: SignOptions = {
-    expiresIn: jwtExpiry as SignOptions["expiresIn"],
-  };
-
-  return jwt.sign(payload, jwtSecret as string, options);
-};
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  setTokenCookies,
+} from "../../utils/token.utils.js";
 
 const oauthCallback =
-  (strategy: string) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  (strategy: string) => (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate(
       strategy,
       { failureRedirect: "/signin" },
-      (err: any, user: any) => {
+      async (err: any, user: any) => {
         if (err || !user) return res.redirect("/signin");
 
-        const token = generateToken(user);
+        const accessToken = await generateAccessToken(user);
+        const refreshToken = await generateRefreshToken(user._id.toString());
 
-        return res.redirect(
-          `${process.env.FRONTEND_URL}/oauth-success?token=${token}`,
-        );
+        // store both in HttpOnly cookies
+
+        setTokenCookies(res, accessToken, refreshToken);
+
+        return res.redirect(`${process.env.FRONTEND_URL}/oauth-success`);
       },
     )(req, res, next);
   };
@@ -67,7 +49,7 @@ export const githubLogin = (
   next: NextFunction,
 ) => {
   passport.authenticate("github", {
-    scope: ["user:email"],  // correct GitHub scope
+    scope: ["user:email"], // correct GitHub scope
   })(req, res, next);
 };
 
@@ -81,7 +63,7 @@ export const facebookLogin = (
   next: NextFunction,
 ) => {
   passport.authenticate("facebook", {
-    scope: ["public_profile", "email"],  // correct Facebook scopes, no prompt
+    scope: ["public_profile", "email"], // correct Facebook scopes, no prompt
   })(req, res, next);
 };
 

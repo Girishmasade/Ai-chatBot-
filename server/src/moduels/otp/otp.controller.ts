@@ -6,6 +6,7 @@ import { AuthModel } from "../auth/auth.models.js";
 import type { SendOTPInput, VerifyOTPInput } from "./otp.validator.js";
 import { sendEmail } from "../../services/mailer.utils.js";
 import { errorHandler } from "../../utils/errorHandler.util.js";
+import { generateAccessToken, generateRefreshToken, setTokenCookies } from "@/utils/token.utils.js";
 
 // redis keys
 
@@ -42,9 +43,13 @@ export const sendOTP = async (
       return successHandler(res, 404, false, "User not found", {});
     }
 
+    if (user.isVerified) {
+      return successHandler(res, 400, false, "Email is already verified.", {});
+    }
+
     const retries = await redisClient.get(`${RETRY_PREFIX}${email}`);
 
-    console.log("retries : ", retries);
+    // console.log("retries : ", retries);
 
     if (retries && parseInt(retries) >= MAX_RETRIES) {
       return successHandler(
@@ -58,7 +63,7 @@ export const sendOTP = async (
 
     const otp = generateOTP();
 
-    console.log("otp : ", otp);
+    // console.log("otp : ", otp);
 
     await redisClient.setEx(`${OTP_PREFIX}${email}`, OTP_TTL, otp); // using redis set ex to store otp with ttl
     await redisClient.incr(`${RETRY_PREFIX}${email}`); // using redis incr to increment the retry count
@@ -70,7 +75,7 @@ export const sendOTP = async (
       payload: { otp, username: user.username },
     });
 
-    console.log("send : ", send);
+    // console.log("send : ", send);
 
     successHandler(res, 200, true, "OTP sent to your email.", {});
   } catch (error) {
@@ -91,43 +96,56 @@ export const verifyOTP = async (
     const { email, otp } = req.body as VerifyOTPInput;
 
     if (!email || !otp) {
-      return successHandler(res, 400, false, "Email is required", {});
+      return successHandler(res, 400, false, "Email and OTP are required", {});
     }
 
     const storedOTP = await redisClient.get(`${OTP_PREFIX}${email}`);
-
-    console.log("stored otp : ", storedOTP);
-
     if (!storedOTP) {
       return successHandler(res, 400, false, "OTP is invalid or expired", {});
     }
 
-    // constant time comparison — prevents timing attacks
+    if (storedOTP.length !== otp.length) {
+      return successHandler(res, 400, false, "OTP is invalid or expired", {});
+    }
+
     const isValid = crypto.timingSafeEqual(
-      // timingSafeEqual is used to compare two buffers in constant time
       Buffer.from(storedOTP),
       Buffer.from(otp),
     );
 
     if (!isValid) {
+      await redisClient.incr(`${RETRY_PREFIX}${email}`);
+      await redisClient.expire(`${RETRY_PREFIX}${email}`, RETRY_TTL);
       return successHandler(res, 400, false, "OTP is invalid or expired", {});
     }
 
     const user = await AuthModel.findOneAndUpdate(
       { email },
       { $set: { isVerified: true } },
+      { new: true },
     );
 
-    console.log("user : ", user);
-
-    // now clear the redis
+    if (!user) return errorHandler(res, 404, false, "User not found", {});
 
     await redisClient.del(`${OTP_PREFIX}${email}`);
     await redisClient.del(`${RETRY_PREFIX}${email}`);
 
-    successHandler(res, 200, true, "Email verified successfully.", {});
+    const accessToken  = await generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user._id.toString());
+
+    setTokenCookies(res, refreshToken);
+
+    return successHandler(res, 200, true, "Email verified successfully.", {
+      accessToken,                       
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
   } catch (error) {
-    console.error("error to verify otp : ", error);
     next(error);
   }
 };
