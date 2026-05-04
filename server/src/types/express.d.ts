@@ -1,17 +1,11 @@
-// src/types/express.d.ts
+import type { AuthUser } from "./auth.payload.js";
 
 declare global {
   namespace Express {
+    interface User extends AuthUser {} // 👈 Passport user
+
     interface Request {
-      user?: {
-        id: string;
-        role: string;
-        email: string;
-        username: string;
-        googleId?: string;
-        githubId?: string;
-        facebookId?: string;
-      };
+      user?: AuthUser; // 👈 req.user
     }
   }
 }

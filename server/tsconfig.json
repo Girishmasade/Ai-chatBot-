@@ -9,7 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "types": ["node"],
+    "types": ["node", "express"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

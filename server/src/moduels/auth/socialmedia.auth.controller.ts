@@ -15,7 +15,7 @@ const oauthCallback =
         if (err || !user) return res.redirect("/signin");
 
         const accessToken = await generateAccessToken(user);
-        const refreshToken = await generateRefreshToken(user._id.toString());
+        const refreshToken = await generateRefreshToken(user._id.toString()) as string;
 
         // store both in HttpOnly cookies
 
@@ -36,6 +36,7 @@ export const googleLogin = (
   passport.authenticate("google", {
     scope: ["profile", "email"],
     prompt: "select_account",
+    session: false
   })(req, res, next);
 };
 
@@ -50,6 +51,7 @@ export const githubLogin = (
 ) => {
   passport.authenticate("github", {
     scope: ["user:email"], // correct GitHub scope
+    session: false
   })(req, res, next);
 };
 
@@ -64,6 +66,7 @@ export const facebookLogin = (
 ) => {
   passport.authenticate("facebook", {
     scope: ["public_profile", "email"], // correct Facebook scopes, no prompt
+    session: false
   })(req, res, next);
 };
 

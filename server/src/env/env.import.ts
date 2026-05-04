@@ -45,6 +45,11 @@ const githubClientId = process.env.GITHUB_APP_ID as string;
 const githubSecret = process.env.GITHUB_SECRET as string;
 const githubFallbackUrl = process.env.GITHUB_FALLBACK_URL as string;
 
+// clodinary config url
+
+const cloudinaryUrl = process.env.CLOUDINARY_URL as string;
+
+
 export {
   node_env,
   redisUrl,
@@ -61,5 +66,6 @@ export {
   facebookFallbackUrl,
   githubClientId,
   githubSecret,
-  githubFallbackUrl
+  githubFallbackUrl,
+  cloudinaryUrl
 };

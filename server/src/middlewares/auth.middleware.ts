@@ -11,6 +11,7 @@ interface jwtPayload {
   role: string;
   email: string;
   username: string;
+  avatar: string
 }
 
 // it's used for refresh if token expired
@@ -49,6 +50,7 @@ const silentRefresh = async (
         role: user.role,
         email: user.email,
         username: user.username,
+        avatar: user.avatar,
       },
       newAccessToken,
     };
@@ -79,6 +81,7 @@ export const authMiddleware = async (
         role: result.payload.role,
         email: result.payload.email,
         username: result.payload.username,
+        avatar: result.payload.avatar
       };
       return next();
     }
@@ -99,6 +102,7 @@ export const authMiddleware = async (
           role: result.payload.role,
           email: result.payload.email,
           username: result.payload.username,
+           avatar: result.payload.avatar
         };
         return next();
       }
@@ -115,6 +119,7 @@ export const authMiddleware = async (
         role: user.role,
         email: user.email,
         username: user.username,
+         avatar: user.avatar
       };
 
       return next();
@@ -133,6 +138,8 @@ export const authMiddleware = async (
           role: result.payload.role,
           email: result.payload.email,
           username: result.payload.username,
+          avatar: result.payload.avatar
+
         };
         return next();
       }
