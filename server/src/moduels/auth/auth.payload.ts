@@ -3,6 +3,7 @@ export interface JwtPayload {
   role: string;
   email: string;
   username: string;
+  isVerified: boolean;
 }
 
 export interface AuthUser {
@@ -13,4 +14,5 @@ export interface AuthUser {
   googleId?: string;
   githubId?: string;
   facebookId?: string;
+  isVerified: boolean;
 }

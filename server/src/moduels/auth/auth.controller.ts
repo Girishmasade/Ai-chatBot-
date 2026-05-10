@@ -2,7 +2,6 @@ import type { NextFunction, Request, Response } from "express";
 import crypto from "crypto";
 import { AuthModel } from "./auth.models.js";
 import redisClient from "../../config/redis.config.js";
-import { sendEmail } from "../../services/mailer.utils.js";
 import { successHandler } from "../../utils/successHandler.util.js";
 import type { LoginInput, RegisterInput } from "./auth.types.js";
 import { errorHandler } from "../../utils/errorHandler.util.js";
