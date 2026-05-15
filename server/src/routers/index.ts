@@ -3,6 +3,7 @@ import { authRouter } from "../moduels/auth/auth.route.js";
 import { otpRouter } from "../moduels/otp/otp.route.js";
 import { userRouter } from "@/moduels/user/user.route.js";
 import { adminRouter } from "@/moduels/admin/admin.route.js";
+import { subscriptionRouter } from "@/moduels/subscription/subscription.route.js";
 
 export const RouterFile = Router()
 
@@ -10,3 +11,4 @@ RouterFile.use("/auth", authRouter)
 RouterFile.use("/otp", otpRouter)
 RouterFile.use("/user", userRouter)
 RouterFile.use("/admin", adminRouter)
+RouterFile.use("/subscription", subscriptionRouter)

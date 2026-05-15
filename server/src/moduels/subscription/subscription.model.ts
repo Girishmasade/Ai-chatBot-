@@ -11,6 +11,7 @@ export interface Isubscription extends Document {
   payuSubId: string;
   amount: number;
   currency: string;
+  services: string[];
 }
 
 export const subscriptionSchema = new Schema<Isubscription>(
@@ -28,6 +29,10 @@ export const subscriptionSchema = new Schema<Isubscription>(
       type: String,
       enum: ["active", "inactive", "cancel"],
       default: "inactive",
+    },
+    services: {
+      type: [String],
+      default: []
     },
     startDate: {
       type: Date,
