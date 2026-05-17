@@ -1,66 +1,57 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-export interface Isubscription extends Document {
-  user: mongoose.Types.ObjectId;
-  plan: "free" | "pro" | "ultra";
-  status: "active" | "inactive" | "cancel";
-  startDate: Date;
-  endDate: Date;
-  autoRenew: boolean;
-  payuTxnId: string;
-  payuSubId: string;
-  amount: number;
-  currency: string;
-  services: string[];
+export interface ISubscriptionPlan extends Document {
+  name: string;                                           
+  plan: "free" | "monthly" | "yearly" | "custom";
+  price: number;                                           
+  description: string;
+  services: string[];                                     
+  isActive: boolean;                                       
+  createdBy: mongoose.Types.ObjectId;                      
 }
 
-export const subscriptionSchema = new Schema<Isubscription>(
+const subscriptionPlanSchema = new Schema<ISubscriptionPlan>(
   {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "Auth"
+    name: {
+      type: String,
+      required: true,
+      trim: true,
     },
     plan: {
       type: String,
-      enum: ["free", "pro", "ultra"],
-      default: "free",
+      enum: ["free", "monthly", "yearly", "custom"],
+      required: true,
     },
-    status: {
+    price: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
+    description: {
       type: String,
-      enum: ["active", "inactive", "cancel"],
-      default: "inactive",
+      default: "",
+      trim: true,
     },
     services: {
       type: [String],
-      default: []
+      default: [],
     },
-    startDate: {
-      type: Date,
-    },
-    endDate: {
-      type: Date,
-    },
-    autoRenew: {
+    isActive: {
       type: Boolean,
-      default: false,
+      default: true,
     },
-    payuTxnId: {
-      type: String,
-    },
-    payuSubId: {
-      type: String,
-    },
-    amount: {
-      type: Number,
-    },
-    currency: {
-      type: String,
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "Auth",
+      required: true,
     },
   },
   { timestamps: true },
 );
 
-export const subscriptionModel = mongoose.model<Isubscription>(
-  "subscription",
-  subscriptionSchema,
+export const SubscriptionPlanModel = mongoose.model<ISubscriptionPlan>(
+  "SubscriptionPlan",
+  subscriptionPlanSchema,
 );
+

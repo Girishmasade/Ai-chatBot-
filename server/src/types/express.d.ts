@@ -1,4 +1,4 @@
-import type { AuthUser } from "./auth.payload.js";
+import type { AuthUser } from "@/moduels/auth/auth.payload.js";
 
 declare global {
   namespace Express {
