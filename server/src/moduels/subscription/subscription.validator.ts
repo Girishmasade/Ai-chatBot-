@@ -66,3 +66,14 @@ export const updateUserSubscription = userSubscriptionSchema.extend({
     activatedAt: z.string().optional(),
     cancelledAt: z.string().optional()
 })
+
+export const cancelUserSubscription = userSubscriptionSchema.extend({
+    user: z.string().optional(),
+    plan: z.string().optional(),
+    status: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    paymentRef: z.string().optional(),
+    activatedAt: z.string().optional(),
+    cancelledAt: z.string().optional()
+})

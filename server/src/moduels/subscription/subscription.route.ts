@@ -2,7 +2,8 @@ import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
 import { Router } from "express";
 import { createSubscription, deleteSubscriptionForUser, getSubscriptionForUser, updateSubscriptionForUser } from "./subscription.controller.js";
 import { validate } from "@/middlewares/zod.middleware.js";
-import { createSub, updateSub } from "./subscription.validator.js";
+import { cancelUserSubscription, createSub, updateSub } from "./subscription.validator.js";
+import { cancelSubscription, createUserSubscription, getSubscription } from "./userSubscription.controller.js";
 
 export const subscriptionRouter = Router();
 
@@ -34,4 +35,25 @@ subscriptionRouter.delete(
   authMiddleware,
   isAdmin,
   deleteSubscriptionForUser,
+);
+
+// user subscription
+
+subscriptionRouter.post(
+  "/create-user-subscription/:planId",
+  authMiddleware,
+  createUserSubscription,
+);
+
+subscriptionRouter.get(
+  "/get-user-subscription/:subscriptionId",
+  authMiddleware,
+  getSubscription,
+);
+
+subscriptionRouter.put(
+  "/cancel-user-subscription/:subscriptionId",
+  authMiddleware,
+  validate(cancelUserSubscription),
+  cancelSubscription,
 );

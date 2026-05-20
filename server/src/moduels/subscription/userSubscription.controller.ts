@@ -159,3 +159,36 @@ export const getSubscription = AsyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
+// cancel user subscription plan
+
+export const cancelSubscription = AsyncHandler(
+  async(req,res,next) => {
+    try {
+      const userId = (req.user as AuthUser).id;
+      const subscriptionId = req.params.subscriptionId as string;
+
+      if(!subscriptionId){
+        return errorHandler(res , 404,false,"Subscription Id is required",{})
+      }
+
+      const cancel = await UserSubscriptionModel.findByIdAndUpdate(
+        subscriptionId,
+        {
+          status : "cancelled",
+          cancelledAt : new Date(),
+          
+        },
+        {
+          new:true
+        }
+      )
+
+      console.log("cancel subscription :",cancel)
+
+    } catch (error) {
+      console.log("error to cancel the subscription plan",error)
+      next(error)
+    }
+  }
+)
