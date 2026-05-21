@@ -13,3 +13,9 @@ export enum ProviderName {
   POLLINATIONS = "pollinations",
 }
 
+export enum ProviderHealthStatus {
+  Healthy = "Healthy",
+  Unhealthy = "Unhealthy",
+  Degraded = "Degraded",
+  Unknown = "Unknown",
+}

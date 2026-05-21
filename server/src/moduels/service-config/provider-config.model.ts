@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { ProviderName } from "./service-config.types.js";
+import { ProviderHealthStatus, ProviderName } from "./service-config.types.js";
 
 export const ProviderConfigSchema = new Schema(
   {
@@ -10,7 +10,7 @@ export const ProviderConfigSchema = new Schema(
     },
 
     model: {
-      type: String, 
+      type: String,
       required: true,
       trim: true,
     },
@@ -48,8 +48,27 @@ export const ProviderConfigSchema = new Schema(
       type: Number,
       min: 1,
     },
+
+    healthStatus: {
+      type: String,
+      enum: Object.values(ProviderHealthStatus),
+      default: ProviderHealthStatus.Unknown,
+    },
+
+    lastCheckedAt: {
+      type: Date,
+    },
+
+    lastFailureAt: {
+      type: Date,
+    },
+
+    averageResponseTime: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     _id: false,
-  }
+  },
 );
