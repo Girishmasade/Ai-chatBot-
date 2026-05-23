@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { AIService } from "./service-config.types.js";
 import { ProviderConfigSchema } from "./provider-config.model.js";
 
@@ -42,18 +42,10 @@ export const ServiceConfigSchema = new Schema(
       default: 60,
       min: 1,
     },
-
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "Auth",
-    },
-
-    updatedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "Auth",
-    },
   },
   {
     timestamps: true,
   }
 );
+
+export const ServiceConfigModel = mongoose.model("serviceConfigModel", ServiceConfigSchema)
