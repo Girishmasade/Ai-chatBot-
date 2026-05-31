@@ -6,16 +6,3 @@ export enum AIService {
   ASSET_GEN = "asset_gen",
 }
 
-export enum ProviderName {
-  GROQ = "groq",
-  GEMINI = "gemini",
-  HUGGINGFACE = "huggingface",
-  POLLINATIONS = "pollinations",
-}
-
-export enum ProviderHealthStatus {
-  Healthy = "Healthy",
-  Unhealthy = "Unhealthy",
-  Degraded = "Degraded",
-  Unknown = "Unknown",
-}

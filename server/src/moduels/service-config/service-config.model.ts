@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { AIService } from "./service-config.types.js";
-import { ProviderConfigSchema } from "./provider-config.model.js";
+import { ProviderConfigSchema } from "../Provider/provider-config.model.js";
 
 export const ServiceConfigSchema = new Schema(
   {
@@ -45,7 +45,10 @@ export const ServiceConfigSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-export const ServiceConfigModel = mongoose.model("serviceConfigModel", ServiceConfigSchema)
+export const ServiceConfigModel = mongoose.model(
+  "serviceConfigModel",
+  ServiceConfigSchema,
+);

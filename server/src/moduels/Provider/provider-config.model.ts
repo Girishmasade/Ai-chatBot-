@@ -1,5 +1,8 @@
 import mongoose, { Schema } from "mongoose";
-import { ProviderHealthStatus, ProviderName } from "./service-config.types.js";
+import {
+  ProviderHealthStatus,
+  ProviderName,
+} from "../Provider/provider-config.types.js";
 
 export const ProviderConfigSchema = new Schema(
   {
@@ -73,4 +76,7 @@ export const ProviderConfigSchema = new Schema(
   },
 );
 
-export const ProviderConfigModel = mongoose.model("providerConfigModel", ProviderConfigSchema)
+export const ProviderConfigModel = mongoose.model(
+  "providerConfigModel",
+  ProviderConfigSchema,
+);
