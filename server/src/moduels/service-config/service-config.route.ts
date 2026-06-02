@@ -1,40 +1,81 @@
 import { Router } from "express";
-import { createServiceConfig, updateServiceConfig, getListOfServices, getSingleService, deleteService } from "./service-config.controller.js";
+import {
+  createServiceConfig,
+  updateServiceConfig,
+  getListOfServices,
+  getSingleService,
+  deleteService,
+  toggleServiceStatus,
+  toggleFallbackStatus,
+  updateRateLimit,
+} from "./service-config.controller.js";
 import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
+import {
+  createServiceSchema,
+  toggleFallbackSchema,
+  toggleServiceSchema,
+  updateRateLimitSchema,
+  updateServiceSchema,
+} from "./service-config.validator.js";
+import { validate } from "@/middlewares/zod.middleware.js";
 
 export const serviceConfigRoute = Router();
 
+// for only un auth users
+
+serviceConfigRoute.use(authMiddleware, isAdmin);
+
+// create service config
+
 serviceConfigRoute.post(
   "/create-service",
-  authMiddleware,
-  isAdmin,
+  validate(createServiceSchema),
   createServiceConfig,
 );
 
-serviceConfigRoute.put(
-  "/:serviceId",
-  authMiddleware,
-  isAdmin,
-  updateServiceConfig
-)
+// update service config
 
-serviceConfigRoute.get(
-  "/get-all-services",
-  authMiddleware,
-  isAdmin,
-  getListOfServices
-)
-
-serviceConfigRoute.get(
+serviceConfigRoute.patch(
   "/:serviceId",
-  authMiddleware,
-  isAdmin,
-  getSingleService
-)
+  validate(updateServiceSchema),
+  updateServiceConfig,
+);
+
+// get list of services
+
+serviceConfigRoute.get("/get-all-services", getListOfServices);
+
+// get single service
+
+serviceConfigRoute.get("/:serviceId", getSingleService);
+
+// toggle service status
+
+serviceConfigRoute.patch(
+  "/toggle-service/:serviceId",
+  validate(toggleServiceSchema),
+  toggleServiceStatus,
+);
+
+// toggle fallback status
+
+serviceConfigRoute.patch(
+  "/serviceId/fallback",
+  validate(toggleFallbackSchema),
+  toggleFallbackStatus,
+);
+
+// update rate limit
+
+serviceConfigRoute.patch(
+  "/serviceId/rate-limit",
+  validate(updateRateLimitSchema),
+  updateRateLimit,
+);
+
+// delete service config
 
 serviceConfigRoute.delete(
-  "/:serviceId",
-  authMiddleware,
-  isAdmin,
+  "/:serviceId", 
   deleteService
-)
+);
