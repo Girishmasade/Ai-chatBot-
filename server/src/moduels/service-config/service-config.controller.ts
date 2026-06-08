@@ -42,6 +42,8 @@ export const createServiceConfig = AsyncHandler(async (req, res, next) => {
     service: service.toLowerCase(),
   });
 
+  // console.log("is service config exists :", isServiceConfigExist)
+
   if (isServiceConfigExist) {
     return errorHandler(
       res,
@@ -60,6 +62,8 @@ export const createServiceConfig = AsyncHandler(async (req, res, next) => {
     providers,
     rateLimitPerMinute: rateLimitPerMinute ?? 60,
   });
+
+  // console.log("new service config",newServiceConfig);
 
   await refreshServiceCache();
 
@@ -137,6 +141,8 @@ export const getListOfServices = AsyncHandler(async (req, res, next) => {
   }
 
   const services = await ServiceConfigModel.find().lean();
+
+  console.log("services :", services)
 
   await redisClient.set("service:list", JSON.stringify(services));
 

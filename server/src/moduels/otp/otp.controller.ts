@@ -63,7 +63,7 @@ export const sendOTP = async (
 
     const otp = generateOTP();
 
-    // console.log("otp : ", otp);
+    console.log("otp : ", otp);
 
     await redisClient.setEx(`${OTP_PREFIX}${email}`, OTP_TTL, otp); // using redis set ex to store otp with ttl
     await redisClient.incr(`${RETRY_PREFIX}${email}`); // using redis incr to increment the retry count
@@ -75,9 +75,9 @@ export const sendOTP = async (
       payload: { otp, username: user.username },
     });
 
-    // console.log("send : ", send);
+    console.log("send : ", send);
 
-    successHandler(res, 200, true, "OTP sent to your email.", {});
+    successHandler(res, 200, true, "OTP sent to your email.", {send});
   } catch (error) {
     console.log("error to send otp : ,", error);
     errorHandler(res, 500, false, "Internal server error", error);

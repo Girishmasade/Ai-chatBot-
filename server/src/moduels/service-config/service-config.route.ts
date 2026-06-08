@@ -36,7 +36,7 @@ serviceConfigRoute.post(
 // update service config
 
 serviceConfigRoute.patch(
-  "/:serviceId",
+  "/:id",
   validate(updateServiceSchema),
   updateServiceConfig,
 );
@@ -47,12 +47,12 @@ serviceConfigRoute.get("/get-all-services", getListOfServices);
 
 // get single service
 
-serviceConfigRoute.get("/:serviceId", getSingleService);
+serviceConfigRoute.get("/:id", getSingleService);
 
 // toggle service status
 
 serviceConfigRoute.patch(
-  "/toggle-service/:serviceId",
+  "/toggle-service/:id",
   validate(toggleServiceSchema),
   toggleServiceStatus,
 );
@@ -60,7 +60,7 @@ serviceConfigRoute.patch(
 // toggle fallback status
 
 serviceConfigRoute.patch(
-  "/serviceId/fallback",
+"/:id/fallback",
   validate(toggleFallbackSchema),
   toggleFallbackStatus,
 );
@@ -68,7 +68,7 @@ serviceConfigRoute.patch(
 // update rate limit
 
 serviceConfigRoute.patch(
-  "/serviceId/rate-limit",
+ "/:id/rate-limit",
   validate(updateRateLimitSchema),
   updateRateLimit,
 );
@@ -76,6 +76,6 @@ serviceConfigRoute.patch(
 // delete service config
 
 serviceConfigRoute.delete(
-  "/:serviceId", 
+  "/:id", 
   deleteService
 );

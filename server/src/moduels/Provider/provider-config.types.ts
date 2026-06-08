@@ -10,5 +10,7 @@ export enum ProviderName {
   GEMINI = "gemini",
   HUGGINGFACE = "huggingface",
   POLLINATIONS = "pollinations",
+  OPENAI = "openai",
+  CHATGPT = "chatgpt",
 }
 
