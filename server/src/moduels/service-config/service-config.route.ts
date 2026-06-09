@@ -60,7 +60,7 @@ serviceConfigRoute.patch(
 // toggle fallback status
 
 serviceConfigRoute.patch(
-"/:id/fallback",
+  "/:id/fallback",
   validate(toggleFallbackSchema),
   toggleFallbackStatus,
 );
@@ -68,7 +68,7 @@ serviceConfigRoute.patch(
 // update rate limit
 
 serviceConfigRoute.patch(
- "/:id/rate-limit",
+  "/:id/rate-limit",
   validate(updateRateLimitSchema),
   updateRateLimit,
 );
@@ -76,6 +76,7 @@ serviceConfigRoute.patch(
 // delete service config
 
 serviceConfigRoute.delete(
-  "/:id", 
-  deleteService
+  "/:id",
+  validate(updateRateLimitSchema),
+  deleteService,
 );

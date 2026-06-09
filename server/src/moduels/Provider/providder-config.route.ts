@@ -25,7 +25,7 @@ providerRouter.use(authMiddleware, isAdmin);
 // toggle provider route
 
 providerRouter.patch(
-  ":provider/toggle",
+  "/:provider/toggle",
   validate(toggleProviderSchema),
   toggleProviderStatus,
 );

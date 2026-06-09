@@ -142,7 +142,7 @@ export const getListOfServices = AsyncHandler(async (req, res, next) => {
 
   const services = await ServiceConfigModel.find().lean();
 
-  console.log("services :", services)
+  // console.log("services :", services)
 
   await redisClient.set("service:list", JSON.stringify(services));
 
