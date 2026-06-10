@@ -75,8 +75,3 @@ export const ProviderConfigSchema = new Schema(
     _id: false,
   },
 );
-
-export const ProviderConfigModel = mongoose.model(
-  "providerConfigModel",
-  ProviderConfigSchema,
-);

@@ -17,11 +17,23 @@ export const toggleProviderStatus = AsyncHandler(async (req, res, next) => {
   const { service, provider } = req.params;
   const { enabled } = req.body;
 
+  if (!Object.values(ProviderName).includes(provider as ProviderName)) {
+  return errorHandler(
+    res,
+    400,
+    false,
+    "Invalid provider",
+    next,
+  );
+}
+
   if (typeof enabled !== "boolean") {
     return errorHandler(res, 400, false, "enabled must be a boolean", next);
   }
 
   const serviceDoc = await ServiceConfigModel.findOne({ service });
+
+  // console.log("service Doc :", serviceDoc);
 
   if (!serviceDoc) {
     return errorHandler(res, 404, false, "Service not found", next);
@@ -30,6 +42,8 @@ export const toggleProviderStatus = AsyncHandler(async (req, res, next) => {
   const providerDoc = serviceDoc.providers.find(
     (p: any) => p.provider === provider,
   );
+
+  // console.log("provider Doc :", providerDoc);
 
   if (!providerDoc) {
     return errorHandler(res, 404, false, "Provider not found", next);
@@ -60,7 +74,7 @@ export const toggleProviderStatus = AsyncHandler(async (req, res, next) => {
     200,
     true,
     `Provider ${enabled ? "enabled" : "disabled"} successfully`,
-    {serviceDoc},
+    { serviceDoc },
   );
 });
 
@@ -76,8 +90,14 @@ export const updateProviderPriority = AsyncHandler(async (req, res, next) => {
   const { service, provider } = req.params;
   const { priority } = req.body;
 
-  if (!priority || priority < 1) {
-    return errorHandler(res, 400, false, "Priority must be at least 1", next);
+  if (typeof priority !== "number" || Number.isNaN(priority) || priority < 1) {
+    return errorHandler(
+      res,
+      400,
+      false,
+      "Priority must be a positive number",
+      next,
+    );
   }
 
   const serviceDoc = await ServiceConfigModel.findOne({ service });
@@ -121,7 +141,7 @@ export const updateProviderPriority = AsyncHandler(async (req, res, next) => {
     200,
     true,
     "Provider priority updated successfully",
-    {serviceDoc},
+    { serviceDoc },
   );
 });
 
@@ -138,7 +158,13 @@ export const updateProviderModel = AsyncHandler(async (req, res, next) => {
   const { model } = req.body;
 
   if (!model || typeof model !== "string" || model.trim() === "") {
-    return errorHandler(res, 400, false, "A valid model string is required", next);
+    return errorHandler(
+      res,
+      400,
+      false,
+      "A valid model string is required",
+      next,
+    );
   }
 
   const updatedService = await ServiceConfigModel.findOneAndUpdate(
@@ -156,13 +182,9 @@ export const updateProviderModel = AsyncHandler(async (req, res, next) => {
     return errorHandler(res, 404, false, "Service or provider not found", next);
   }
 
-  return successHandler(
-    res,
-    200,
-    true,
-    "Provider model updated successfully",
-    {updatedService},
-  );
+  return successHandler(res, 200, true, "Provider model updated successfully", {
+    updatedService,
+  });
 });
 
 // updateProviderTimeout
@@ -177,7 +199,11 @@ export const updateProviderTimeout = AsyncHandler(async (req, res, next) => {
   const { service, provider } = req.params;
   const { timeout } = req.body;
 
-  if (!timeout || timeout < 1000) {
+  if (
+  typeof timeout !== "number" ||
+  Number.isNaN(timeout) ||
+  timeout < 1000
+) {
     return errorHandler(
       res,
       400,
@@ -207,7 +233,7 @@ export const updateProviderTimeout = AsyncHandler(async (req, res, next) => {
     200,
     true,
     "Provider timeout updated successfully",
-    {updatedService},
+    { updatedService },
   );
 });
 
@@ -223,7 +249,11 @@ export const updateProviderRetries = AsyncHandler(async (req, res, next) => {
   const { service, provider } = req.params;
   const { maxRetries } = req.body;
 
-  if (maxRetries === undefined || maxRetries < 0) {
+  if (
+  typeof maxRetries !== "number" ||
+  Number.isNaN(maxRetries) ||
+  maxRetries < 0
+) {
     return errorHandler(
       res,
       400,
@@ -253,7 +283,7 @@ export const updateProviderRetries = AsyncHandler(async (req, res, next) => {
     200,
     true,
     "Provider retries updated successfully",
-    {updatedService},
+    { updatedService },
   );
 });
 
@@ -295,9 +325,21 @@ export const updateProviderHealth = AsyncHandler(async (req, res, next) => {
   }
 
   // Update average response time if provided
-  if (averageResponseTime !== undefined && averageResponseTime >= 0) {
-    updateFields["providers.$.averageResponseTime"] = averageResponseTime;
-  }
+if (
+  averageResponseTime !== undefined &&
+  (
+    typeof averageResponseTime !== "number" ||
+    averageResponseTime < 0
+  )
+) {
+  return errorHandler(
+    res,
+    400,
+    false,
+    "averageResponseTime must be a positive number",
+    next,
+  );
+}
 
   const updatedService = await ServiceConfigModel.findOneAndUpdate(
     {
@@ -319,6 +361,6 @@ export const updateProviderHealth = AsyncHandler(async (req, res, next) => {
     200,
     true,
     "Provider health updated successfully",
-    {updatedService},
+    { updatedService },
   );
 });
