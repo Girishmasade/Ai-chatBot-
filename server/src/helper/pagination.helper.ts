@@ -1,5 +1,4 @@
 import { Document, Model, FilterQuery, SortOrder } from "mongoose";
-
 /**
  * Generic pagination helper.
  *

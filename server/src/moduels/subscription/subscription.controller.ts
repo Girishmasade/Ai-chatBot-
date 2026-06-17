@@ -3,7 +3,9 @@ import type { AuthUser } from "../auth/auth.payload.js";
 import { errorHandler } from "@/utils/errorHandler.util.js";
 import { SubscriptionPlanModel } from "./subscription.model.js";
 import { successHandler } from "@/utils/successHandler.util.js";
-import type { CreateSubInput, UpdateSubInput } from "./subscription.types.js";
+import type { CreateSubInput } from "./subscription.types.js";
+import { UserSubscriptionModel } from "./userSubscription.model.js";
+import { UserSubscriptionStatus } from "@/shared/shared.types.enum.js";
 
 // Admin create Subscription function
 
@@ -17,6 +19,17 @@ export const createSubscription = AsyncHandler(async (req, res, next) => {
 
     const { name, plan, price, description, services, isActive, createdBy } =
       req.body as CreateSubInput;
+
+    const existing = await SubscriptionPlanModel.findOne({ name });
+    if (existing) {
+      return errorHandler(
+        res,
+        409,
+        false,
+        "A subscription plan with this name already exists",
+        {},
+      );
+    }
 
     if (
       !name ||
@@ -103,29 +116,49 @@ export const updateSubscriptionForUser = AsyncHandler(
         return errorHandler(res, 400, false, "subId not found", {});
       }
 
-      const { name, plan, price, description, services, isActive } =
-        req.body as UpdateSubInput;
-
-      if (
-        !name ||
-        !plan ||
-        price === undefined ||
-        !description ||
-        !services ||
-        isActive === undefined
-      ) {
-        return errorHandler(res, 400, false, "All fields are required", {});
+      const existingPlan = await SubscriptionPlanModel.findById(subId);
+      if (!existingPlan) {
+        return errorHandler(res, 404, false, "Subscription plan not found", {});
       }
 
-      const updateSub = await SubscriptionPlanModel.findByIdAndUpdate(
+      const allowedFields = [
+        "name",
+        "plan",
+        "price",
+        "currency",
+        "description",
+        "tokens",
+        "durationInDays",
+        "services",
+        "isActive",
+        "rolloverEnabled",
+        "rolloverCapPercent",
+      ] as const;
+
+      const updates: Record<string, unknown> = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return errorHandler(
+          res,
+          400,
+          false,
+          "No valid fields provided to update",
+          {},
+        );
+      }
+
+      const updatedPlan = await SubscriptionPlanModel.findByIdAndUpdate(
         subId,
-        req.body,
+        updates, // was: req.body (raw, unwhitelisted)
         { new: true },
       );
 
-      console.log("update Subs :", updateSub);
+      console.log("update Subs :", updatedPlan);
 
-      if (!updateSub) {
+      if (!updatedPlan) {
         return errorHandler(
           res,
           400,
@@ -140,7 +173,7 @@ export const updateSubscriptionForUser = AsyncHandler(
         200,
         true,
         "Subscription Plan Updated Successfully",
-        { updateSub },
+        { updatedPlan },
       );
     } catch (error) {
       console.log("error to update Subscription :", error);
@@ -160,17 +193,28 @@ export const deleteSubscriptionForUser = AsyncHandler(
         return errorHandler(res, 400, false, "subId not found", {});
       }
 
-      const deleteSub = await SubscriptionPlanModel.findByIdAndDelete(subId);
+      const existingPlan = await SubscriptionPlanModel.findById(subId);
+      if (!existingPlan) {
+        return errorHandler(res, 404, false, "Subscription plan not found", {});
+      }
 
-      if (!deleteSub) {
+      // block hard delete if any user is actively subscribed — use isActive:false to retire instead
+      const activeSubscribers = await UserSubscriptionModel.countDocuments({
+        plan: subId,
+        status: UserSubscriptionStatus.ACTIVE,
+      });
+
+      if (activeSubscribers > 0) {
         return errorHandler(
           res,
-          400,
+          409,
           false,
-          "Subscription plan not deleted",
+          `Cannot delete: ${activeSubscribers} user(s) are actively subscribed. Set isActive to false to retire this plan.`,
           {},
         );
       }
+
+      await SubscriptionPlanModel.findByIdAndDelete(subId);
 
       return successHandler(
         res,

@@ -1,9 +1,10 @@
+import { UserSubscriptionStatus } from "@/shared/shared.types.enum.js";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IUserSubscription extends Document {
   user: mongoose.Types.ObjectId;
   plan: mongoose.Types.ObjectId;                          
-  status: "active" | "inactive" | "cancelled" | "expired";
+  status: UserSubscriptionStatus
   startDate: Date;
   endDate: Date | null;
   paymentRef: mongoose.Types.ObjectId | null;
@@ -25,8 +26,8 @@ const userSubscriptionSchema = new Schema<IUserSubscription>(
     },
     status: {
       type: String,
-      enum: ["active", "inactive", "cancelled", "expired"],
-      default: "inactive",
+      enum:Object.values(UserSubscriptionStatus),
+      default: UserSubscriptionStatus.INACTIVE
     },
     startDate: {
       type: Date,
@@ -52,6 +53,12 @@ const userSubscriptionSchema = new Schema<IUserSubscription>(
   },
   { timestamps: true },
 );
+
+// "Does this user have an active subscription?" — checked on subscribe, and on every AI request later.
+userSubscriptionSchema.index({ user: 1, status: 1 });
+
+// BullMQ renewal job's primary query: "which active subscriptions are due for renewal/expiry today?"
+userSubscriptionSchema.index({ status: 1, endDate: 1 });
 
 export const UserSubscriptionModel = mongoose.model<IUserSubscription>(
   "UserSubscription",

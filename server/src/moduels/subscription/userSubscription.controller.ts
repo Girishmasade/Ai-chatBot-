@@ -3,65 +3,106 @@ import type { AuthUser } from "../auth/auth.payload.js";
 import { errorHandler } from "@/utils/errorHandler.util.js";
 import { successHandler } from "@/utils/successHandler.util.js";
 import { UserSubscriptionModel } from "./userSubscription.model.js";
-import { createEndDateForSubscription } from "./subscription.utils.js";
+import { calculateSubscriptionEndDate } from "./subscription.utils.js";
 import mongoose from "mongoose";
+import { UserSubscriptionStatus } from "@/shared/shared.types.enum.js";
+import { SubscriptionPlanModel } from "./subscription.model.js";
 
 export const createUserSubscription = AsyncHandler(async (req, res, next) => {
   try {
     const userId = (req.user as AuthUser).id;
+    const planId = req.params.planId as string;
 
     if (!userId) {
       return errorHandler(res, 400, false, "User not Found", {});
     }
 
-    const planId = req.params.planId as string;
-
     if (!planId) {
       return errorHandler(res, 404, false, "Plan Id is Required", {});
     }
 
-    const existingPlan = await UserSubscriptionModel.findOne({
-      user: userId,
-      plan: planId,
-      status: "active",
-    });
-
-    if (existingPlan) {
+    const plan = await SubscriptionPlanModel.findById(planId);
+    if (!plan || !plan.isActive) {
       return errorHandler(
         res,
-        400,
+        404,
         false,
-        "User already have this subscription",
+        "Subscription plan not found or inactive",
         {},
       );
     }
 
-    const endDateForPlans = createEndDateForSubscription({
-      startDate: new Date().toISOString(),
-      plan: req.body.plan as string,
-      customEndDate: req.body.customEndDate,
-    });
-
-    console.log("end Date For Plans :", endDateForPlans);
-
-    const createPlan = await UserSubscriptionModel.create({
+    // one active subscription per user — not per plan
+    // was: { user, plan: planId, status: "active" } — too narrow
+    const existingActive = await UserSubscriptionModel.findOne({
       user: userId,
-      plan: planId,
-      startDate: new Date(),
-      endDate: endDateForPlans,
-      paymentRef: null,
-      status: "active",
-      activatedAt: new Date(),
+      status: UserSubscriptionStatus.ACTIVE,
     });
 
-    console.log("create Plan :", createPlan);
+    if (existingActive) {
+      return errorHandler(
+        res,
+        400,
+        false,
+        "User already has an active subscription. Cancel it before subscribing to a new plan.",
+        {},
+      );
+    }
+
+    const startDate = new Date();
+    const endDate = calculateSubscriptionEndDate(
+      startDate,
+      plan.durationInDays,
+    );
+
+    console.log("end Date For Plans :", endDate);
+
+    const session = await mongoose.startSession();
+    let userSubscription;
+
+    try {
+      await session.withTransaction(async () => {
+        const [created] = await UserSubscriptionModel.create(
+          [
+            {
+              user: userId,
+              plan: plan._id,
+              status: UserSubscriptionStatus.ACTIVE,
+              startDate,
+              endDate,
+              paymentRef: null,
+              activatedAt: startDate,
+            },
+          ],
+          { session },
+        );
+
+        // grant first cycle tokens to wallet atomically with subscription creation
+        // await tokenWalletService.processSubscriptionRenewal(
+        //   userId,
+        //   String(created._id),
+        //   {
+        //     tokens: plan.tokens,
+        //     rolloverEnabled: plan.rolloverEnabled,
+        //     rolloverCapPercent: plan.rolloverCapPercent,
+        //   },
+        //   session,
+        // );
+
+        userSubscription = created;
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return successHandler(
       res,
       201,
       true,
-      "User Subscription created successfully",
-      { createPlan },
+      "Subscription activated successfully",
+      {
+        userSubscription,
+      },
     );
   } catch (error) {
     console.log("error to create user subscription :", error);
@@ -162,33 +203,49 @@ export const getSubscription = AsyncHandler(async (req, res, next) => {
 
 // cancel user subscription plan
 
-export const cancelSubscription = AsyncHandler(
-  async(req,res,next) => {
-    try {
-      const userId = (req.user as AuthUser).id;
-      const subscriptionId = req.params.subscriptionId as string;
+export const cancelSubscription = AsyncHandler(async (req, res, next) => {
+  try {
+    const userId = (req.user as AuthUser).id;
+    const subscriptionId = req.params.subscriptionId as string;
 
-      if(!subscriptionId){
-        return errorHandler(res , 404,false,"Subscription Id is required",{})
-      }
-
-      const cancel = await UserSubscriptionModel.findByIdAndUpdate(
-        subscriptionId,
-        {
-          status : "cancelled",
-          cancelledAt : new Date(),
-          
-        },
-        {
-          new:true
-        }
-      )
-
-      console.log("cancel subscription :",cancel)
-
-    } catch (error) {
-      console.log("error to cancel the subscription plan",error)
-      next(error)
+    if (!subscriptionId) {
+      return errorHandler(res, 404, false, "Subscription Id is required", {});
     }
+
+    const subscription = await UserSubscriptionModel.findOne({
+      _id: subscriptionId,
+      user: userId,
+    });
+
+    if (!subscription) {
+      return errorHandler(res, 404, false, "Subscription not found", {});
+    }
+
+    if (subscription.status !== UserSubscriptionStatus.ACTIVE) {
+      return errorHandler(
+        res,
+        400,
+        false,
+        "Only active subscriptions can be cancelled",
+        {},
+      );
+    }
+
+    subscription.status = UserSubscriptionStatus.CANCELLED;
+    subscription.cancelledAt = new Date();
+    await subscription.save();
+
+    return successHandler(
+      res,
+      200,
+      true,
+      "Subscription cancelled successfully",
+      {
+        subscription,
+      },
+    );
+  } catch (error) {
+    console.log("error to cancel the subscription plan", error);
+    next(error);
   }
-)
+});
