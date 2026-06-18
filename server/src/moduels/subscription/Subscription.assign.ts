@@ -21,7 +21,7 @@ export interface IAssignPlanResult {
   userSubscription: InstanceType<typeof UserSubscriptionModel>;
   tokensCredited: number;
 }
- 
+
 export async function assignPlanToUser(
   userId: string,
   planId: string,
@@ -34,7 +34,7 @@ export async function assignPlanToUser(
   if (!plan.isActive) {
     throw new Error(`Subscription plan "${plan.name}" is not active`);
   }
- 
+
   // One active subscription per user, not per plan — mirrors the existing
   // guard in createUserSubscription. Re-checked here so this function is
   // safe to call standalone, not just from a context that already checked.
@@ -42,16 +42,17 @@ export async function assignPlanToUser(
     user: userId,
     status: UserSubscriptionStatus.ACTIVE,
   }).session(session);
- 
+
   if (existingActive) {
-    throw new Error(
-      "User already has an active subscription. Cancel it before assigning a new plan.",
-    );
+    return {
+      userSubscription: existingActive,
+      tokensCredited: 0, // no double-credit
+    };
   }
- 
+
   const startDate = new Date();
   const endDate = calculateSubscriptionEndDate(startDate, plan.durationInDays);
- 
+
   const [userSubscription] = await UserSubscriptionModel.create(
     [
       {
@@ -66,7 +67,7 @@ export async function assignPlanToUser(
     ],
     { session },
   );
- 
+
   // ── Credit wallet with this plan's token allotment ──────────────────────────
   // Inlined rather than calling tokenTransaction.controller's `credit()`
   // helper, because that helper opens its OWN session via withOptionalSession
@@ -79,11 +80,11 @@ export async function assignPlanToUser(
       `Wallet not found for user ${userId}. initWallet() must run before plan assignment.`,
     );
   }
- 
+
   const tokensToCredit = plan.tokens;
   const balanceBefore = wallet.balance ?? 0;
   const balanceAfter = balanceBefore + tokensToCredit;
- 
+
   await TokenTransaction.create(
     [
       {
@@ -100,19 +101,19 @@ export async function assignPlanToUser(
     ],
     { session },
   );
- 
+
   await TokenWalletModel.findOneAndUpdate(
     { userId },
     {
       $set: { balance: balanceAfter, lastTransactionAt: new Date() },
       $inc: { totalPlanCredit: tokensToCredit },
     },
-    { session },
+    { session, returnDocument: "after" }, //  replaces `new: true`
   );
- 
+
   return { userSubscription, tokensCredited: tokensToCredit };
 }
- 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // getFreePlanId()
 //
@@ -121,19 +122,23 @@ export async function assignPlanToUser(
 // uses a different field (e.g. an enum `plan: "FREE"` rather than
 // `name: "Free"`), this is the only line that needs to change.
 // ─────────────────────────────────────────────────────────────────────────────
- 
+
 export async function getFreePlanId(
   session?: mongoose.ClientSession,
 ): Promise<string> {
   const query = SubscriptionPlanModel.findOne({ name: "Free", isActive: true });
   let freePlan = session ? await query.session(session) : await query;
- 
+
   if (!freePlan) {
     try {
       // Find an admin user or any user to set as the creator of the seeded plan.
       // If no user exists yet, use a default placeholder ObjectId.
-      const creator = await AuthModel.findOne({ role: "admin" }).session(session || null);
-      const creatorId = creator ? creator._id : new mongoose.Types.ObjectId("000000000000000000000000");
+      const creator = await AuthModel.findOne({ role: "admin" }).session(
+        session || null,
+      );
+      const creatorId = creator
+        ? creator._id
+        : new mongoose.Types.ObjectId("000000000000000000000000");
 
       const [seededPlan] = await SubscriptionPlanModel.create(
         [
@@ -153,7 +158,7 @@ export async function getFreePlanId(
             createdBy: creatorId,
           },
         ],
-        { session }
+        { session },
       );
       freePlan = seededPlan;
       console.log('Successfully auto-seeded default "Free" subscription plan.');
@@ -164,6 +169,6 @@ export async function getFreePlanId(
       );
     }
   }
- 
+
   return freePlan._id.toString();
 }

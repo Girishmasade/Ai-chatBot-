@@ -113,9 +113,16 @@ function computeExpectedBalance(
 
 export async function initWallet(
   userId: string,
+  session?: mongoose.ClientSession,
 ): Promise<ITokenWalletDocument> {
-  const existing = await TokenWalletModel.findOne({ userId });
+  const query = TokenWalletModel.findOne({ userId });
+  const existing = session ? await query.session(session) : await query;
   if (existing) return existing;
+
+  if (session) {
+    const [created] = await TokenWalletModel.create([{ userId }], { session });
+    return created;
+  }
   return TokenWalletModel.create({ userId });
 }
 

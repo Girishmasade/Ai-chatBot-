@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
   getUserWalletBalance,
   getWalletByUserId,
@@ -6,42 +6,46 @@ import {
   freezeWallet,
   unfreezeWallet,
   recalculateBalance,
-} from './tokenWallet.controller.js';
+} from "./tokenWallet.controller.js";
 import {
   freezeWalletSchema,
   unfreezeWalletSchema,
   recalculateBalanceSchema,
   listWalletsSchema,
-} from './tokenWallet.validation.js';
-import { authMiddleware, isAdmin } from '@/middlewares/auth.middleware.js';
-import { validate } from '@/middlewares/zod.middleware.js';
+  getWalletByUserIdSchema,
+} from "./tokenWallet.validation.js";
+import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
+import { validate } from "@/middlewares/zod.middleware.js";
 
-const userWalletRouter  = Router();
+const userWalletRouter = Router();
 const adminWalletRouter = Router();
 
 // ── User routes ───────────────────────────────────────────────────────────────
 
 userWalletRouter.use(authMiddleware);
-userWalletRouter.get('/user/me', getUserWalletBalance);
+userWalletRouter.get("/:userId", getUserWalletBalance);
 
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
 adminWalletRouter.use(authMiddleware, isAdmin);
 
-adminWalletRouter.get('/', validate(listWalletsSchema), listOfAllWallets);
-adminWalletRouter.get('/:userId', getWalletByUserId);
+adminWalletRouter.get("/wallets", validate(listWalletsSchema), listOfAllWallets);  // exact match first
+adminWalletRouter.get("/:userId", validate(getWalletByUserIdSchema), getWalletByUserId); // wildcard last // at postman tessting is worked done
+
 adminWalletRouter.patch(
-  '/:userId/freeze',
+  "/:userId/freeze",
   validate(freezeWalletSchema),
   freezeWallet,
 );
+
 adminWalletRouter.patch(
-  '/:userId/unfreeze',
+  "/:userId/unfreeze",
   validate(unfreezeWalletSchema),
   unfreezeWallet,
 );
+
 adminWalletRouter.post(
-  '/:userId/recalculate',
+  "/:userId/recalculate",
   validate(recalculateBalanceSchema),
   recalculateBalance,
 );

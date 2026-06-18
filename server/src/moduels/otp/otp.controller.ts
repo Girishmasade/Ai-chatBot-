@@ -7,9 +7,17 @@ import { AuthModel, type Auth } from "../auth/auth.models.js";
 import type { SendOTPInput, VerifyOTPInput } from "./otp.validator.js";
 import { sendEmail } from "../../services/mailer.utils.js";
 import { errorHandler } from "../../utils/errorHandler.util.js";
-import { generateAccessToken, generateRefreshToken, setTokenCookies } from "@/utils/token.utils.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  setTokenCookies,
+} from "@/utils/token.utils.js";
 import { initWallet } from "../token/tokenWallet/tokenWallet.controller.js";
-import { assignPlanToUser, getFreePlanId } from "../subscription/Subscription.assign.js";
+import {
+  assignPlanToUser,
+  getFreePlanId,
+} from "../subscription/Subscription.assign.js";
+import { node_env } from "@/env/env.import.js";
 
 // redis keys
 
@@ -37,17 +45,17 @@ export const sendOTP = async (
     const { email } = req.body;
 
     if (!email) {
-      return successHandler(res, 400, false, "Email is required", {});
+      return errorHandler(res, 400, false, "Email is required", {});
     }
 
     const user = await AuthModel.findOne({ email });
 
     if (!user) {
-      return successHandler(res, 404, false, "User not found", {});
+      return errorHandler(res, 404, false, "User not found", {});
     }
 
     if (user.isVerified) {
-      return successHandler(res, 400, false, "Email is already verified.", {});
+      return errorHandler(res, 400, false, "Email is already verified.", {});
     }
 
     const retries = await redisClient.get(`${RETRY_PREFIX}${email}`);
@@ -55,7 +63,7 @@ export const sendOTP = async (
     // console.log("retries : ", retries);
 
     if (retries && parseInt(retries) >= MAX_RETRIES) {
-      return successHandler(
+      return errorHandler(
         res,
         429,
         false,
@@ -72,19 +80,20 @@ export const sendOTP = async (
     await redisClient.incr(`${RETRY_PREFIX}${email}`); // using redis incr to increment the retry count
     await redisClient.expire(`${RETRY_PREFIX}${email}`, RETRY_TTL); // using redis expire to set the ttl for the retry count
 
-    const send = await sendEmail({
+    await sendEmail({
       to: email,
       type: "otp",
       payload: { otp, username: user.username },
     });
 
-    console.log("send : ", send);
+    // console.log("send : ", send);
 
-    successHandler(res, 200, true, "OTP sent to your email.", { send });
+    return successHandler(res, 200, true, "OTP sent to your email.", {
+      ...(node_env === "development" && { otp }),
+    });
   } catch (error) {
     console.log("error to send otp : ,", error);
-    errorHandler(res, 500, false, "Internal server error", error);
-    next();
+    next(error);
   }
 };
 
@@ -147,7 +156,7 @@ export const verifyOTP = async (
 
         // Wallet must exist before assignPlanToUser can credit it.
         // initWallet() is idempotent, so this is safe even if called twice.
-        await initWallet(userId);
+        await initWallet(userId, session);
 
         const freePlanId = await getFreePlanId(session);
         const result = await assignPlanToUser(userId, freePlanId, session);
@@ -171,7 +180,9 @@ export const verifyOTP = async (
 
     setTokenCookies(res, refreshToken);
 
-    console.log(`Verified ${email} — credited ${tokensCredited} free-plan tokens`);
+    console.log(
+      `Verified ${email} — credited ${tokensCredited} free-plan tokens`,
+    );
 
     return successHandler(res, 200, true, "Email verified successfully.", {
       accessToken,
@@ -219,7 +230,13 @@ export const resendOTP = async (
     console.log("retries : ", retries);
 
     if (retries && parseInt(retries) >= MAX_RETRIES) {
-      return successHandler(res, 429, false, "Too many requests, please try again later", {});
+      return successHandler(
+        res,
+        429,
+        false,
+        "Too many requests, please try again later",
+        {},
+      );
     }
 
     const otp = generateOTP();
