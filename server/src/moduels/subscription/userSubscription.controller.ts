@@ -3,10 +3,10 @@ import type { AuthUser } from "../auth/auth.payload.js";
 import { errorHandler } from "@/utils/errorHandler.util.js";
 import { successHandler } from "@/utils/successHandler.util.js";
 import { UserSubscriptionModel } from "./userSubscription.model.js";
-import { calculateSubscriptionEndDate } from "./subscription.utils.js";
 import mongoose from "mongoose";
 import { UserSubscriptionStatus } from "@/shared/shared.types.enum.js";
 import { SubscriptionPlanModel } from "./subscription.model.js";
+import { assignPlanToUser } from "./Subscription.assign.js";
 
 export const createUserSubscription = AsyncHandler(async (req, res, next) => {
   try {
@@ -33,7 +33,6 @@ export const createUserSubscription = AsyncHandler(async (req, res, next) => {
     }
 
     // one active subscription per user — not per plan
-    // was: { user, plan: planId, status: "active" } — too narrow
     const existingActive = await UserSubscriptionModel.findOne({
       user: userId,
       status: UserSubscriptionStatus.ACTIVE,
@@ -49,51 +48,29 @@ export const createUserSubscription = AsyncHandler(async (req, res, next) => {
       );
     }
 
-    const startDate = new Date();
-    const endDate = calculateSubscriptionEndDate(
-      startDate,
-      plan.durationInDays,
-    );
-
-    console.log("end Date For Plans :", endDate);
-
     const session = await mongoose.startSession();
     let userSubscription;
+    let tokensCredited = 0;
 
     try {
       await session.withTransaction(async () => {
-        const [created] = await UserSubscriptionModel.create(
-          [
-            {
-              user: userId,
-              plan: plan._id,
-              status: UserSubscriptionStatus.ACTIVE,
-              startDate,
-              endDate,
-              paymentRef: null,
-              activatedAt: startDate,
-            },
-          ],
-          { session },
-        );
-
-        // grant first cycle tokens to wallet atomically with subscription creation
-        // await tokenWalletService.processSubscriptionRenewal(
-        //   userId,
-        //   String(created._id),
-        //   {
-        //     tokens: plan.tokens,
-        //     rolloverEnabled: plan.rolloverEnabled,
-        //     rolloverCapPercent: plan.rolloverCapPercent,
-        //   },
-        //   session,
-        // );
-
-        userSubscription = created;
+        // assignPlanToUser handles: re-checking active-subscription guard
+        // (redundant with the check above, but keeps the function safe to
+        // call standalone from elsewhere), creating the UserSubscription
+        // document, and crediting plan.tokens to the wallet — all inside
+        // this same session, so subscription + wallet credit commit or
+        // roll back together.
+        const result = await assignPlanToUser(userId, planId, session);
+        userSubscription = result.userSubscription;
+        tokensCredited = result.tokensCredited;
       });
     } finally {
       await session.endSession();
     }
+
+    console.log(
+      `Subscription activated for ${userId} — credited ${tokensCredited} tokens`,
+    );
 
     return successHandler(
       res,
@@ -102,6 +79,7 @@ export const createUserSubscription = AsyncHandler(async (req, res, next) => {
       "Subscription activated successfully",
       {
         userSubscription,
+        tokensCredited,
       },
     );
   } catch (error) {

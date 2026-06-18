@@ -22,7 +22,7 @@ const adminWalletRouter = Router();
 // ── User routes ───────────────────────────────────────────────────────────────
 
 userWalletRouter.use(authMiddleware);
-userWalletRouter.get('/me', getUserWalletBalance);
+userWalletRouter.get('/user/me', getUserWalletBalance);
 
 // ── Admin routes ──────────────────────────────────────────────────────────────
 

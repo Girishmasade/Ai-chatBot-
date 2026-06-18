@@ -276,9 +276,9 @@ export const freezeWallet = AsyncHandler(async (req, res, next) => {
  
     console.log("freeze wallet :", frozenWallet);
  
-    if (!frozenWallet) {
-      return errorHandler(res, 400, false, "Wallet not frozen", {});
-    }
+    // if (!frozenWallet) {
+    //   return errorHandler(res, 400, false, "Wallet not frozen", {});
+    // }
  
     // TODO: AuditLog entry — action: 'FREEZE_WALLET', module: 'TokenWallet',
     // targetId: userId, previousData: { status: 'ACTIVE' }, newData: { status: 'FROZEN', reason }

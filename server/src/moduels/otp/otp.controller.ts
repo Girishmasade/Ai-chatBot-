@@ -1,12 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import redisClient from "../../config/redis.config.js";
 import { successHandler } from "../../utils/successHandler.util.js";
 import crypto from "crypto";
-import { AuthModel } from "../auth/auth.models.js";
+import { AuthModel, type Auth } from "../auth/auth.models.js";
 import type { SendOTPInput, VerifyOTPInput } from "./otp.validator.js";
 import { sendEmail } from "../../services/mailer.utils.js";
 import { errorHandler } from "../../utils/errorHandler.util.js";
 import { generateAccessToken, generateRefreshToken, setTokenCookies } from "@/utils/token.utils.js";
+import { initWallet } from "../token/tokenWallet/tokenWallet.controller.js";
+import { assignPlanToUser, getFreePlanId } from "../subscription/Subscription.assign.js";
 
 // redis keys
 
@@ -77,7 +80,7 @@ export const sendOTP = async (
 
     console.log("send : ", send);
 
-    successHandler(res, 200, true, "OTP sent to your email.", {send});
+    successHandler(res, 200, true, "OTP sent to your email.", { send });
   } catch (error) {
     console.log("error to send otp : ,", error);
     errorHandler(res, 500, false, "Internal server error", error);
@@ -119,26 +122,61 @@ export const verifyOTP = async (
       return successHandler(res, 400, false, "OTP is invalid or expired", {});
     }
 
-    const user = await AuthModel.findOneAndUpdate(
-      { email },
-      { $set: { isVerified: true } },
-      { new: true },
-    );
+    // ── Verification + wallet creation + free plan assignment, atomically ──────
+    // If the free-plan credit fails for any reason (e.g. no "Free" plan seeded
+    // yet), the isVerified flip must roll back too — otherwise we'd end up
+    // with verified users who silently never got a wallet or tokens, which is
+    // exactly the "wallet collection is empty" bug already hit once.
+    const session = await mongoose.startSession();
+    let user: Auth | undefined;
+    let tokensCredited = 0;
 
-    if (!user) return errorHandler(res, 404, false, "User not found", {});
+    try {
+      await session.withTransaction(async () => {
+        const updatedUser = await AuthModel.findOneAndUpdate(
+          { email },
+          { $set: { isVerified: true } },
+          { new: true, session },
+        );
+
+        if (!updatedUser) {
+          throw new Error("User not found");
+        }
+
+        const userId = updatedUser._id.toString();
+
+        // Wallet must exist before assignPlanToUser can credit it.
+        // initWallet() is idempotent, so this is safe even if called twice.
+        await initWallet(userId);
+
+        const freePlanId = await getFreePlanId(session);
+        const result = await assignPlanToUser(userId, freePlanId, session);
+
+        tokensCredited = result.tokensCredited;
+        user = updatedUser;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (!user) {
+      return errorHandler(res, 404, false, "User not found", {});
+    }
 
     await redisClient.del(`${OTP_PREFIX}${email}`);
     await redisClient.del(`${RETRY_PREFIX}${email}`);
 
-    const accessToken  = await generateAccessToken(user);
+    const accessToken = await generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user._id.toString());
 
     setTokenCookies(res, refreshToken);
 
+    console.log(`Verified ${email} — credited ${tokensCredited} free-plan tokens`);
+
     return successHandler(res, 200, true, "Email verified successfully.", {
-      accessToken,                       
+      accessToken,
       user: {
-        id: user._id,
+        id: user._id.toString(),
         username: user.username,
         email: user.email,
         role: user.role,
@@ -146,6 +184,7 @@ export const verifyOTP = async (
       },
     });
   } catch (error) {
+    console.log("error to verify otp :", error);
     next(error);
   }
 };
@@ -179,7 +218,7 @@ export const resendOTP = async (
 
     console.log("retries : ", retries);
 
-    if(retries && parseInt(retries) >= MAX_RETRIES){
+    if (retries && parseInt(retries) >= MAX_RETRIES) {
       return successHandler(res, 429, false, "Too many requests, please try again later", {});
     }
 
@@ -200,8 +239,6 @@ export const resendOTP = async (
     console.log("resend : ", resend);
 
     successHandler(res, 200, true, "OTP sent to your email.", {});
-
-
   } catch (error) {
     console.error("error in the resend otp :", error);
     next();

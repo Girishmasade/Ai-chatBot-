@@ -8,7 +8,12 @@ const TokenWalletSchema = new Schema<ITokenWalletDocument>(
       type: Types.ObjectId,
       ref: "User",
     },
-    balance: Number,
+    balance: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: [0, "Wallet balance cannot be negative"],
+    },
 
     totalPurchased: {
       type: Number,

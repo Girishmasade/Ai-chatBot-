@@ -59,16 +59,6 @@ export const createSubscription = AsyncHandler(async (req, res, next) => {
       return errorHandler(res, 400, false, "Subscription plan not created", {});
     }
 
-    if (createSubscription) {
-      return errorHandler(
-        res,
-        400,
-        false,
-        "Subscription plan already exist",
-        {},
-      );
-    }
-
     return successHandler(res, 200, true, "Subscription Created Successfully", {
       createSubscription,
     });
