@@ -18,6 +18,8 @@ const tokenPackageCache = createCacheHelper({
   ttl: 300,
 });
 
+// console.log("token package cache :", tokenPackageCache)
+
 // create a token
 
 export const CreateToken = AsyncHandler(async (req, res, next) => {
@@ -50,21 +52,21 @@ export const CreateToken = AsyncHandler(async (req, res, next) => {
       description,
       tokenAmount,
       price,
-      currency,
-      status,
+      currency: currency,
+      status: status,
       isPopular,
       sortOrder,
     });
 
     await tokenPackageCache.invalidate();
 
-    console.log("token package create :", tokenPackageCreate);
+    // console.log("token package create :", tokenPackageCreate);
 
     successHandler(res, 201, true, `Token package for ${name} is created`, {
       tokenPackageCreate,
     });
   } catch (error) {
-    console.log("Error in CreateToken: ", error);
+    console.error("Error in CreateToken: ", error);
     next(error);
   }
 });
@@ -130,7 +132,7 @@ export const getAllPackages = AsyncHandler(async (req, res, next) => {
 
     const result = await paginate(TokenPackage, filter, { page, limit, sort });
 
-    console.log("result ", result);
+    // console.log("result ", result);
 
     if (isDefaultQuery) {
       await tokenPackageCache.set(tokenPackageCache.keys.all, result);
@@ -144,7 +146,7 @@ export const getAllPackages = AsyncHandler(async (req, res, next) => {
       { result },
     );
   } catch (error) {
-    console.log("Error in getAllPackages: ", error);
+    console.error("Error in getAllPackages: ", error);
     next(error);
   }
 });
@@ -155,7 +157,7 @@ export const activeTokenPackage = AsyncHandler(async (req, res, next) => {
   try {
     const cache = await tokenPackageCache.get(tokenPackageCache.keys.active);
     if (cache) {
-      successHandler(
+     return successHandler(
         res,
         200,
         true,
@@ -170,11 +172,11 @@ export const activeTokenPackage = AsyncHandler(async (req, res, next) => {
       .sort({ sortOrder: 1 })
       .lean();
 
-    console.log("packages :", packages);
+    // console.log("packages :", packages);
 
     await tokenPackageCache.set(tokenPackageCache.keys.active, packages);
 
-    successHandler(res, 200, true, "Token packages fetched successfully", {});
+   return successHandler(res, 200, true, "Token packages fetched successfully", {packages});
   } catch (error) {
     console.error("error in active token package", error);
     next(error);
@@ -211,7 +213,7 @@ export const getTokenPackageById = AsyncHandler(async (req, res, next) => {
       errorHandler(res, 404, false, "Token package not found", {});
     }
 
-    console.log("package :", packageById);
+    // console.log("package :", packageById);
 
     await tokenPackageCache.set(
       tokenPackageCache.keys.byId(tokenId),
@@ -265,7 +267,7 @@ export const updateTokenPackage = AsyncHandler(async (req, res, next) => {
       { new: true, runValidators: true },
     ).lean();
 
-    console.log("token Package :", tokenPackage);
+    // console.log("token Package :", tokenPackage);
 
     if (!tokenPackage) {
       return errorHandler(res, 404, false, "Token package not found", {});
@@ -305,6 +307,8 @@ export const toggleTokenPackageStatus = AsyncHandler(
       return errorHandler(res, 404, false, "Token package not found", {});
     }
  
+    // console.log("token package :", tokenPackage)
+
     await tokenPackageCache.update(tokenId, tokenPackage);
     await tokenPackageCache.invalidateKeys([]);
  
@@ -318,9 +322,12 @@ export const toggleTokenPackageStatus = AsyncHandler(
   }
 );
 
+// delete token package 
+
 export const deleteTokenPackage = AsyncHandler(
   async (req, res, next) => {
-    const tokenId = req.params.id as string ;
+   try {
+     const tokenId = req.params.tokenId as string ;
  
     const tokenPackage = await TokenPackage.findByIdAndDelete(tokenId).lean();
     if (!tokenPackage) {
@@ -330,5 +337,9 @@ export const deleteTokenPackage = AsyncHandler(
     await tokenPackageCache.invalidate(tokenId);
  
     return successHandler(res, 200, true, "Token package deleted successfully", {});
+   } catch (error) {
+    console.error("error in delete token package", error);
+    next(error);
+   }
   }
 );

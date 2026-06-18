@@ -1,5 +1,5 @@
-import { model, Model, models, Schema, Types } from "mongoose";
-import type { ITokenWallet, ITokenWalletDocument } from "./tokenWallet.interface.js";
+import { model, Schema, Types } from "mongoose";
+import type { ITokenWalletDocument } from "./tokenWallet.interface.js";
 import { WalletStatus } from "./tokenWallet.types.js";
 
 const TokenWalletSchema = new Schema<ITokenWalletDocument>(
@@ -52,8 +52,5 @@ TokenWalletSchema.index({ balance: -1 });               // admin: sort by balanc
 TokenWalletSchema.index({ lastTransactionAt: -1 });      // admin: recently active wallets
 TokenWalletSchema.index({ status: 1, balance: -1 });     // admin: frozen wallets with balance
 
-const TokenWalletModel: Model<ITokenWalletDocument> =
-  (models['TokenWallet'] as Model<ITokenWalletDocument>) ||
-  model<ITokenWalletDocument>('TokenWallet', TokenWalletSchema);
- 
+const TokenWalletModel = model<ITokenWalletDocument>('TokenWallet', TokenWalletSchema);
 export default TokenWalletModel;

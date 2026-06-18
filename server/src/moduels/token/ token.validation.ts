@@ -10,7 +10,7 @@ export const createTokenSchema = z.object({
 
     price: z.number().nonnegative(),
 
-    currency: z.string().default("INR"),
+    currency: z.string().default("inr"),
 
     isActive: z.boolean().optional(),
   }),

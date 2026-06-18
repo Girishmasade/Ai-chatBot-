@@ -5,9 +5,9 @@ export enum TokenPackageStatus {
 }
 
 export enum TokenPackageCurrency {
-  INR = "INR",
-  USD = "USD",
-  EUR = "EUR",
+  INR = "inr",
+  USD = "usd",
+  EUR = "eur",
 }
 
 export interface ITokenPackage {

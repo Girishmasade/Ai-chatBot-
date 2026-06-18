@@ -7,6 +7,8 @@ import { subscriptionRouter } from "@/moduels/subscription/subscription.route.js
 import { providerRouter } from "@/moduels/Provider/providder-config.route.js";
 import { serviceConfigRoute } from "@/moduels/service-config/service-config.route.js";
 import { tokenPackageRoute } from "@/moduels/token/token.route.js";
+import { adminTransactionRouter, userTransactionRouter } from "@/moduels/token/tokenTransaction/tokenTransaction.route.js";
+import { adminWalletRouter, userWalletRouter } from "@/moduels/token/tokenWallet/tokenWallet.route.js";
 
 export const RouterFile = Router()
 
@@ -18,3 +20,7 @@ RouterFile.use("/service", serviceConfigRoute)
 RouterFile.use("/subscription", subscriptionRouter)
 RouterFile.use("/:service/provider", providerRouter)
 RouterFile.use("/token-package", tokenPackageRoute)
+RouterFile.use("/token-transaction", userTransactionRouter)
+RouterFile.use("/admin/token-transaction", adminTransactionRouter)
+RouterFile.use("/token-wallet", userWalletRouter)
+RouterFile.use("/admin/token-wallet", adminWalletRouter)
