@@ -15,7 +15,7 @@ import {
   grantBonusSchema,
   reverseTransactionSchema,
 } from './tokenTransaction.validation.js';
-import { authMiddleware } from '@/middlewares/auth.middleware.js';
+import { authMiddleware, isAdmin } from '@/middlewares/auth.middleware.js';
 import { validate } from '@/middlewares/zod.middleware.js';
 
 
@@ -39,10 +39,10 @@ userTransactionRouter.get(
 
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
-adminTransactionRouter.use(authMiddleware, );
+adminTransactionRouter.use(authMiddleware, isAdmin);
 
 adminTransactionRouter.get(
-  '/',
+  '/all',
   validate(transactionHistorySchema),
   listAllTransactions,
 );

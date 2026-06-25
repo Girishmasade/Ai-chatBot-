@@ -34,7 +34,6 @@ export const validate =
 
     if (data.body)   req.body   = data.body;
     if (data.params) req.params = data.params as Request["params"];
-    if (data.query)  req.query  = data.query  as Request["query"];
-
+    if (data.query)   Object.assign(req.query, data.query); 
     next();
   };

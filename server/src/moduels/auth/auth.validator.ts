@@ -11,25 +11,36 @@ export const authSchema = z.object({
   facebookId: z.string().optional(),
 });
 
-export const registerSchema = authSchema.pick({
-  username: true,
-  email: true,
+export const registerSchema = z.object({
+  body: z.object({
+    username: z.string().trim().min(6, "Username must be at least 6 characters"),
+    email: z.string().email("Invalid email address").toLowerCase(),
+  }),
 });
 
-export const loginSchema = authSchema.pick({
-  email: true,
+export const loginSchema = z.object({
+  body: z.object({
+    email: z.string().email("Invalid email address").toLowerCase(),
+  }),
 });
 
-export const updateProfileSchema = authSchema
-  .pick({ username: true, avatar: true })
-  .partial();
+export const updateProfileSchema = z.object({
+  body: z.object({
+    username: z.string().trim().min(6, "Username must be at least 6 characters"),
+    avatar:   z.string().url("Invalid avatar URL").optional(),
+  }),
+});
 
 export const updateRoleSchema = z.object({
-  role:    z.enum(["user", "admin"]),
+  body: z.object({
+    role:    z.enum(["user", "admin"]),
+  }),
 });
 
 export const socialLoginSchema = z.object({
-  googleId: z.string().optional(),
-  githubId: z.string().optional(),
-  facebookId: z.string().optional(),
+  body: z.object({
+    googleId: z.string().optional(),
+    githubId: z.string().optional(),
+    facebookId: z.string().optional(),
+  }),
 });
