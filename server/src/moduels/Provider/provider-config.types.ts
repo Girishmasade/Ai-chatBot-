@@ -12,5 +12,8 @@ export enum ProviderName {
   POLLINATIONS = "pollinations",
   OPENAI = "openai",
   CHATGPT = "chatgpt",
+  ANTHROPIC = "anthropic",
+  GROK = "grok",
+  DEEPSEEK = "deepseek",
 }
 

@@ -76,7 +76,8 @@ export enum TokenTransactionType {
 export enum TokenBucket {
   PURCHASED = "PURCHASED",           // non-expiring (signup bonus, packages, refunds)
   CURRENT_CYCLE = "CURRENT_CYCLE",   // this cycle's subscription allotment
-  CARRY_OVER = "CARRY_OVER",         // rolled-over tokens, 1-cycle grace, then forfeited
+  CARRY_OVER = "CARRY_OVER", 
+  Wallet = "Wallet",        // rolled-over tokens, 1-cycle grace, then forfeited
 }
 
 export enum TokenPackageStatus {

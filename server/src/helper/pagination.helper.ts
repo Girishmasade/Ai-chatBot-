@@ -154,7 +154,7 @@ export interface PaginateOptions {
  * Run a paginated `find` + `countDocuments` against any Mongoose model.
  * Returns `.lean()` documents for performance.
  */
-export const paginate = async <T extends Document>(
+export const paginate = async <T>(
   model: Model<T>,
   filter: FilterQuery<T> = {},
   options: PaginateOptions

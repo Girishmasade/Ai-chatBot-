@@ -1,12 +1,12 @@
 import type { AIService } from "../service-config/service-config.types.js";
 import type { ProviderName } from "../Provider/provider-config.types.js";
 import type { AIRequestPriority, AIRequestStatus } from "./aiRequest.type.js";
+import type { Document } from "mongoose";
 
 // Document interface  (mirrors the Mongoose schema shape)
-
 export interface IAIRequest {
   _id:            string;
-  user:           string;                // ObjectId ref → User
+  user:           Object;                // ObjectId ref → User
   service:        AIService;             // which AI service was invoked
   provider:       ProviderName;          // which provider handled it
   status:         AIRequestStatus;

@@ -55,6 +55,8 @@ export interface CacheHelper {
   get: <T>(key: string) => Promise<T | null>;
   /** JSON-stringify and cache a value with optional custom TTL (seconds). */
   set: <T>(key: string, value: T, customTtl?: number) => Promise<void>;
+
+  
   /**
    * Refresh a single record's cache entry in place (e.g. after an update),
    * without invalidating list/active caches. Useful when the list view

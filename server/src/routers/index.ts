@@ -9,6 +9,7 @@ import { serviceConfigRoute } from "@/moduels/service-config/service-config.rout
 import { tokenPackageRoute } from "@/moduels/token/token.route.js";
 import { adminTransactionRouter, userTransactionRouter } from "@/moduels/token/tokenTransaction/tokenTransaction.route.js";
 import { adminWalletRouter, userWalletRouter } from "@/moduels/token/tokenWallet/tokenWallet.route.js";
+import { aiRequestRouter } from "@/moduels/AIRequest/aiRequest.route.js";
 
 export const RouterFile = Router()
 
@@ -24,3 +25,4 @@ RouterFile.use("/token-transaction", userTransactionRouter)
 RouterFile.use("/admin/token-transaction", adminTransactionRouter)
 RouterFile.use("/token-wallet", userWalletRouter)
 RouterFile.use("/admin/token-wallet", adminWalletRouter)
+RouterFile.use("/ai-request", aiRequestRouter)
