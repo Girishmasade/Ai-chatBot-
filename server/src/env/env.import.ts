@@ -48,6 +48,7 @@ const githubFallbackUrl = process.env.GITHUB_FALLBACK_URL as string;
 // clodinary config url
 
 const cloudinaryUrl = process.env.CLOUDINARY_URL as string;
+const encryptionSecret = process.env.ENCRYPTION_SECRET as string;
 
 
 export {
@@ -67,5 +68,6 @@ export {
   githubClientId,
   githubSecret,
   githubFallbackUrl,
-  cloudinaryUrl
+  cloudinaryUrl,
+  encryptionSecret
 };
