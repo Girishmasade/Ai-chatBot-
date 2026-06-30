@@ -22,6 +22,14 @@ export const PROVIDER_TIMEOUT_MS: Record<string, number> = {
 
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 60_000;
 
+export const PING_MODELS: Record<string, string> = {
+  openai:    "gpt-4o-mini",
+  anthropic: "claude-3-5-haiku-20241022",
+  gemini:    "gemini-1.5-flash",
+  grok:      "grok-2-latest",
+  deepseek:  "deepseek-chat",
+};
+
 // ─── Token Estimation ─────────────────────────────────────────────────────────
 // Used ONLY for pre-call cost estimation and the /estimate endpoint.
 // Actual token cost is always reconciled from the provider's usage response.
