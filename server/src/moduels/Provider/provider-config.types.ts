@@ -6,6 +6,8 @@ export enum ProviderHealthStatus {
 }
 
 export enum ProviderName {
+  LMSTUDIO = "lmstudio",
+  VLLM = "vllm",
   GROQ = "groq",
   GEMINI = "gemini",
   HUGGINGFACE = "huggingface",
