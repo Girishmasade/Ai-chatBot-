@@ -108,16 +108,16 @@ export const verifyOTP = async (
     const { email, otp } = req.body as VerifyOTPInput;
 
     if (!email || !otp) {
-      return successHandler(res, 400, false, "Email and OTP are required", {});
+      return errorHandler(res, 400, false, "Email and OTP are required", {});
     }
 
     const storedOTP = await redisClient.get(`${OTP_PREFIX}${email}`);
     if (!storedOTP) {
-      return successHandler(res, 400, false, "OTP is invalid or expired", {});
+      return errorHandler(res, 400, false, "OTP is invalid or expired", {});
     }
 
     if (storedOTP.length !== otp.length) {
-      return successHandler(res, 400, false, "OTP is invalid or expired", {});
+      return errorHandler(res, 400, false, "OTP is invalid or expired", {});
     }
 
     const isValid = crypto.timingSafeEqual(

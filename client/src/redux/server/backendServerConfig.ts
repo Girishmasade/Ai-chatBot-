@@ -1,8 +1,9 @@
+import { VITE_BACKEND_URI } from "@/env/EnvImport";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const BACKEND_URL = VITE_BACKEND_URI
 
-export const apiSlice = createApi({
+export const backendServerConfig = createApi({
   reducerPath: "backendServerConfig",
   baseQuery: fetchBaseQuery({
     baseUrl: BACKEND_URL,
@@ -15,4 +16,5 @@ export const apiSlice = createApi({
     },
   }),
   endpoints: (builder) => ({}),
+  tagTypes: ["Auth", "User", "Chat", "Model", "Settings", "Error"]
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
@@ -12,11 +12,13 @@ import { useLoginMutation } from '../../redux/api/authApi';
 import { setCredentials } from '../../redux/slices/authSlice';
 import { tokenStorage } from '../../utils/tokenStorage';
 import { VITE_BACKEND_URI } from '../../env/EnvImport';
+import { useVerifyOtpMutation } from '@/redux/api/verifyOtpApi';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [login, { isLoading }] = useLoginMutation();
+  const [verifyOtp, {isLoading: verifyOtpLoading} ] = useVerifyOtpMutation()
 
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
@@ -24,11 +26,18 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const [otpSent, setOtpSent] = useState(false);
 
+  const OtpPayload = {
+    email: email,
+    otp: otp,
+  }
+
+
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      await login({ email }).unwrap();
+      await login({email: email}).unwrap();
       setOtpSent(true);
       setStep('otp');
     } catch (err: unknown) {
@@ -37,37 +46,33 @@ export const LoginPage = () => {
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const response = await fetch(`${VITE_BACKEND_URI}/api/v1/otp/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, otp }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
+ const handleOtpSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  try {
+    const response = await verifyOtp({ email, otp }).unwrap();
 
-      const token = response.headers.get('x-access-token') || data?.data?.token;
-      if (token) tokenStorage.setToken(token);
-
-      dispatch(setCredentials({
-        id: data.data.user._id,
-        username: data.data.user.username,
-        email: data.data.user.email,
-        role: data.data.user.role,
-        avatar: data.data.user.avatar,
-        isVerified: data.data.user.isVerified,
-      }));
-
-      navigate(data.data.user.role === 'admin' ? '/admin/dashboard' : '/chat');
-    } catch (err: unknown) {
-      const e = err as Error;
-      setError(e?.message || 'Invalid OTP. Please try again.');
+    if (response?.data?.accessToken) {
+      tokenStorage.setToken(response?.data?.accessToken);
+    } else {
+      setError('No access token received. Please try again.');
+      return;
     }
-  };
+
+    dispatch(setCredentials({
+      id: response?.data?.user._id,
+      username: response?.data?.user.username,
+      email: response?.data?.user.email,
+      role: response?.data?.user.role ,
+    }));
+
+    navigate(response?.data?.user?.role === 'admin' ? '/admin' : '/chat');
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    setError(e?.data?.message || 'Invalid OTP. Please try again.');
+  }
+};
+
 
   return (
     <Box

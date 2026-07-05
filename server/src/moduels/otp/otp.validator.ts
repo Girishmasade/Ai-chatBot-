@@ -11,5 +11,5 @@ export const verifyOTPSchema = z.object({
   }),
 });
 
-export type SendOTPInput = z.infer<typeof sendOTPSchema>;
-export type VerifyOTPInput = z.infer<typeof verifyOTPSchema>;
+export type SendOTPInput = z.infer<typeof sendOTPSchema>
+export type VerifyOTPInput = z.infer<typeof verifyOTPSchema>["body"];

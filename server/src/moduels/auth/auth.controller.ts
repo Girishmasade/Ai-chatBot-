@@ -71,7 +71,7 @@ export const loginAccount = async (
   next: NextFunction,
 ) => {
   try {
-    const { email } = req.body as LoginInput;
+    const { email } = req.body  as LoginInput;
 
     if (!email) {
       return errorHandler(res, 400, false, "Email is required", {});

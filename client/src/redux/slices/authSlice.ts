@@ -5,8 +5,6 @@ interface AuthUser {
   username: string;
   email: string;
   role: 'user' | 'admin';
-  avatar?: string;
-  isVerified: boolean;
 }
 
 interface AuthState {

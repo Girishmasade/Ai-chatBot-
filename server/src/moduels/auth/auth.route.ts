@@ -16,9 +16,9 @@ authRouter.get("/google/callback", googleCallback)
 
 // github auth
 
-authRouter.get("/auth/github", githubLogin);
-authRouter.get("/auth/github/callback", githubCallback);
+authRouter.get("/github", githubLogin);
+authRouter.get("/github/callback", githubCallback);
 
 // facebook auth
-authRouter.get("/auth/facebook", facebookLogin);
-authRouter.get("/auth/facebook/callback", facebookCallback);
+authRouter.get("/facebook", facebookLogin);
+authRouter.get("/facebook/callback", facebookCallback);
