@@ -135,7 +135,7 @@ export const LoginPage = () => {
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
               <Alert severity="error" sx={{ mb: 2.5, borderRadius: '8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
                 {error}
-              </Alert>
+              </Alert>  
             </motion.div>
           )}
 
@@ -144,6 +144,7 @@ export const LoginPage = () => {
               <TextField
                 fullWidth label="Email Address" type="email" value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
                 required
                 slotProps={{
                   input: {
