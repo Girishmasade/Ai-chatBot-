@@ -50,6 +50,12 @@ const githubFallbackUrl = process.env.GITHUB_FALLBACK_URL as string;
 const cloudinaryUrl = process.env.CLOUDINARY_URL as string;
 const encryptionSecret = process.env.ENCRYPTION_SECRET as string;
 
+// vvector db
+
+const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME as string;
+const PINECONE_API_KEY = process.env.PINECONE_API_KEY as string;
+const PINECONE_REGION = process.env.PINECONE_REGION as string;
+
 
 export {
   node_env,
@@ -69,5 +75,8 @@ export {
   githubSecret,
   githubFallbackUrl,
   cloudinaryUrl,
-  encryptionSecret
+  encryptionSecret,
+  PINECONE_INDEX_NAME,
+  PINECONE_API_KEY,
+  PINECONE_REGION,
 };
