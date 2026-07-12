@@ -48,7 +48,7 @@ export const RegisterPage = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}
+        style={{ width: '100%', maxWidth: 520, position: 'relative', zIndex: 1 }}
       >
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Box

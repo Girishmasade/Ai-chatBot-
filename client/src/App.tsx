@@ -21,6 +21,7 @@ import { SettingsPage } from '@/pages/admin/SettingsPage';
 
 // User pages
 import { ChatPage } from '@/pages/user/ChatPage';
+import { AuthLayout } from './pages/auth/AuthLayout';
 
 function App() {
   return (
@@ -31,8 +32,10 @@ function App() {
 
         {/* ── Guest Routes (redirect if already logged in) ── */}
         <Route element={<GuestGuard />}>
+        <Route element={<AuthLayout/>}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          </Route>
         </Route>
 
         {/* ── Admin Routes (require auth + admin role) ── */}
