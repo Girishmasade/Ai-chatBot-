@@ -11,6 +11,17 @@ import { adminTransactionRouter, userTransactionRouter } from "@/moduels/token/t
 import { adminWalletRouter, userWalletRouter } from "@/moduels/token/tokenWallet/tokenWallet.route.js";
 import { aiRequestRouter } from "@/moduels/AIRequest/aiRequest.route.js";
 import { providerApiKeyRoute } from "@/moduels/Provider-api-key/provider-api-key.route.js";
+import RagRouter from "@/moduels/rag/rag.route.js";
+import DocumentRouter from "@/moduels/document/document.routes.js";
+import RetrievalRoute from "@/moduels/retrieval/retrieval.route.js";
+import ModerationRouter from "@/moduels/moderation/moderation.route.js";
+import PromptBuilderRoute from "@/moduels/prompt/promptbuilder.route.js";
+
+// NOTE: notification.route.ts is intentionally NOT mounted — its controller
+// (notification.controller.ts) is all empty stub functions and the route
+// file itself never defines any routes or an export. Mounting it would
+// register a router with zero working endpoints. Build that module out
+// before adding it here.
 
 export const RouterFile = Router()
 
@@ -28,3 +39,8 @@ RouterFile.use("/token-wallet", userWalletRouter)
 RouterFile.use("/admin/token-wallet", adminWalletRouter)
 RouterFile.use("/ai-request", aiRequestRouter)
 RouterFile.use("/provider-api-keys", providerApiKeyRoute)
+RouterFile.use("/documents", DocumentRouter)
+RouterFile.use("/retrieval", RetrievalRoute)
+RouterFile.use("/rag", RagRouter)
+RouterFile.use("/prompt", PromptBuilderRoute)
+RouterFile.use("/admin/moderation", ModerationRouter)

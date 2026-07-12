@@ -158,4 +158,8 @@ export enum JobName {
   SEND_EMAIL = "send-email",
   AGGREGATE_DAILY_ANALYTICS = "aggregate-daily-analytics",
   ARCHIVE_AUDIT_LOGS = "archive-audit-logs",
+  // Added while wiring the BullMQ layer — BullMQQueue.TOKEN_EXPIRY and
+  // BullMQQueue.WEBHOOK_RETRY existed with no corresponding job names.
+  PROCESS_TOKEN_EXPIRY = "process-token-expiry",
+  RETRY_WEBHOOK_DELIVERY = "retry-webhook-delivery",
 }

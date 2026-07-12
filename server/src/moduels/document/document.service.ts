@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
-import { FilterQuery, Types } from 'mongoose';
+import type { FilterQuery, Types } from 'mongoose';
 import { DocumentModel } from '@/moduels/document/document.model.js';
 import type{
   DocumentFileType,
