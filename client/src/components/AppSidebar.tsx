@@ -44,7 +44,38 @@ export default function AppSidebar({
   isAdminWorkspace,
   setIsAdminWorkspace
 }: AppSidebarProps) {
-  
+
+  // Scrolls the window (and any scrollable main-content container, if present)
+  // back to the top whenever navigation happens. Without this, switching tabs
+  // keeps whatever scroll position the previous screen was left at.
+  const scrollContentToTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    const possibleContainers = [
+      document.getElementById("main-content"),
+      document.getElementById("app-main-content"),
+      document.getElementById("main-scroll-area"),
+      document.querySelector("main")
+    ];
+
+    possibleContainers.forEach((el) => {
+      if (el) {
+        el.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+    });
+  };
+
+  const navigateTo = (screen: ActiveScreen) => {
+    setActiveScreen(screen);
+    scrollContentToTop();
+  };
+
+  const navigateToAdminTab = (tabId: string) => {
+    setActiveScreen("admin");
+    setAdminActiveTab(tabId);
+    scrollContentToTop();
+  };
+
   // User Navigation Items
   const userNavItems = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -83,7 +114,7 @@ export default function AppSidebar({
         <div
           onClick={() => {
             setIsAdminWorkspace(false);
-            setActiveScreen("landing");
+            navigateTo("landing");
           }}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
@@ -116,7 +147,7 @@ export default function AppSidebar({
               <button
                 id={`sidebar-item-${item.id}`}
                 key={item.id}
-                onClick={() => setActiveScreen(item.id)}
+                onClick={() => navigateTo(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
                   isActive
                     ? "bg-amber-500/5 text-amber-500 border border-amber-500/10 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.05)]"
@@ -141,10 +172,7 @@ export default function AppSidebar({
               <button
                 id={`sidebar-admin-item-${item.id}`}
                 key={item.id}
-                onClick={() => {
-                  setActiveScreen("admin");
-                  setAdminActiveTab(item.id);
-                }}
+                onClick={() => navigateToAdminTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
                   isActive
                     ? "bg-amber-500/5 text-amber-500 border border-amber-500/10"
@@ -173,7 +201,7 @@ export default function AppSidebar({
                 id="sidebar-btn-user-workspace"
                 onClick={() => {
                   setIsAdminWorkspace(false);
-                  setActiveScreen("dashboard");
+                  navigateTo("dashboard");
                 }}
                 className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/15 cursor-pointer"
               >
@@ -185,8 +213,7 @@ export default function AppSidebar({
                 id="sidebar-btn-admin-room"
                 onClick={() => {
                   setIsAdminWorkspace(true);
-                  setActiveScreen("admin");
-                  setAdminActiveTab("overview");
+                  navigateToAdminTab("overview");
                 }}
                 className="w-full py-2 bg-rose-950/20 hover:bg-rose-900/30 border border-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
@@ -219,7 +246,7 @@ export default function AppSidebar({
             id="sidebar-btn-landing"
             onClick={() => {
               setIsAdminWorkspace(false);
-              setActiveScreen("landing");
+              navigateTo("landing");
             }}
             className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 transition"
           >

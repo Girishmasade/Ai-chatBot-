@@ -1,21 +1,36 @@
 import React, { useState } from "react";
-import { FileText, Shield, Info, Mail, Phone, MapPin, Send, CheckCircle, Sparkles } from "lucide-react";
+import { FileText, Shield, Info, Mail, Phone, MapPin, Send, CheckCircle, Sparkles, Code2 } from "lucide-react";
+
+// -------------------------------------------------------------
+// SHARED: Dev Credit Footer
+// -------------------------------------------------------------
+function DevCredit() {
+  return (
+    <div className="flex items-center justify-center gap-1.5 pt-2 pb-1 text-[10px] text-zinc-600">
+      <Code2 className="w-3 h-3 text-amber-500/60" />
+      <span>
+        Made by <span className="font-semibold text-amber-500/80">Girish</span>{" "}
+        <span className="text-zinc-600">(devCoder)</span>
+      </span>
+    </div>
+  );
+}
 
 // -------------------------------------------------------------
 // 1. TERMS OF SERVICE
 // -------------------------------------------------------------
 export function TermsOfServicePage() {
   return (
-    <div className="space-y-8 select-none p-1 text-left">
-      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">
-        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
-            <FileText className="w-6 h-6" />
+    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 shrink-0">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block font-mono">Legal Agreement</span>
-            <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white font-sans truncate">
               Terms of Service
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">Last revised: July 18, 2026</p>
@@ -23,7 +38,7 @@ export function TermsOfServicePage() {
         </div>
       </div>
 
-      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8 space-y-6 text-xs text-zinc-400 leading-relaxed max-w-4xl">
+      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 text-xs text-zinc-400 leading-relaxed w-full max-w-4xl">
         <div className="space-y-2">
           <h4 className="text-sm font-bold text-white uppercase tracking-wider">1. Agreement to Terms</h4>
           <p>By accessing or utilizing GoChat AI Platform, you agree to be bound by these Terms of Service. These Terms represent a legal and binding agreement between you and the GoChat AI Platform operators. If you do not agree, do not access our secure workspaces.</p>
@@ -45,9 +60,11 @@ export function TermsOfServicePage() {
         </div>
 
         <div className="space-y-2 pt-4 border-t border-[#1F1F1F]">
-          <p className="text-[10px] text-zinc-500 font-mono">SYSTEM LOG: TERMS_VERIFIED // SECURE CHECKPASS</p>
+          <p className="text-[10px] text-zinc-500 font-mono break-all">SYSTEM LOG: TERMS_VERIFIED // SECURE CHECKPASS</p>
         </div>
       </div>
+
+      <DevCredit />
     </div>
   );
 }
@@ -57,16 +74,16 @@ export function TermsOfServicePage() {
 // -------------------------------------------------------------
 export function PrivacyPolicyPage() {
   return (
-    <div className="space-y-8 select-none p-1 text-left">
-      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">
-        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
-            <Shield className="w-6 h-6" />
+    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 shrink-0">
+            <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block font-mono">Secured Records</span>
-            <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white font-sans truncate">
               Privacy Policy
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">Last revised: July 18, 2026</p>
@@ -74,7 +91,7 @@ export function PrivacyPolicyPage() {
         </div>
       </div>
 
-      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8 space-y-6 text-xs text-zinc-400 leading-relaxed max-w-4xl">
+      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 text-xs text-zinc-400 leading-relaxed w-full max-w-4xl">
         <div className="space-y-2">
           <h4 className="text-sm font-bold text-white uppercase tracking-wider">1. Data Identity & Collection</h4>
           <p>We collect essential user identity indicators (such as name, email, and joined dates) to provide access to secure workspaces. Model inference inputs and prompts are processed on our Node.js server. We do not sell, trade, or lease personal identifiers.</p>
@@ -91,9 +108,11 @@ export function PrivacyPolicyPage() {
         </div>
 
         <div className="space-y-2 pt-4 border-t border-[#1F1F1F]">
-          <p className="text-[10px] text-zinc-500 font-mono">SYSTEM LOG: PRIVACY_OVERSIGHT // AUDITPASS: ACTIVE</p>
+          <p className="text-[10px] text-zinc-500 font-mono break-all">SYSTEM LOG: PRIVACY_OVERSIGHT // AUDITPASS: ACTIVE</p>
         </div>
       </div>
+
+      <DevCredit />
     </div>
   );
 }
@@ -103,16 +122,16 @@ export function PrivacyPolicyPage() {
 // -------------------------------------------------------------
 export function AboutUsPage() {
   return (
-    <div className="space-y-8 select-none p-1 text-left">
-      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">
-        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
-            <Info className="w-6 h-6" />
+    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 shrink-0">
+            <Info className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block font-mono">Our Vision</span>
-            <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white font-sans truncate">
               About GoChat AI
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">The luxury standard for multi-modal intelligence</p>
@@ -120,14 +139,14 @@ export function AboutUsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8 space-y-4 text-xs text-zinc-400 leading-relaxed text-left">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="md:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8 space-y-4 text-xs text-zinc-400 leading-relaxed text-left">
           <h4 className="text-sm font-bold text-white uppercase tracking-wider">Aesthetic & Performance Coupled</h4>
           <p>GoChat AI was founded with a singular, uncompromised objective: to bring elite luxury visual and typographical pairings to the world of generative AI. We reject chaotic interfaces. Our design philosophy pairs spacious, high-contrast dark-mode cards with premium Amber highlights to keep focus absolute.</p>
           <p>Behind the interface runs a robust full-stack infrastructure. Using server-side proxy models from leading intelligence research hubs like Google DeepMind, we serve ultra-fast, contextual, and protected results without compromising developer security.</p>
         </div>
 
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-4 text-left">
+        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 space-y-4 text-left">
           <h4 className="text-xs font-bold text-white uppercase tracking-wider border-b border-[#1F1F1F] pb-2">Core Pillars</h4>
           <div className="space-y-3 text-xs text-zinc-400">
             <div>
@@ -145,6 +164,8 @@ export function AboutUsPage() {
           </div>
         </div>
       </div>
+
+      <DevCredit />
     </div>
   );
 }
@@ -164,24 +185,24 @@ export function ContactUsPage() {
   };
 
   return (
-    <div className="space-y-8 select-none p-1 text-left relative">
-      {/* Toast */}
+    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left relative overflow-x-hidden">
+      {/* Toast - safely contained on mobile, floats top-right on larger screens */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-amber-500" />
-          {toastMessage}
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="normal-case tracking-normal sm:uppercase sm:tracking-widest">{toastMessage}</span>
         </div>
       )}
 
-      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">
-        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />
-        <div className="relative flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
-            <Mail className="w-6 h-6" />
+      <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
+        <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20 shrink-0">
+            <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block font-mono">VIP Relations</span>
-            <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white font-sans">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white font-sans truncate">
               Contact Concierge
             </h3>
             <p className="text-xs text-zinc-500 mt-0.5">Let us optimize your enterprise intelligence workflow</p>
@@ -189,16 +210,16 @@ export function ContactUsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
         {/* Contact Form */}
-        <div className="lg:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-4">
+        <div className="lg:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 space-y-4 w-full">
           <div className="border-b border-[#1F1F1F] pb-2 text-left">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Direct Message</h4>
             <p className="text-[10px] text-zinc-500">Inquiries typically resolved within 2 hours</p>
           </div>
 
           <form onSubmit={handleSendMessage} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Name</label>
                 <input
@@ -245,7 +266,7 @@ export function ContactUsPage() {
         </div>
 
         {/* Office details */}
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-6 text-left">
+        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 space-y-6 text-left w-full">
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Corporate Offices</h4>
             <p className="text-[10px] text-zinc-500">GoChat AI Platform Private Ltd.</p>
@@ -254,23 +275,23 @@ export function ContactUsPage() {
           <div className="space-y-4 text-xs text-zinc-300">
             <div className="flex items-start gap-3">
               <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <p className="font-bold">Headquarters Node</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">80 Feet Road, Koramangala, Bengaluru, Karnataka 560034</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5 break-words">80 Feet Road, Koramangala, Bengaluru, Karnataka 560034</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
               <Mail className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <p className="font-bold">Inquiries Email</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">support@gochat.ai</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5 break-all">support@gochat.ai</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
               <Phone className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <p className="font-bold">Secure Hotline</p>
                 <p className="text-[10px] text-zinc-500 mt-0.5">+91 (80) 4125-9900</p>
               </div>
@@ -278,6 +299,8 @@ export function ContactUsPage() {
           </div>
         </div>
       </div>
+
+      <DevCredit />
     </div>
   );
 }
