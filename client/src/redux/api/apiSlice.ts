@@ -1,116 +1,182 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import {
+import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import type {
   User,
   SystemModel,
   SubscriptionRecord,
   AuditLog,
   BrandingConfig,
   CookieConsent,
-  AIAsset
+  AIAsset,
 } from "../../types";
+import {
+  mockUsers,
+  mockModels,
+  mockSubscriptions,
+  mockLogs,
+  mockCookieConsents,
+  mockBranding,
+  mockAssets,
+} from "./mockData";
+
+// ─────────────────────────────────────────────────────────
+//  In-memory store  (mutated by queryFn mutations)
+//  Swap this entire file's base query to fetchBaseQuery()
+//  once the real backend is ready.
+// ─────────────────────────────────────────────────────────
+let users    = [...mockUsers];
+let models   = [...mockModels];
+let subs     = [...mockSubscriptions];
+let logs     = [...mockLogs];
+let consents = [...mockCookieConsents];
+let branding = { ...mockBranding };
+let assets   = [...mockAssets];
+
+const pushLog = (action: string, details: string) => {
+  logs.unshift({
+    id: `log-${Date.now()}`,
+    action,
+    operator: "devcoderm13@gmail.com",
+    timestamp: new Date().toLocaleString(),
+    details,
+  });
+};
 
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  baseQuery: fakeBaseQuery(),
   tagTypes: ["User", "Asset", "Model", "Subscription", "Log", "Config"],
   endpoints: (builder) => ({
-    // User endpoints
+    // ── Users ────────────────────────────────────────────
     getUsers: builder.query<User[], void>({
-      query: () => "/admin/users",
+      queryFn: () => ({ data: [...users] }),
       providesTags: ["User"],
     }),
-    createUser: builder.mutation<{ success: boolean; user?: User }, Partial<User>>({
-      query: (body) => ({
-        url: "/admin/users/create",
-        method: "POST",
-        body,
-      }),
+    createUser: builder.mutation<{ success: boolean; user: User }, Partial<User>>({
+      queryFn: (body) => {
+        const newUser: User = {
+          id: `u-${Date.now()}`,
+          name: body.name || "New User",
+          email: body.email || "new@example.com",
+          role: (body.role as User["role"]) || "User",
+          tier: (body.tier as User["tier"]) || "free",
+          credits: body.credits ?? 100,
+          joined: new Date().toISOString().split("T")[0],
+          status: "active",
+        };
+        users.unshift(newUser);
+        pushLog("User Created", `Deployed account for ${newUser.email}`);
+        return { data: { success: true, user: newUser } };
+      },
       invalidatesTags: ["User", "Log"],
     }),
     updateUser: builder.mutation<{ success: boolean; user?: User }, Partial<User>>({
-      query: (body) => ({
-        url: "/admin/users/update",
-        method: "POST",
-        body,
-      }),
+      queryFn: (body) => {
+        const idx = users.findIndex((u) => u.id === body.id);
+        if (idx === -1) return { error: { status: 404, data: "User not found" } };
+        users[idx] = { ...users[idx], ...body } as User;
+        pushLog("User Updated", `Modified specs for ${users[idx].email}`);
+        return { data: { success: true, user: users[idx] } };
+      },
       invalidatesTags: ["User", "Log"],
     }),
     deleteUser: builder.mutation<{ success: boolean }, { id: string }>({
-      query: (body) => ({
-        url: "/admin/users/delete",
-        method: "POST",
-        body,
-      }),
+      queryFn: ({ id }) => {
+        const target = users.find((u) => u.id === id);
+        users = users.filter((u) => u.id !== id);
+        pushLog("User Purged", `Deleted ${target?.email ?? id}`);
+        return { data: { success: true } };
+      },
       invalidatesTags: ["User", "Log"],
     }),
 
-    // Model endpoints
+    // ── Models ───────────────────────────────────────────
     getModels: builder.query<SystemModel[], void>({
-      query: () => "/admin/models",
+      queryFn: () => ({ data: [...models] }),
       providesTags: ["Model"],
     }),
     toggleModel: builder.mutation<{ success: boolean }, { id: string }>({
-      query: (body) => ({
-        url: "/admin/models/toggle",
-        method: "POST",
-        body,
-      }),
+      queryFn: ({ id }) => {
+        const m = models.find((x) => x.id === id);
+        if (m) {
+          m.status = m.status === "active" ? "inactive" : "active";
+          pushLog("Model Toggled", `${m.name} → ${m.status}`);
+        }
+        return { data: { success: true } };
+      },
       invalidatesTags: ["Model", "Log"],
     }),
 
-    // Subscription endpoints
+    // ── Subscriptions ────────────────────────────────────
     getSubscriptions: builder.query<SubscriptionRecord[], void>({
-      query: () => "/admin/subscriptions",
+      queryFn: () => ({ data: [...subs] }),
       providesTags: ["Subscription"],
     }),
 
-    // Log endpoints
+    // ── Audit Logs ───────────────────────────────────────
     getLogs: builder.query<AuditLog[], void>({
-      query: () => "/admin/logs",
+      queryFn: () => ({ data: [...logs] }),
       providesTags: ["Log"],
     }),
 
-    // Configuration / Branding endpoints
+    // ── Config / Branding ────────────────────────────────
     getConfig: builder.query<{ branding: BrandingConfig; cookieConsents: CookieConsent[] }, void>({
-      query: () => "/admin/config",
+      queryFn: () => ({
+        data: { branding: { ...branding }, cookieConsents: [...consents] },
+      }),
       providesTags: ["Config"],
     }),
     updateBranding: builder.mutation<{ success: boolean }, Partial<BrandingConfig>>({
-      query: (body) => ({
-        url: "/admin/config/update-branding",
-        method: "POST",
-        body,
-      }),
+      queryFn: (body) => {
+        branding = { ...branding, ...body };
+        pushLog("Branding Updated", `Saved CMS branding changes`);
+        return { data: { success: true } };
+      },
       invalidatesTags: ["Config", "Log"],
     }),
     logConsent: builder.mutation<{ success: boolean }, { user: string; categories: string[] }>({
-      query: (body) => ({
-        url: "/admin/config/consent-log",
-        method: "POST",
-        body,
-      }),
+      queryFn: ({ user, categories }) => {
+        consents.push({
+          id: `cc-${Date.now()}`,
+          user,
+          consented: true,
+          categories,
+          timestamp: new Date().toLocaleString(),
+        });
+        return { data: { success: true } };
+      },
       invalidatesTags: ["Config"],
     }),
 
-    // Asset endpoints
+    // ── Assets ───────────────────────────────────────────
     getAssets: builder.query<AIAsset[], void>({
-      query: () => "/assets",
+      queryFn: () => ({ data: [...assets] }),
       providesTags: ["Asset"],
     }),
     deleteAsset: builder.mutation<{ success: boolean }, { id: string }>({
-      query: (body) => ({
-        url: "/assets/delete",
-        method: "POST",
-        body,
-      }),
+      queryFn: ({ id }) => {
+        assets = assets.filter((a) => a.id !== id);
+        return { data: { success: true } };
+      },
       invalidatesTags: ["Asset"],
     }),
     generateImage: builder.mutation<{ success: boolean; asset?: AIAsset }, { prompt: string; aspectRatio: string }>({
-      query: (body) => ({
-        url: "/gemini/image",
-        method: "POST",
-        body,
-      }),
+      queryFn: ({ prompt, aspectRatio }) => {
+        const dims = aspectRatio === "16:9" ? "1024x576"
+          : aspectRatio === "9:16" ? "576x1024"
+          : aspectRatio === "4:3" ? "800x600"
+          : "512x512";
+        const newAsset: AIAsset = {
+          id: `a-${Date.now()}`,
+          type: "image",
+          title: prompt.slice(0, 40),
+          prompt,
+          content: `https://placehold.co/${dims}/111111/F59E0B?text=${encodeURIComponent(prompt.slice(0, 20))}`,
+          model: "gemini-2.5-flash-lite-image",
+          timestamp: new Date().toLocaleString(),
+        };
+        assets.unshift(newAsset);
+        return { data: { success: true, asset: newAsset } };
+      },
       invalidatesTags: ["Asset"],
     }),
   }),

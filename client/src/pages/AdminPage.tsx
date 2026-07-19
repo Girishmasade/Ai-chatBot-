@@ -65,6 +65,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [cookieConsents, setCookieConsents] = useState<CookieConsent[]>([]);
   const [branding, setBranding] = useState<BrandingConfig>({
     logoName: "GoChat AI",
+    logoImage: "",
     themeMode: "Black Amber",
     primaryColor: "#F59E0B",
     accentGlow: "rgba(245, 158, 11, 0.15)",
