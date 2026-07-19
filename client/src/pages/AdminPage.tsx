@@ -23,6 +23,19 @@ import {
 } from "lucide-react";
 import { User, SystemModel, SubscriptionRecord, AuditLog, CookieConsent, BrandingConfig } from "../types";
 import CommonModal from "../components/CommonModal";
+import {
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useGetModelsQuery,
+  useToggleModelMutation,
+  useGetSubscriptionsQuery,
+  useGetLogsQuery,
+  useGetConfigQuery,
+  useUpdateBrandingMutation
+} from "../redux/api/apiSlice";
+import { calculateRevenue } from "../helpers/utils";
 
 interface AdminPageProps {
   activeTab: string;
@@ -30,7 +43,21 @@ interface AdminPageProps {
 }
 
 export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
-  // Database states
+  // RTK Queries
+  const { data: usersData = [] } = useGetUsersQuery();
+  const { data: modelsData = [] } = useGetModelsQuery();
+  const { data: subscriptionsData = [] } = useGetSubscriptionsQuery();
+  const { data: logsData = [] } = useGetLogsQuery();
+  const { data: configData } = useGetConfigQuery();
+
+  // RTK Mutations
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+  const [toggleModel] = useToggleModelMutation();
+  const [updateBranding] = useUpdateBrandingMutation();
+
+  // Database local states synced with RTK Query caches
   const [users, setUsers] = useState<User[]>([]);
   const [models, setModels] = useState<SystemModel[]>([]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionRecord[]>([]);
@@ -123,65 +150,55 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     setTimeout(() => setToastMessage(""), 2500);
   };
 
-  // FETCH ALL DATA
-  const fetchDb = () => {
-    fetch("/api/admin/users")
-      .then(res => res.json())
-      .then(setUsers)
-      .catch(e => console.error(e));
-
-    fetch("/api/admin/models")
-      .then(res => res.json())
-      .then(setModels)
-      .catch(e => console.error(e));
-
-    fetch("/api/admin/subscriptions")
-      .then(res => res.json())
-      .then(setSubscriptions)
-      .catch(e => console.error(e));
-
-    fetch("/api/admin/logs")
-      .then(res => res.json())
-      .then(setAuditLogs)
-      .catch(e => console.error(e));
-
-    fetch("/api/admin/config")
-      .then(res => res.json())
-      .then(data => {
-        setBranding(data.branding);
-        setBrandingForm({
-          logoName: data.branding.logoName,
-          primaryColor: data.branding.primaryColor,
-          footerText: data.branding.footerText
-        });
-        setCookieConsents(data.cookieConsents);
-        setConsentsStats({
-          totalAccepted: data.cookieConsents.length + 1,
-          essentialOnly: 0,
-          allConsents: data.cookieConsents.length + 1
-        });
-      })
-      .catch(e => console.error(e));
-  };
+  // Sync state values with RTK Query cache responses
+  useEffect(() => {
+    if (usersData) setUsers(usersData);
+  }, [usersData]);
 
   useEffect(() => {
-    fetchDb();
-  }, []);
+    if (modelsData) setModels(modelsData);
+  }, [modelsData]);
+
+  useEffect(() => {
+    if (subscriptionsData) setSubscriptions(subscriptionsData);
+  }, [subscriptionsData]);
+
+  useEffect(() => {
+    if (logsData) setAuditLogs(logsData);
+  }, [logsData]);
+
+  useEffect(() => {
+    if (configData) {
+      setBranding(configData.branding);
+      setBrandingForm({
+        logoName: configData.branding.logoName,
+        primaryColor: configData.branding.primaryColor,
+        footerText: configData.branding.footerText
+      });
+      setCookieConsents(configData.cookieConsents);
+      setConsentsStats({
+        totalAccepted: configData.cookieConsents.length + 1,
+        essentialOnly: 0,
+        allConsents: configData.cookieConsents.length + 1
+      });
+    }
+  }, [configData]);
 
   // USER OPERATIONS
   const handleCreateUser = async () => {
     try {
-      const response = await fetch("/api/admin/users/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userForm)
-      });
-      const data = await response.json();
+      const payload = {
+        name: userForm.name,
+        email: userForm.email,
+        role: userForm.role as any,
+        tier: userForm.tier as any,
+        credits: parseInt(userForm.credits) || 0
+      };
+      const data = await createUser(payload).unwrap();
       if (data.success) {
         triggerToast("User account deployed successfully");
         setIsUserCreateOpen(false);
         setUserForm({ id: "", name: "", email: "", role: "User", tier: "free", credits: "100" });
-        fetchDb();
       }
     } catch (e) {
       console.error(e);
@@ -202,17 +219,19 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
   const handleUpdateUser = async () => {
     try {
-      const response = await fetch("/api/admin/users/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userForm)
-      });
-      const data = await response.json();
+      const payload = {
+        id: userForm.id,
+        name: userForm.name,
+        email: userForm.email,
+        role: userForm.role as any,
+        tier: userForm.tier as any,
+        credits: parseInt(userForm.credits) || 0
+      };
+      const data = await updateUser(payload).unwrap();
       if (data.success) {
         triggerToast("User account specs updated");
         setIsUserEditOpen(false);
         setUserForm({ id: "", name: "", email: "", role: "User", tier: "free", credits: "100" });
-        fetchDb();
       }
     } catch (e) {
       console.error(e);
@@ -222,16 +241,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const handleDeleteConfirm = async () => {
     if (!deleteUserId) return;
     try {
-      const response = await fetch("/api/admin/users/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: deleteUserId })
-      });
-      const data = await response.json();
+      const data = await deleteUser({ id: deleteUserId }).unwrap();
       if (data.success) {
         triggerToast("User record purged successfully");
         setDeleteUserId(null);
-        fetchDb();
       }
     } catch (e) {
       console.error(e);
@@ -241,15 +254,9 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   // MODEL TOGGLE & ADD
   const handleToggleModel = async (id: string) => {
     try {
-      const response = await fetch("/api/admin/models/toggle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      const data = await response.json();
+      const data = await toggleModel({ id }).unwrap();
       if (data.success) {
         triggerToast("Model allocation toggled");
-        fetchDb();
       }
     } catch (e) {
       console.error(e);
@@ -276,15 +283,9 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/admin/config/update-branding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(brandingForm)
-      });
-      const data = await response.json();
+      const data = await updateBranding(brandingForm).unwrap();
       if (data.success) {
         triggerToast("Platform CMS branding saved successfully");
-        fetchDb();
       }
     } catch (e) {
       console.error(e);
@@ -312,12 +313,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   };
 
   // BILLING REVENUES
-  const totalRevenueEst = subscriptions
-    .filter(s => s.status === "paid")
-    .reduce((acc, curr) => {
-      const val = parseInt(curr.price.replace(/[^\d]/g, "")) || 0;
-      return acc + val;
-    }, 0);
+  const totalRevenueEst = calculateRevenue(subscriptions);
 
   return (
     <div className="space-y-6 select-none p-1 text-left relative">

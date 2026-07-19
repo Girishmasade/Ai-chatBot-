@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Shield, Settings, Check, X } from "lucide-react";
+import { useLogConsentMutation } from "../redux/api/apiSlice";
 
 export default function CookieBanner() {
+  const [logConsent] = useLogConsentMutation();
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [categories, setCategories] = useState({
@@ -26,11 +28,7 @@ export default function CookieBanner() {
     
     // Save to server database
     try {
-      await fetch("/api/admin/config/consent-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: "devcoderm13@gmail.com", categories: selections })
-      });
+      await logConsent({ user: "devcoderm13@gmail.com", categories: selections }).unwrap();
     } catch (e) {
       console.error(e);
     }
@@ -46,11 +44,7 @@ export default function CookieBanner() {
     localStorage.setItem("gochat_cookie_consent", JSON.stringify(selections));
 
     try {
-      await fetch("/api/admin/config/consent-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: "devcoderm13@gmail.com", categories: selections })
-      });
+      await logConsent({ user: "devcoderm13@gmail.com", categories: selections }).unwrap();
     } catch (e) {
       console.error(e);
     }

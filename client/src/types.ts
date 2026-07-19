@@ -77,8 +77,10 @@ export interface CookieConsent {
 
 export interface BrandingConfig {
   logoName: string;
+  logoImage: string;
   themeMode: string;
   primaryColor: string;
   accentGlow: string;
   footerText: string;
 }
+

@@ -1,63 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Image as ImageIcon, Sparkles, Download, Maximize2, Trash2, Calendar, HardDrive } from "lucide-react";
-import { AIAsset } from "../types";
+import { useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation } from "../redux/api/apiSlice";
 
 export default function ImagePage() {
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [modelType, setModelType] = useState("gemini-3.1-flash-lite-image");
-  const [assets, setAssets] = useState<AIAsset[]>([]);
-  const [generating, setGenerating] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  // Fetch past images
-  const fetchImages = () => {
-    fetch("/api/assets")
-      .then((res) => res.json())
-      .then((data) => {
-        const imagesOnly = data.filter((a: any) => a.type === "image");
-        setAssets(imagesOnly);
-      })
-      .catch((e) => console.error(e));
-  };
+  const { data: allAssets = [] } = useGetAssetsQuery();
+  const [deleteAsset] = useDeleteAssetMutation();
+  const [generateImage, { isLoading: generating }] = useGenerateImageMutation();
 
-  useEffect(() => {
-    fetchImages();
-  }, []);
+  const assets = allAssets.filter((a: any) => a.type === "image");
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
 
-    setGenerating(true);
-
     try {
-      const response = await fetch("/api/gemini/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, aspectRatio })
-      });
-      const data = await response.json();
-
+      const data = await generateImage({ prompt, aspectRatio }).unwrap();
       if (data.success) {
         setPrompt("");
-        fetchImages();
       }
     } catch (e) {
       console.error(e);
-    } finally {
-      setGenerating(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch("/api/assets/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      fetchImages();
+      await deleteAsset({ id }).unwrap();
     } catch (e) {
       console.error(e);
     }

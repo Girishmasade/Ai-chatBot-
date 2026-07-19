@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import {
   Zap,
@@ -16,7 +16,9 @@ import {
   Sliders,
   UserCheck
 } from "lucide-react";
-import { ActiveScreen, User, AIAsset } from "../types";
+import { ActiveScreen, User } from "../types";
+import { useGetAssetsQuery } from "../redux/api/apiSlice";
+import { formatCredits } from "../helpers/utils";
 
 interface DashboardPageProps {
   currentUser: User;
@@ -27,21 +29,7 @@ export default function DashboardPage({
   currentUser,
   setActiveScreen
 }: DashboardPageProps) {
-  const [assets, setAssets] = useState<AIAsset[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/assets")
-      .then((res) => res.json())
-      .then((data) => {
-        setAssets(data);
-        setLoading(false);
-      })
-      .catch((e) => {
-        console.error("Failed to load assets", e);
-        setLoading(false);
-      });
-  }, []);
+  const { data: assets = [], isLoading: loading } = useGetAssetsQuery();
 
   const quickActions = [
     {
@@ -161,7 +149,7 @@ export default function DashboardPage({
                 strokeDasharray={238} strokeDashoffset={60} strokeLinecap="round" />
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className="text-base font-extrabold text-white font-numbers">{currentUser.credits.toLocaleString()}</span>
+              <span className="text-base font-extrabold text-white font-numbers">{formatCredits(currentUser.credits)}</span>
               <span className="text-[8px] text-[#F59E0B] uppercase font-bold tracking-wider">Remaining</span>
             </div>
           </div>

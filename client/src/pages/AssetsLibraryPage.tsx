@@ -1,45 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FolderHeart, Search, Download, Trash2, Eye, ExternalLink, Image as ImageIcon, MessageSquare, FileText, AlertCircle, Tv } from "lucide-react";
 import { AIAsset } from "../types";
+import { useGetAssetsQuery, useDeleteAssetMutation } from "../redux/api/apiSlice";
 
 export default function AssetsLibraryPage() {
-  const [assets, setAssets] = useState<AIAsset[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: assets = [], isLoading: loading } = useGetAssetsQuery();
+  const [deleteAsset] = useDeleteAssetMutation();
   const [selectedTab, setSelectedTab] = useState<"All" | "image" | "video" | "chat" | "plan">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<AIAsset | null>(null);
 
-  const fetchAssets = () => {
-    setLoading(true);
-    fetch("/api/assets")
-      .then((res) => res.json())
-      .then((data) => {
-        setAssets(data);
-        setLoading(false);
-      })
-      .catch((e) => {
-        console.error("Failed to fetch assets library", e);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchAssets();
-  }, []);
-
   const handleDeleteAsset = async (id: string) => {
     try {
-      const res = await fetch("/api/assets/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      const data = await res.json();
+      const data = await deleteAsset({ id }).unwrap();
       if (data.success) {
         if (selectedAsset?.id === id) {
           setSelectedAsset(null);
         }
-        fetchAssets();
       }
     } catch (e) {
       console.error("Purge failure", e);
