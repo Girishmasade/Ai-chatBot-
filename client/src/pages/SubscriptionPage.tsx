@@ -1,6 +1,14 @@
 import React, { useState } from "react";
-import { CreditCard, Check, Zap, Sparkles, Award, HelpCircle } from "lucide-react";
+import { CreditCard, Check, Zap, Sparkles, Award, HelpCircle, RefreshCw } from "lucide-react";
 import CommonModal from "../components/CommonModal";
+import {
+  useGetSubscriptionPlansQuery,
+  useCreateUserSubscriptionMutation,
+} from "../redux/api/subscriptionApi";
+import {
+  useCreateOrderMutation,
+  useVerifyPaymentMutation,
+} from "../redux/api/paymentApi";
 
 interface SubscriptionPageProps {
   onUpgrade: (tier: "free" | "basic" | "pro" | "enterprise", credits: number) => void;
@@ -8,24 +16,81 @@ interface SubscriptionPageProps {
 
 export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [upgradeModal, setUpgradeModal] = useState<{ isOpen: boolean; tier: string; price: string; credits: number }>({
+  const [upgradeModal, setUpgradeModal] = useState<{ isOpen: boolean; tier: string; price: string; credits: number; planId?: string }>({
     isOpen: false,
     tier: "",
     price: "",
-    credits: 0
+    credits: 0,
+    planId: undefined,
   });
 
-  const handleUpgradeClick = (tier: string, price: string, credits: number) => {
+  // Fetch real subscription plans from backend
+  const { data: plansResponse, isLoading: plansLoading } = useGetSubscriptionPlansQuery();
+  const [createSubscription, { isLoading: isSubscribing }] = useCreateUserSubscriptionMutation();
+
+  const backendPlans = plansResponse?.data?.subscriptionPlan || [];
+
+  const handleUpgradeClick = (tier: string, price: string, credits: number, planId?: string) => {
     setUpgradeModal({
       isOpen: true,
       tier,
       price,
-      credits
+      credits,
+      planId,
     });
   };
 
-  const handleConfirmUpgrade = () => {
-    // Process upgrade callback
+  const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
+  const [verifyPayment, { isLoading: isVerifying }] = useVerifyPaymentMutation();
+
+  const handleConfirmUpgrade = async () => {
+    // If we have a real backend plan ID, use the real API with Razorpay
+    if (upgradeModal.planId) {
+      try {
+        // 1. Create order
+        const orderRes = await createOrder({
+          itemType: "SUBSCRIPTION",
+          itemId: upgradeModal.planId,
+        }).unwrap();
+
+        // 2. Open Razorpay Checkout
+        const options = {
+          key: "rzp_test_THQUCyYxXJst74", // Ideally fetched from backend or env, but fine for test
+          amount: orderRes.data.amount,
+          currency: orderRes.data.currency,
+          name: "GoChat AI Studio",
+          description: `Subscription: ${upgradeModal.tier}`,
+          order_id: orderRes.data.orderId,
+          handler: async function (response: any) {
+            try {
+              // 3. Verify Payment
+              await verifyPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }).unwrap();
+              
+              setUpgradeModal({ ...upgradeModal, isOpen: false });
+              // (Optional) Trigger a success toast here
+            } catch (verErr) {
+              console.error("Payment verification failed:", verErr);
+            }
+          },
+          theme: {
+            color: "#f59e0b", // Amber 500
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+
+      } catch (err: any) {
+        console.error("Subscription order creation failed:", err);
+      }
+      return;
+    }
+
+    // Fallback to mock upgrade callback
     const tierValue = upgradeModal.tier.toLowerCase().includes("pro")
       ? "pro"
       : upgradeModal.tier.toLowerCase().includes("basic")
@@ -33,9 +98,11 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
       : "enterprise";
     
     onUpgrade(tierValue as any, upgradeModal.credits);
+    setUpgradeModal({ ...upgradeModal, isOpen: false });
   };
 
-  const plans = [
+  // Build plan cards — merge backend plans with fallback hardcoded plans
+  const fallbackPlans = [
     {
       name: "Free Sandbox",
       price: "₹0",
@@ -96,6 +163,22 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
       buttonText: "Purchase Daily Pass"
     }
   ];
+
+  // If backend has real plans, build cards from them; otherwise use fallback
+  const plans = backendPlans.length > 0
+    ? backendPlans.map((bp, i) => ({
+        name: bp.name,
+        price: `₹${bp.price}`,
+        period: bp.durationInDays ? `/${bp.durationInDays}d` : "/month",
+        description: bp.description,
+        credits: `${bp.tokens || 0} tokens`,
+        features: bp.services.slice(0, 4),
+        featured: i === 1,
+        buttonText: bp.price === 0 ? "Current Plan" : `Subscribe to ${bp.name}`,
+        planId: bp._id,
+        priceValue: bp.price,
+      }))
+    : fallbackPlans.map((p) => ({ ...p, planId: undefined as string | undefined, priceValue: 0 }));
 
   return (
     <div className="space-y-8 select-none p-1 text-left">
@@ -186,11 +269,13 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
             <button
               id={`plan-btn-upgrade-${i}`}
               onClick={() => {
-                if (plan.price !== "₹0") {
+                const p = plan as any;
+                if (p.priceValue !== 0 && p.price !== "₹0") {
                   handleUpgradeClick(
                     plan.name,
                     `${plan.price}${plan.period || ""}`,
-                    plan.name.includes("Daily") ? 100 : plan.name.includes("Pro") ? 1500 : 500
+                    plan.name.includes("Daily") ? 100 : plan.name.includes("Pro") ? 1500 : 500,
+                    p.planId,
                   );
                 }
               }}

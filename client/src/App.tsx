@@ -97,7 +97,7 @@ function LandingRoute() {
 
 function LoginRoute() {
   const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
     return <Navigate to="/app/dashboard" replace />;
@@ -105,8 +105,8 @@ function LoginRoute() {
 
   return (
     <AuthPage
-      onLoginSuccess={(email: string, name: string) => {
-        login(email, name);
+      onLoginSuccess={(_email: string, _name: string) => {
+        // Auth state is already set via authSlice extraReducer on verifyOtp success
         navigate("/app/dashboard");
       }}
       onBackToLanding={() => navigate("/")}

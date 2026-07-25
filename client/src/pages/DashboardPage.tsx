@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import {
   Zap,
@@ -18,6 +18,9 @@ import {
 } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 import { useGetAssetsQuery } from "../redux/api/apiSlice";
+import { useLazyGetWalletBalanceQuery } from "../redux/api/tokenApi";
+import { useSelector } from "react-redux";
+import type { RootState } from "../redux/store";
 import { formatCredits } from "../helpers/utils";
 
 interface DashboardPageProps {
@@ -30,6 +33,19 @@ export default function DashboardPage({
   setActiveScreen
 }: DashboardPageProps) {
   const { data: assets = [], isLoading: loading } = useGetAssetsQuery();
+
+  // Fetch real wallet balance from backend
+  const authUser = useSelector((state: RootState) => state.auth.currentUser);
+  const [triggerWallet, { data: walletData }] = useLazyGetWalletBalanceQuery();
+
+  useEffect(() => {
+    if (authUser?.id) {
+      triggerWallet(authUser.id);
+    }
+  }, [authUser?.id, triggerWallet]);
+
+  const walletBalance = walletData?.data?.wallet?.balance;
+  const displayCredits = walletBalance ?? currentUser.credits;
 
   const quickActions = [
     {
@@ -149,7 +165,7 @@ export default function DashboardPage({
                 strokeDasharray={238} strokeDashoffset={60} strokeLinecap="round" />
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className="text-base font-extrabold text-white font-numbers">{formatCredits(currentUser.credits)}</span>
+              <span className="text-base font-extrabold text-white font-numbers">{formatCredits(displayCredits)}</span>
               <span className="text-[8px] text-[#F59E0B] uppercase font-bold tracking-wider">Remaining</span>
             </div>
           </div>

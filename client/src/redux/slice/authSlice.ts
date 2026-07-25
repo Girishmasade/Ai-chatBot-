@@ -1,49 +1,128 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { User } from "../../types";
+import { authApi } from "../api/authApi";
+import type { AuthUser } from "../../types";
+
+// ─── Persisted state helpers ─────────────────────────────────────────────────
+
+const STORAGE_KEY = "gochat_auth";
+
+interface PersistedAuth {
+  accessToken: string;
+  user: AuthUser;
+}
+
+function loadPersistedAuth(): PersistedAuth | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedAuth;
+  } catch {
+    return null;
+  }
+}
+
+function persistAuth(data: PersistedAuth): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function clearPersistedAuth(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ─── Slice state ─────────────────────────────────────────────────────────────
 
 interface AuthState {
-  currentUser: User;
+  accessToken: string | null;
+  currentUser: AuthUser | null;
   isAuthenticated: boolean;
 }
 
-const initialUser: User = {
-  id: "u-1",
-  name: "Dev Coder",
-  email: "devcoderm13@gmail.com",
-  role: "Developer",
-  tier: "pro",
-  joined: "2026-07-01",
-  status: "active",
-  credits: 1540
-};
+const persisted = loadPersistedAuth();
 
 const initialState: AuthState = {
-  currentUser: initialUser,
-  isAuthenticated: false,
+  accessToken: persisted?.accessToken ?? null,
+  currentUser: persisted?.user ?? null,
+  isAuthenticated: !!persisted?.accessToken,
 };
+
+// ─── Slice ───────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    login: (state, action: PayloadAction<{ email: string; name?: string }>) => {
+    /** Manually set credentials (e.g. from OAuth callback) */
+    setCredentials: (
+      state,
+      action: PayloadAction<{ accessToken: string; user: AuthUser }>
+    ) => {
+      state.accessToken = action.payload.accessToken;
+      state.currentUser = action.payload.user;
       state.isAuthenticated = true;
-      state.currentUser.email = action.payload.email;
-      if (action.payload.name) {
-        state.currentUser.name = action.payload.name;
+      persistAuth(action.payload);
+    },
+
+    /** Clear auth state on logout */
+    logout: (state) => {
+      state.accessToken = null;
+      state.currentUser = null;
+      state.isAuthenticated = false;
+      clearPersistedAuth();
+    },
+
+    /** Partial update of the current user (e.g. after profile edit) */
+    updateCurrentUser: (state, action: PayloadAction<Partial<AuthUser>>) => {
+      if (state.currentUser) {
+        state.currentUser = { ...state.currentUser, ...action.payload };
+        if (state.accessToken) {
+          persistAuth({
+            accessToken: state.accessToken,
+            user: state.currentUser,
+          });
+        }
       }
     },
-    logout: (state) => {
-      state.isAuthenticated = false;
-    },
-    updateUser: (state, action: PayloadAction<Partial<User>>) => {
-      state.currentUser = {
-        ...state.currentUser,
-        ...action.payload
-      };
-    }
-  }
+  },
+
+  extraReducers: (builder) => {
+    // Auto-login when verifyOtp succeeds
+    builder.addMatcher(
+      authApi.endpoints.verifyOtp.matchFulfilled,
+      (state, { payload }) => {
+        if (payload.success && payload.data) {
+          state.accessToken = payload.data.accessToken;
+          state.currentUser = payload.data.user;
+          state.isAuthenticated = true;
+          persistAuth({
+            accessToken: payload.data.accessToken,
+            user: payload.data.user,
+          });
+        }
+      }
+    );
+
+    // Auto-clear on logout mutation success
+    builder.addMatcher(
+      authApi.endpoints.logout.matchFulfilled,
+      (state) => {
+        state.accessToken = null;
+        state.currentUser = null;
+        state.isAuthenticated = false;
+        clearPersistedAuth();
+      }
+    );
+
+    builder.addMatcher(
+      authApi.endpoints.logoutAllDevices.matchFulfilled,
+      (state) => {
+        state.accessToken = null;
+        state.currentUser = null;
+        state.isAuthenticated = false;
+        clearPersistedAuth();
+      }
+    );
+  },
 });
 
-export const { login, logout, updateUser } = authSlice.actions;
+export const { setCredentials, logout, updateCurrentUser } = authSlice.actions;
 export default authSlice.reducer;

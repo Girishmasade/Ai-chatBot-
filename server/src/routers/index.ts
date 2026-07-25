@@ -16,6 +16,7 @@ import DocumentRouter from "@/moduels/document/document.routes.js";
 import RetrievalRoute from "@/moduels/retrieval/retrieval.route.js";
 import ModerationRouter from "@/moduels/moderation/moderation.route.js";
 import PromptBuilderRoute from "@/moduels/prompt/promptbuilder.route.js";
+import { paymentRouter } from "@/moduels/payment/payment.route.js";
 
 // NOTE: notification.route.ts is intentionally NOT mounted — its controller
 // (notification.controller.ts) is all empty stub functions and the route
@@ -44,3 +45,4 @@ RouterFile.use("/retrieval", RetrievalRoute)
 RouterFile.use("/rag", RagRouter)
 RouterFile.use("/prompt", PromptBuilderRoute)
 RouterFile.use("/admin/moderation", ModerationRouter)
+RouterFile.use("/payment", paymentRouter)

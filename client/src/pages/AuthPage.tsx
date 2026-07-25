@@ -16,30 +16,45 @@ import {
   CheckCircle,
   AlertTriangle,
   Send,
-  User
+  User,
+  Github,
+  Chrome,
 } from "lucide-react";
+import { env } from "../config/envImport";
 
 interface AuthPageProps {
   onLoginSuccess: (email: string, name: string) => void;
   onBackToLanding: () => void;
 }
 
+// ── Hooks ────────────────────────────────────────────────────────────────────
+import {
+  useRegisterMutation,
+  useLoginMutation,
+  useVerifyOtpMutation,
+  useResendOtpMutation,
+} from "../redux/api/authApi";
+
 export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPageProps) {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("Creator");
 
   // OTP flow states
   const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState(""); // Generated simulated code
   const [userInputOtp, setUserInputOtp] = useState("");
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [timer, setTimer] = useState(60);
-  const [showNotification, setShowNotification] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  // RTK Query mutations
+  const [registerMutation, { isLoading: isRegistering }] = useRegisterMutation();
+  const [loginMutation, { isLoading: isLoggingIn }] = useLoginMutation();
+  const [verifyOtpMutation, { isLoading: isVerifying }] = useVerifyOtpMutation();
+  const [resendOtpMutation, { isLoading: isResending }] = useResendOtpMutation();
+
+  const sendingOtp = isRegistering || isLoggingIn;
+  const verifyingOtp = isVerifying;
 
   // Countdown timer logic for OTP
   useEffect(() => {
@@ -54,80 +69,116 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
     return () => clearInterval(interval);
   }, [otpSent, timer]);
 
-  // Generate a mock secure 4-digit OTP code and trigger popup
-  const handleSendOtp = (e: React.FormEvent) => {
+  // Social OAuth URLs (redirect to backend)
+  const BACKEND_URL = env.API_URL;
+  const socialProviders = [
+    {
+      name: "Google",
+      url: `${BACKEND_URL}/auth/google`,
+      icon: Chrome,
+      color: "hover:border-red-500/30 hover:text-red-400",
+    },
+    {
+      name: "GitHub",
+      url: `${BACKEND_URL}/auth/github`,
+      icon: Github,
+      color: "hover:border-zinc-400/30 hover:text-zinc-300",
+    },
+  ];
+
+  // Send OTP — calls real backend
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || (isSignup && !name.trim())) {
       setErrorMessage("Please complete all required fields.");
       return;
     }
 
-    setSendingOtp(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
-    setTimeout(() => {
-      // Generate 4 digit OTP
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
-      setOtpCode(code);
-      setOtpSent(true);
-      setTimer(60);
-      setSendingOtp(false);
-      setShowNotification(true);
-      
-      // Auto-hide notification after 15 seconds if not clicked
-      setTimeout(() => {
-        // keep it searchable or copied
-      }, 15000);
-    }, 1200);
+    try {
+      if (isSignup) {
+        // Register → backend sends OTP email automatically
+        const result = await registerMutation({ username: name, email }).unwrap();
+        if (result.success) {
+          setSuccessMessage(result.message || "Account created. OTP sent to your email.");
+          setOtpSent(true);
+          setTimer(60);
+        } else {
+          setErrorMessage(result.message || "Registration failed.");
+        }
+      } else {
+        // Login → backend sends OTP email
+        const result = await loginMutation({ email }).unwrap();
+        if (result.success) {
+          setSuccessMessage(result.message || "OTP sent to your email.");
+          setOtpSent(true);
+          setTimer(60);
+        } else {
+          setErrorMessage(result.message || "Login failed.");
+        }
+      }
+    } catch (err: any) {
+      const apiError = err?.data?.message || err?.message || "Something went wrong.";
+      setErrorMessage(apiError);
+    }
   };
 
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  // Verify OTP — calls real backend
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (userInputOtp.length !== 4) {
-      setErrorMessage("Please enter the complete 4-digit code.");
+    if (userInputOtp.length !== 6) {
+      setErrorMessage("Please enter the complete 6-digit code.");
       return;
     }
 
-    setVerifyingOtp(true);
     setErrorMessage("");
 
-    setTimeout(() => {
-      if (userInputOtp === otpCode || userInputOtp === "1337" /* Developer backdoor */) {
+    try {
+      const result = await verifyOtpMutation({ email, otp: userInputOtp }).unwrap();
+      if (result.success && result.data) {
         setSuccessMessage("Verifying cryptographic signature... Access Granted!");
+        // Auth state is auto-set via extraReducers in authSlice
         setTimeout(() => {
-          onLoginSuccess(email, isSignup ? name : "Dev Coder");
-        }, 1000);
+          onLoginSuccess(result.data.user.email, result.data.user.username);
+        }, 800);
       } else {
-        setErrorMessage("Invalid OTP code. Please cross-reference the secure channel notification.");
-        setVerifyingOtp(false);
+        setErrorMessage(result.message || "OTP verification failed.");
       }
-    }, 1500);
+    } catch (err: any) {
+      const apiError = err?.data?.message || err?.message || "Invalid OTP code.";
+      setErrorMessage(apiError);
+    }
   };
 
-  const handleResendOtp = () => {
-    if (timer > 0) return;
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    setOtpCode(code);
-    setTimer(60);
-    setShowNotification(true);
+  // Resend OTP — calls real backend
+  const handleResendOtp = async () => {
+    if (timer > 0 || isResending) return;
+
     setErrorMessage("");
-    setUserInputOtp("");
-  };
-
-  const handleAutofill = () => {
-    setUserInputOtp(otpCode);
-    setShowNotification(false);
+    try {
+      const result = await resendOtpMutation({ email }).unwrap();
+      if (result.success) {
+        setTimer(60);
+        setSuccessMessage("OTP resent successfully.");
+        setUserInputOtp("");
+      } else {
+        setErrorMessage(result.message || "Failed to resend OTP.");
+      }
+    } catch (err: any) {
+      const apiError = err?.data?.message || err?.message || "Failed to resend OTP.";
+      setErrorMessage(apiError);
+    }
   };
 
   // Toggle Login/Signup and reset OTP state
   const toggleMode = () => {
     setIsSignup(!isSignup);
     setOtpSent(false);
-    setOtpCode("");
     setUserInputOtp("");
     setErrorMessage("");
     setSuccessMessage("");
-    setShowNotification(false);
   };
 
   return (
@@ -137,53 +188,6 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
       <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(to_right,#111111_1px,transparent_1px),linear-gradient(to_bottom,#111111_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
       <div className="absolute top-[10%] left-[10%] w-96 h-96 bg-amber-500/[0.02] rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[10%] w-96 h-96 bg-amber-500/[0.02] rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Floating Simulated Secure OTP Notification */}
-      <AnimatePresence>
-        {showNotification && (
-          <motion.div
-            id="otp-channel-notification"
-            initial={{ opacity: 0, y: -50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md bg-[#0F0F12] border border-amber-500/30 rounded-2xl p-4 shadow-[0_10px_30px_rgba(245,158,11,0.1)] backdrop-blur-xl flex items-center justify-between gap-4"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
-                <Key className="w-5 h-5 animate-pulse" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-[10px] font-bold text-amber-500 font-mono tracking-widest uppercase">
-                  Workspace secure channel
-                </p>
-                <h5 className="text-[11px] font-bold text-white mt-0.5">
-                  Your verification OTP is <span className="text-amber-400 font-mono text-xs px-1 py-0.5 bg-amber-500/10 rounded">{otpCode}</span>
-                </h5>
-                <p className="text-[9px] text-zinc-500 mt-0.5">
-                  Generated at Node_{Math.floor(Math.random() * 900 + 100)} // Expires in 60s
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-2 shrink-0">
-              <button
-                id="otp-btn-autofill"
-                onClick={handleAutofill}
-                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-bold uppercase tracking-wider rounded-lg transition cursor-pointer"
-              >
-                Autofill
-              </button>
-              <button
-                id="otp-btn-dismiss"
-                onClick={() => setShowNotification(false)}
-                className="p-1.5 text-zinc-500 hover:text-zinc-300 transition"
-              >
-                Dismiss
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main Split Screen Container */}
       <div className="w-full flex flex-col lg:flex-row relative z-10">
@@ -384,6 +388,7 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                         className="w-full bg-[#111111] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3.5 text-xs text-white transition placeholder-zinc-700"
                         disabled={sendingOtp}
                       />
+                      <p className="text-[9px] text-zinc-600">Minimum 6 characters required</p>
                     </div>
                   )}
 
@@ -403,26 +408,6 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                     />
                   </div>
 
-                  {isSignup && (
-                    <div className="space-y-2 text-left">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <Smartphone className="w-3.5 h-3.5 text-zinc-500" /> Primary Role
-                      </label>
-                      <select
-                        id="auth-signup-role"
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full bg-[#111111] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3.5 text-xs text-white transition"
-                        disabled={sendingOtp}
-                      >
-                        <option value="Creator">Content Creator</option>
-                        <option value="Enterprise">Enterprise Executive</option>
-                        <option value="Developer">Lead Developer</option>
-                        <option value="Venture">Venture Investor</option>
-                      </select>
-                    </div>
-                  )}
-
                   <button
                     id="auth-btn-send-otp"
                     type="submit"
@@ -432,18 +417,48 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                     {sendingOtp ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Generating secure token...
+                        {isSignup ? "Creating account..." : "Sending OTP..."}
                       </>
                     ) : (
                       <>
                         <Send className="w-4 h-4" />
-                        Send Verification OTP
+                        {isSignup ? "Register & Send OTP" : "Send Verification OTP"}
                       </>
                     )}
                   </button>
+
+                  {/* Social Login Divider */}
+                  <div className="relative py-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-zinc-900" />
+                    </div>
+                    <div className="relative flex justify-center text-[9px]">
+                      <span className="bg-[#090909] px-3 text-zinc-600 uppercase tracking-widest font-bold">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Social OAuth Buttons */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {socialProviders.map((provider) => {
+                      const Icon = provider.icon;
+                      return (
+                        <a
+                          key={provider.name}
+                          href={provider.url}
+                          id={`auth-btn-social-${provider.name.toLowerCase()}`}
+                          className={`flex items-center justify-center gap-2 py-3 bg-[#111111] border border-[#242424] rounded-xl text-xs font-bold text-zinc-400 transition cursor-pointer ${provider.color}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {provider.name}
+                        </a>
+                      );
+                    })}
+                  </div>
                 </motion.form>
               ) : (
-                /* STEP 2: VERIFY OTP */
+                /* STEP 2: VERIFY OTP (6-digit) */
                 <motion.form
                   key="step-otp"
                   initial={{ opacity: 0, x: 15 }}
@@ -454,12 +469,13 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                 >
                   <div className="space-y-2.5 text-left bg-[#121215]/80 border border-zinc-900 rounded-2xl p-4">
                     <p className="text-xs text-zinc-400 leading-relaxed">
-                      Verification code has been successfully dispatched to <strong className="text-white font-mono">{email}</strong>.
+                      Verification code has been dispatched to <strong className="text-white font-mono">{email}</strong>.
+                      Check your email inbox (and spam folder).
                     </p>
                     <button
                       id="auth-btn-change-email"
                       type="button"
-                      onClick={() => setOtpSent(false)}
+                      onClick={() => { setOtpSent(false); setSuccessMessage(""); }}
                       className="text-[10px] text-amber-500 font-bold uppercase tracking-wider hover:underline"
                     >
                       Change Email Address
@@ -468,18 +484,18 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
 
                   <div className="space-y-3 text-left">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-zinc-500" /> Enter 4-Digit Security OTP
+                      <Lock className="w-3.5 h-3.5 text-zinc-500" /> Enter 6-Digit Security OTP
                     </label>
                     <div className="relative">
                       <input
                         id="auth-otp-input"
                         type="text"
-                        maxLength={4}
+                        maxLength={6}
                         required
                         value={userInputOtp}
                         onChange={(e) => setUserInputOtp(e.target.value.replace(/\D/g, ""))}
-                        placeholder="••••"
-                        className="w-full bg-[#111111] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-4 text-center text-xl font-bold tracking-[1em] text-amber-500 transition placeholder-zinc-800"
+                        placeholder="••••••"
+                        className="w-full bg-[#111111] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-4 text-center text-xl font-bold tracking-[0.8em] text-amber-500 transition placeholder-zinc-800"
                         disabled={verifyingOtp}
                       />
                     </div>
@@ -493,27 +509,27 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                       id="auth-btn-resend"
                       type="button"
                       onClick={handleResendOtp}
-                      disabled={timer > 0}
+                      disabled={timer > 0 || isResending}
                       className={`font-bold uppercase tracking-wider text-[10px] ${
-                        timer > 0
+                        timer > 0 || isResending
                           ? "text-zinc-600 cursor-not-allowed"
                           : "text-amber-500 hover:text-amber-400 hover:underline cursor-pointer"
                       }`}
                     >
-                      Resend OTP Code
+                      {isResending ? "Resending..." : "Resend OTP Code"}
                     </button>
                   </div>
 
                   <button
                     id="auth-btn-verify-submit"
                     type="submit"
-                    disabled={verifyingOtp || userInputOtp.length !== 4}
+                    disabled={verifyingOtp || userInputOtp.length !== 6}
                     className="w-full py-4 text-xs font-bold text-black bg-amber-500 hover:bg-amber-400 disabled:bg-[#151515] disabled:text-zinc-600 rounded-xl transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/10 cursor-pointer"
                   >
                     {verifyingOtp ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        Decrypting signature...
+                        Verifying OTP...
                       </>
                     ) : (
                       <>
