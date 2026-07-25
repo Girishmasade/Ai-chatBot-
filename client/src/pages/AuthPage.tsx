@@ -74,13 +74,13 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
   const socialProviders = [
     {
       name: "Google",
-      url: `${BACKEND_URL}/auth/google`,
+      url: `${BACKEND_URL}/api/v1/auth/google`,
       icon: Chrome,
       color: "hover:border-red-500/30 hover:text-red-400",
     },
     {
       name: "GitHub",
-      url: `${BACKEND_URL}/auth/github`,
+      url: `${BACKEND_URL}/api/v1/auth/github`,
       icon: Github,
       color: "hover:border-zinc-400/30 hover:text-zinc-300",
     },

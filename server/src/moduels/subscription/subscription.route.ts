@@ -37,6 +37,13 @@ subscriptionRouter.delete(
   deleteSubscriptionForUser,
 );
 
+// ── Public: any authenticated user can view active plans ──────────────
+subscriptionRouter.get(
+  "/get-plans",
+  authMiddleware,
+  getSubscriptionForUser,
+);
+
 // user subscription
 
 subscriptionRouter.post(

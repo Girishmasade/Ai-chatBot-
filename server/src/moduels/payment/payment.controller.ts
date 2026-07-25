@@ -6,6 +6,7 @@ import { successHandler } from "@/utils/successHandler.util.js";
 import { razorpay } from "@/config/razorpay.config.js";
 import  { PaymentTransactionModel, PaymentItemType, PaymentStatus, type IPaymentTransaction } from "./payment.model.js";
 import { SubscriptionPlanModel } from "../subscription/subscription.model.js";
+import { UserSubscriptionModel } from "../subscription/userSubscription.model.js";
 import { TokenPackage } from "../token/token.model.js";
 import { assignPlanToUser } from "../subscription/Subscription.assign.js";
 import { credit } from "../token/tokenTransaction/tokenTransaction.controller.js";
@@ -23,7 +24,18 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-        await assignPlanToUser(transaction.user.toString(), transaction.itemId.toString(), session);
+        const userId = transaction.user.toString();
+
+        // Cancel any existing active subscription so the new paid plan
+        // can be assigned. Without this, assignPlanToUser silently
+        // returns the old subscription and credits 0 tokens.
+        await UserSubscriptionModel.updateMany(
+          { user: userId, status: "active" },
+          { $set: { status: "cancelled", cancelledAt: new Date() } },
+          { session },
+        );
+
+        await assignPlanToUser(userId, transaction.itemId.toString(), session);
       });
     } finally {
       await session.endSession();

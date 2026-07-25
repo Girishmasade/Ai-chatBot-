@@ -7,7 +7,7 @@ const BACKEND_URL = env.API_URL;
 export const apiSlice = createApi({
   reducerPath: "backendApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: BACKEND_URL,
+    baseUrl: BACKEND_URL + "/api/v1",
     credentials: "include", // send cookies (refresh token)
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState)?.auth?.accessToken;

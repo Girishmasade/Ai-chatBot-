@@ -9,6 +9,7 @@ import {
   useCreateOrderMutation,
   useVerifyPaymentMutation,
 } from "../redux/api/paymentApi";
+import { useGetActiveTokenPackagesQuery } from "../redux/api/tokenApi";
 
 interface SubscriptionPageProps {
   onUpgrade: (tier: "free" | "basic" | "pro" | "enterprise", credits: number) => void;
@@ -16,13 +17,7 @@ interface SubscriptionPageProps {
 
 export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const [upgradeModal, setUpgradeModal] = useState<{ isOpen: boolean; tier: string; price: string; credits: number; planId?: string }>({
-    isOpen: false,
-    tier: "",
-    price: "",
-    credits: 0,
-    planId: undefined,
-  });
+
 
   // Fetch real subscription plans from backend
   const { data: plansResponse, isLoading: plansLoading } = useGetSubscriptionPlansQuery();
@@ -30,27 +25,21 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
 
   const backendPlans = plansResponse?.data?.subscriptionPlan || [];
 
-  const handleUpgradeClick = (tier: string, price: string, credits: number, planId?: string) => {
-    setUpgradeModal({
-      isOpen: true,
-      tier,
-      price,
-      credits,
-      planId,
-    });
-  };
-
   const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
   const [verifyPayment, { isLoading: isVerifying }] = useVerifyPaymentMutation();
+  
+  // Fetch active token packages for top-ups
+  const { data: tokenPackagesRes, isLoading: packagesLoading } = useGetActiveTokenPackagesQuery();
+  const tokenPackages = tokenPackagesRes?.data?.packages || [];
 
-  const handleConfirmUpgrade = async () => {
+  const handleDirectUpgrade = async (tier: string, price: string, credits: number, planId?: string) => {
     // If we have a real backend plan ID, use the real API with Razorpay
-    if (upgradeModal.planId) {
+    if (planId) {
       try {
         // 1. Create order
         const orderRes = await createOrder({
           itemType: "SUBSCRIPTION",
-          itemId: upgradeModal.planId,
+          itemId: planId,
         }).unwrap();
 
         // 2. Open Razorpay Checkout
@@ -59,7 +48,7 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
           amount: orderRes.data.amount,
           currency: orderRes.data.currency,
           name: "GoChat AI Studio",
-          description: `Subscription: ${upgradeModal.tier}`,
+          description: `Subscription: ${tier}`,
           order_id: orderRes.data.orderId,
           handler: async function (response: any) {
             try {
@@ -70,8 +59,8 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
                 razorpay_signature: response.razorpay_signature,
               }).unwrap();
               
-              setUpgradeModal({ ...upgradeModal, isOpen: false });
               // (Optional) Trigger a success toast here
+              alert("Payment successful and verified!");
             } catch (verErr) {
               console.error("Payment verification failed:", verErr);
             }
@@ -86,19 +75,56 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
 
       } catch (err: any) {
         console.error("Subscription order creation failed:", err);
+        alert("Failed to create Razorpay order.");
       }
       return;
     }
 
     // Fallback to mock upgrade callback
-    const tierValue = upgradeModal.tier.toLowerCase().includes("pro")
+    const tierValue = tier.toLowerCase().includes("pro")
       ? "pro"
-      : upgradeModal.tier.toLowerCase().includes("basic")
+      : tier.toLowerCase().includes("basic")
       ? "basic"
       : "enterprise";
     
-    onUpgrade(tierValue as any, upgradeModal.credits);
-    setUpgradeModal({ ...upgradeModal, isOpen: false });
+    onUpgrade(tierValue as any, credits);
+  };
+
+  const handleTokenPurchase = async (packageId: string, name: string) => {
+    try {
+      const orderRes = await createOrder({
+        itemType: "TOKEN_PACKAGE",
+        itemId: packageId,
+      }).unwrap();
+
+      const options = {
+        key: "rzp_test_THQUCyYxXJst74",
+        amount: orderRes.data.amount,
+        currency: orderRes.data.currency,
+        name: "GoChat AI Studio",
+        description: `Token Package: ${name}`,
+        order_id: orderRes.data.orderId,
+        handler: async function (response: any) {
+          try {
+            await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }).unwrap();
+            alert("Tokens purchased successfully!");
+          } catch (verErr) {
+            console.error("Payment verification failed:", verErr);
+          }
+        },
+        theme: { color: "#f59e0b" },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      console.error("Token order creation failed:", err);
+      alert("Failed to create Razorpay order for tokens.");
+    }
   };
 
   // Build plan cards — merge backend plans with fallback hardcoded plans
@@ -267,11 +293,10 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
 
             {/* Upgrade CTA Button */}
             <button
-              id={`plan-btn-upgrade-${i}`}
               onClick={() => {
                 const p = plan as any;
-                if (p.priceValue !== 0 && p.price !== "₹0") {
-                  handleUpgradeClick(
+                if (p.price !== "₹0") {
+                  handleDirectUpgrade(
                     plan.name,
                     `${plan.price}${plan.period || ""}`,
                     plan.name.includes("Daily") ? 100 : plan.name.includes("Pro") ? 1500 : 500,
@@ -294,38 +319,49 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
         ))}
       </div>
 
-      {/* Upgrade Confirmation Modal */}
-      <CommonModal
-        isOpen={upgradeModal.isOpen}
-        onClose={() => setUpgradeModal({ ...upgradeModal, isOpen: false })}
-        title="Confirm VIP Upgrade"
-        confirmText="Complete payment (Simulated)"
-        onConfirm={handleConfirmUpgrade}
-      >
-        <div className="space-y-3.5">
-          <p className="text-xs text-zinc-300">
-            You are about to subscribe to the **{upgradeModal.tier}** tier of GoChat AI.
-          </p>
-
-          <div className="p-3 bg-[#111111] border border-[#242424] rounded-xl flex items-center justify-between text-xs">
-            <span className="font-semibold text-zinc-400">Total charge rate:</span>
-            <span className="font-extrabold text-white font-numbers">{upgradeModal.price}</span>
-          </div>
-
-          <div className="p-3.5 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-1">
-            <h5 className="text-[10px] font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Instant Balance Upgrade
-            </h5>
-            <p className="text-[11px] text-[#9B9B9B]">
-              Your inference balance will instantly refresh by **+{upgradeModal.credits.toLocaleString()} credits**.
+      {/* Token Packages Section */}
+      {tokenPackages.length > 0 && (
+        <div className="mt-12 space-y-6">
+          <div className="flex flex-col items-center justify-center text-center space-y-2 mb-8">
+            <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">
+              One-Time Token Top-Ups
+            </h3>
+            <p className="text-xs text-zinc-400 max-w-md">
+              Need more tokens but don't want to change your subscription? Purchase unexpiring tokens a la carte.
             </p>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {tokenPackages.map((pkg: any) => (
+              <div
+                key={pkg._id}
+                className="bg-[#111111] border border-[#242424] rounded-2xl p-5 flex flex-col justify-between space-y-5 hover:border-amber-500/50 transition"
+              >
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">{pkg.name}</h4>
+                  <p className="text-[11px] text-zinc-500">{pkg.description}</p>
+                </div>
+                
+                <div className="flex items-baseline gap-1 py-2 border-y border-[#1F1F1F]">
+                  <span className="text-2xl font-bold text-white font-numbers">₹{pkg.price}</span>
+                </div>
 
-          <p className="text-[10px] text-[#71717A] leading-relaxed italic">
-            Note: This is a simulated premium sandbox environment transaction. No real billing methods will be charged.
-          </p>
+                <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-bold bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-lg w-fit">
+                  <Zap className="w-3.5 h-3.5" />
+                  {pkg.tokenAmount.toLocaleString()} Tokens
+                </div>
+
+                <button
+                  onClick={() => handleTokenPurchase(pkg._id, pkg.name)}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold bg-[#1A1A1A] border border-[#242424] text-zinc-300 hover:text-white hover:border-amber-500/50 hover:bg-amber-500/10 transition duration-200"
+                >
+                  Buy Now
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </CommonModal>
+      )}
+
     </div>
   );
 }

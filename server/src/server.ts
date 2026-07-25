@@ -9,12 +9,14 @@ import passport from "./config/passport.config.js";
 import session from "express-session";
 import { configCloud } from "./config/cloud.config.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { allowedCorsType } from "./config/cors.config.js";
 import { startWorkers, shutdownWorkers } from "./redis/worker/index.js";
 import { registerRepeatableJobs, closeAllQueues } from "./redis/scheduler/index.js";
 
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
+app.use(cookieParser()); // for parsing cookies (refresh token)
 
 const corsOptions = {
   origin: (origin: any, callback: any) => {
@@ -56,6 +58,10 @@ app.use("/api/v1", RouterFile)
 
 app.get("/", (req, res) => {
     res.send("Hello World!")
+})
+
+app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
+    res.status(404).json({});
 })
 
 // FIX: errorHandler is Express error-handling middleware (arity 4:

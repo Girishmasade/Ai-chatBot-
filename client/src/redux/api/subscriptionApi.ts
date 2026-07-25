@@ -13,7 +13,7 @@ export const subscriptionApi = apiSlice.injectEndpoints({
       ApiResponse<{ subscriptionPlan: SubscriptionPlan[] }>,
       void
     >({
-      query: () => "/subscription/get-subscription",
+      query: () => "/subscription/get-plans",
       providesTags: ["Subscription"],
     }),
 

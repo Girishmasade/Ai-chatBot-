@@ -1,6 +1,7 @@
 import { apiSlice } from "../backendApi/apiBackendConnectivity";
 import type { ApiResponse, AuthUser, VerifyOtpResponse } from "../../types";
 
+
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // ── POST /api/v1/auth/register ───────────────────────────────────

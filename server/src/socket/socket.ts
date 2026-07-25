@@ -8,7 +8,7 @@
  */
 
 import express from "express";
-import cors from "cors";
+
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { allowedCorsType } from "@/config/cors.config.js";
@@ -23,7 +23,7 @@ import type {
 } from "./socket.types.js";
 
 const app = express();
-app.use(cors());
+
 
 const server = createServer(app);
 
