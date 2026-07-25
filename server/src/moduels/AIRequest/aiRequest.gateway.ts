@@ -8,9 +8,7 @@ import {
   COMPLETION_TOKEN_ESTIMATE_RATIO,
 } from "./aiRequest.constant.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Contracts
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface IConversationMessage {
   role:    "user" | "assistant" | "system";
@@ -61,9 +59,7 @@ export interface IProviderResponse {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Internal helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 function getTimeout(service: string): number {
   return PROVIDER_TIMEOUT_MS[service] ?? DEFAULT_PROVIDER_TIMEOUT_MS;
@@ -91,10 +87,8 @@ function classifyFetchError(err: any): { code: string; message: string } {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // OpenAI Adapter
 // Reused for GROK and DEEPSEEK with a different baseUrl.
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function callOpenAI(
   apiKey:  string,
@@ -220,9 +214,7 @@ async function callOpenAI(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Anthropic Adapter
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function callAnthropic(
   apiKey:  string,
@@ -305,9 +297,7 @@ async function callAnthropic(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Gemini Adapter
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function callGemini(
   apiKey:  string,
@@ -388,7 +378,6 @@ async function callGemini(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Provider Gateway  —  public dispatch function
 //
 // Routing logic:
@@ -402,7 +391,6 @@ async function callGemini(
 // exact same request/response shape as the OpenAI Chat Completions API, so
 // reusing the OpenAI adapter with a different baseUrl is correct and avoids
 // duplicating identical adapter logic.
-// ─────────────────────────────────────────────────────────────────────────────
 
 export async function executeProviderRequest(
   providerName: string,
@@ -440,11 +428,9 @@ export async function executeProviderRequest(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Token Estimation Utilities
 // Exported for use in the controller's pre-call balance check and
 // the /estimate endpoint. Never used for actual billing.
-// ─────────────────────────────────────────────────────────────────────────────
 
 export function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN);

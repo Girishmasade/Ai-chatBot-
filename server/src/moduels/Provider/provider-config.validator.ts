@@ -50,7 +50,6 @@ export const providerSchema = z.object({
     .optional(),
 });
 
-
 // validation for toggle provider schema
 
 export const toggleProviderSchema = z.object({

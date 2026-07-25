@@ -6,7 +6,6 @@ type ControllerFn = (
   next: NextFunction
 ) => Promise<void | Response>;
 
-
 export const AsyncHandler = (controller: ControllerFn) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

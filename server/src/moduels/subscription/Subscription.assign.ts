@@ -114,14 +114,12 @@ export async function assignPlanToUser(
   return { userSubscription, tokensCredited: tokensToCredit };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // getFreePlanId()
 //
 // Resolves the "Free" plan's ObjectId by name lookup. Centralized here so
 // the magic string "Free" exists in exactly one place. If your seed data
 // uses a different field (e.g. an enum `plan: "FREE"` rather than
 // `name: "Free"`), this is the only line that needs to change.
-// ─────────────────────────────────────────────────────────────────────────────
 
 export async function getFreePlanId(
   session?: mongoose.ClientSession,

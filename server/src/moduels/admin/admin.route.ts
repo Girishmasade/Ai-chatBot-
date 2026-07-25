@@ -1,16 +1,40 @@
 import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
 import { Router } from "express";
-import { adminDashboard, getAdminProfile, updateAdminProfile } from "./admin.controller.js";
+import { 
+  adminDashboard, getAdminProfile, updateAdminProfile,
+  getUsers, createUser, updateUser, deleteUser,
+  getModels, toggleModel,
+  getSubscriptions,
+  getLogs,
+  getConfig, updateBranding
+} from "./admin.controller.js";
 import { upload } from "@/middlewares/multer.middleware.js";
 
-export const adminRouter = Router()
+export const adminRouter = Router();
 
+adminRouter.use(authMiddleware, isAdmin);
 
-// admin dashboard
-adminRouter.get("/dashboard", authMiddleware, isAdmin, adminDashboard)
+// dashboard & profile
+adminRouter.get("/dashboard", adminDashboard);
+adminRouter.get("/profile", getAdminProfile);
+adminRouter.put("/update-profile", upload.single("avatar"), updateAdminProfile);
 
-// admin profile
-adminRouter.get("/profile", authMiddleware, isAdmin, getAdminProfile)
+// users management
+adminRouter.get("/users", getUsers);
+adminRouter.post("/users", createUser);
+adminRouter.put("/users/:id", updateUser);
+adminRouter.delete("/users/:id", deleteUser);
 
-// admin update profile
-adminRouter.put("/update-profile", authMiddleware, isAdmin, upload.single("avatar"), updateAdminProfile)
+// ai models
+adminRouter.get("/models", getModels);
+adminRouter.put("/models/:id/toggle", toggleModel);
+
+// subscriptions
+adminRouter.get("/subscriptions", getSubscriptions);
+
+// audit logs
+adminRouter.get("/logs", getLogs);
+
+// branding config
+adminRouter.get("/config", getConfig);
+adminRouter.put("/config/branding", updateBranding);

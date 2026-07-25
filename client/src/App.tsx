@@ -57,6 +57,24 @@ function useScreenNavigate() {
 }
 
 /* ================================================================== */
+/*  SCROLL TO TOP ON ROUTE CHANGE                                     */
+/* ================================================================== */
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    const mainContainer = document.querySelector('main');
+    if (mainContainer) {
+      mainContainer.scrollTo(0, 0);
+    }
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+/* ================================================================== */
 /*  ROUTE GUARDS                                                       */
 /* ================================================================== */
 
@@ -232,6 +250,7 @@ function AdminTabRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       {/* Global Cookie Preference Banner */}
       <CookieBanner />
 

@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────
 // Auth & Access Control
-// ─────────────────────────────────────────────
 
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",
@@ -8,9 +6,7 @@ export enum Role {
   USER = "USER",
 }
 
-// ─────────────────────────────────────────────
 // General / Financial
-// ─────────────────────────────────────────────
 
 export enum Currency {
   USD = "USD",
@@ -19,9 +15,7 @@ export enum Currency {
   GBP = "GBP",
 }
 
-// ─────────────────────────────────────────────
 // Subscription
-// ─────────────────────────────────────────────
 
 export enum SubscriptionPlanType {
   FREE = "free",
@@ -38,9 +32,7 @@ export enum UserSubscriptionStatus {
   EXPIRED = "expired",
 }
 
-// ─────────────────────────────────────────────
 // AI Services
-// ─────────────────────────────────────────────
 
 export enum ServiceType {
   CHAT = "CHAT",
@@ -58,9 +50,7 @@ export enum AIProvider {
   DEEPSEEK = "DEEPSEEK",
 }
 
-// ─────────────────────────────────────────────
 // Token System
-// ─────────────────────────────────────────────
 
 export enum TokenTransactionType {
   PURCHASE = "PURCHASE",                     // user bought a token package
@@ -85,9 +75,7 @@ export enum TokenPackageStatus {
   INACTIVE = "INACTIVE",
 }
 
-// ─────────────────────────────────────────────
 // Audit Logging
-// ─────────────────────────────────────────────
 
 export enum AuditAction {
   // Subscription Plan (admin)
@@ -139,9 +127,7 @@ export enum AuditModule {
   AUTH = "AUTH",
 }
 
-// ─────────────────────────────────────────────
 // Background Jobs
-// ─────────────────────────────────────────────
 
 export enum BullMQQueue {
   SUBSCRIPTION_RENEWAL = "subscription-renewal",

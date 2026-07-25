@@ -3,7 +3,6 @@ import { TransactionSource, TransactionStatus, TransactionType } from "./tokenTr
 
 const mongoIdSchema = z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid MongoDB ObjectId');
 
-
 export const adjustBalanceSchema = z.object({
   params: z.object({
     userId: mongoIdSchema,

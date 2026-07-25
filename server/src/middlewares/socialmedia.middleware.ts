@@ -14,7 +14,6 @@ interface JwtPayload {
   username: string;
 }
 
-
 export const socialMediaMiddleware = async (
   req: Request,
   res: Response,

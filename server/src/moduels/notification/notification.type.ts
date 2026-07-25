@@ -10,11 +10,9 @@ import type {
 export type NotificationType     = (typeof notificationTypes)[number];
 export type NotificationPriority = (typeof notificationPriority)[number];
 
-
 export type SendNotificationInput      = z.infer<typeof sendNotificationSchema>;
 export type BroadcastNotificationInput = z.infer<typeof broadcastNotificationSchema>;
 export type GetNotificationsInput      = z.infer<typeof getNotificationsSchema>;
-
 
 export interface BaseNotificationPayload {
   userId:    string;
@@ -25,12 +23,10 @@ export interface BaseNotificationPayload {
   metadata?: Record<string, any>;
 }
 
-
 export interface SystemNotificationPayload
   extends Omit<BaseNotificationPayload, "type"> {
   type: "system";
 }
-
 
 export interface AdminNotificationPayload
   extends Omit<BaseNotificationPayload, "type"> {
@@ -44,7 +40,6 @@ export interface BroadcastPayload {
   priority?: NotificationPriority;
 }
 
-
 export interface AuthNotificationPayload
   extends Omit<BaseNotificationPayload, "type"> {
   type: "auth";
@@ -56,7 +51,6 @@ export interface AuthNotificationPayload
     timestamp?: Date;
   };
 }
-
 
 export interface RagNotificationPayload
   extends Omit<BaseNotificationPayload, "type"> {
@@ -83,7 +77,6 @@ export interface AgentNotificationPayload
   };
 }
 
-
 export interface PaymentNotificationPayload
   extends Omit<BaseNotificationPayload, "type"> {
   type: "payment";
@@ -96,7 +89,6 @@ export interface PaymentNotificationPayload
   };
 }
 
-
 export type NotificationPayload =
   | SystemNotificationPayload
   | AdminNotificationPayload
@@ -104,7 +96,6 @@ export type NotificationPayload =
   | RagNotificationPayload
   | AgentNotificationPayload
   | PaymentNotificationPayload;
-
 
 export interface NotificationResponse {
   _id:       string;

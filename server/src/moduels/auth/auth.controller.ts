@@ -8,13 +8,11 @@ import { errorHandler } from "../../utils/errorHandler.util.js";
 import { sendOTPToEmail } from "../otp/otp.utils.js";
 import { clearTokenCookies, deleteRefreshToken, validateRefreshToken } from "@/utils/token.utils.js";
 
-
 const OTP_PREFIX = "otp:";
 const OTP_TTL = 200;
 const RETRY_PREFIX = "otp:retries:";
 const RETRY_TTL = 200;
 const MAX_RETRIES  = 5;
-
 
 const generateOTP = (): string => crypto.randomInt(100000, 999999).toString();
 

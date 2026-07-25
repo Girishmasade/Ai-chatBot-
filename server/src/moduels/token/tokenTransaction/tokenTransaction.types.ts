@@ -41,9 +41,7 @@ export enum TransactionStatus {
   REVERSED  = 'REVERSED',
 }
  
-// ─────────────────────────────────────────────────────────────────────────────
 // Credit / Debit classification — single source of truth for direction logic
-// ─────────────────────────────────────────────────────────────────────────────
  
 export const CREDIT_TYPES = new Set<TransactionType>([
   TransactionType.PURCHASE,

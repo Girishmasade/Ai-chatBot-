@@ -30,7 +30,6 @@ moderationLogSchema.index({ userId: 1, createdAt: -1 });
 
 export const ModerationLogModel: Model<IModerationLog> = model<IModerationLog>('ModerationLog', moderationLogSchema);
 
-
 export interface IModerationBlocklistEntry {
   _id: Types.ObjectId;
   term: string; // stored lowercase, matched case-insensitively

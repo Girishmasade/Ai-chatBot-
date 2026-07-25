@@ -2,7 +2,6 @@
 import { AdapterType } from "./provider-api-key.types.js";
 import type { ProviderName } from "../Provider/provider-config.types.js";
 
-
 export interface IProviderApiKey {
   provider: ProviderName;
   apiKey: string | null;

@@ -42,7 +42,6 @@ export const getNotificationsSchema = z.object({
     .transform((v) => v === "true"),
 });
 
-
 export type SendNotificationInput      = z.infer<typeof sendNotificationSchema>;
 export type BroadcastNotificationInput = z.infer<typeof broadcastNotificationSchema>;
 export type GetNotificationsInput      = z.infer<typeof getNotificationsSchema>;

@@ -11,7 +11,6 @@ const callChatProvider: ChatCompletionFn = async (_messages) => {
   throw new ApiError(409, "callChatProvider is not wired to a real AI provider yet")
 };
 
-
 export const ragQueryHandler = AsyncHandler(async (req, res) => {
   const body = ragQueryBodySchema.parse(req.body);
 

@@ -57,9 +57,7 @@ function getIO(): AppServer {
   return _io;
 }
 
-// ─────────────────────────────────────────────
 // Generic helpers
-// ─────────────────────────────────────────────
 
 /**
  * Emit an event to a specific user (all their connected tabs/devices).
@@ -82,9 +80,7 @@ export function emitToAll<E extends keyof ServerToClientEvents>(
   getIO().emit(event, ...args);
 }
 
-// ─────────────────────────────────────────────
 // Notification helpers
-// ─────────────────────────────────────────────
 
 /**
  * Push a new notification to a specific user.
@@ -106,9 +102,7 @@ export function emitNotificationCount(
   emitToUser(userId, "notification:count", { unreadCount });
 }
 
-// ─────────────────────────────────────────────
 // Token Wallet helpers
-// ─────────────────────────────────────────────
 
 /**
  * Push a wallet balance update to a user.
@@ -121,9 +115,7 @@ export function emitWalletUpdate(
   emitToUser(userId, "wallet:updated", data);
 }
 
-// ─────────────────────────────────────────────
 // Subscription helpers
-// ─────────────────────────────────────────────
 
 /**
  * Push a subscription status update to a user.
@@ -136,9 +128,7 @@ export function emitSubscriptionUpdate(
   emitToUser(userId, "subscription:updated", data);
 }
 
-// ─────────────────────────────────────────────
 // Chat helpers
-// ─────────────────────────────────────────────
 
 /**
  * Push a chat message to a specific user.
@@ -158,4 +148,21 @@ export function emitTypingIndicator(
   data: SocketTypingPayload,
 ): void {
   emitToUser(userId, "chat:typing", data);
+}
+
+// Admin helpers
+
+/**
+ * Emit a real-time audit log stream to connected admin clients.
+ */
+export function emitAdminLog(log: import("./socket.types.js").SocketAuditLog): void {
+  // Assuming all admins are listening to global emit or we could use an "admin" room
+  emitToAll("admin:log_stream", log);
+}
+
+/**
+ * Emit an entity update (user/model/subscription) to the admin dashboard.
+ */
+export function emitAdminEntityUpdate(payload: import("./socket.types.js").SocketAdminUpdatePayload): void {
+  emitToAll("admin:entity_update", payload);
 }

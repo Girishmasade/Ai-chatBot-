@@ -9,6 +9,8 @@ export interface Auth extends Document {
   googleId?: string;
   githubId?: string;
   facebookId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const authSchema = new Schema<Auth>(

@@ -8,5 +8,4 @@ RetrievalRoute.use(authMiddleware)
 
 RetrievalRoute.post("/search", searchHandler)
 
-
 export default RetrievalRoute

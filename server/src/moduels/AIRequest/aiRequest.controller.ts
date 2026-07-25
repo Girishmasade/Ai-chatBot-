@@ -34,10 +34,8 @@ const aiRequestCache = createCacheHelper({
   ttl:       AI_REQUEST_CACHE_TTL,
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // USER — Execute AI Request
 // POST /api/v1/ai/execute
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const executeAIRequest = AsyncHandler(async (req, res, next) => {
   try {
@@ -467,10 +465,8 @@ export const executeAIRequest = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // USER — Estimate Token Cost (pre-flight check)
 // POST /api/v1/ai/estimate
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const estimateCost = AsyncHandler(async (req, res, next) => {
   try {
@@ -509,10 +505,8 @@ export const estimateCost = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // USER — Get Own Request History
 // GET /api/v1/ai/my-requests
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getMyAIRequests = AsyncHandler(async (req, res, next) => {
   try {
@@ -555,10 +549,8 @@ export const getMyAIRequests = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // USER — Get Single Own Request
 // GET /api/v1/ai/get/:requestId
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getAIRequestById = AsyncHandler(async (req, res, next) => {
   try {
@@ -596,10 +588,8 @@ export const getAIRequestById = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // USER — Cancel a PENDING Request
 // PATCH /api/v1/ai/cancel/:requestId
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const cancelAIRequest = AsyncHandler(async (req, res, next) => {
   try {
@@ -640,10 +630,8 @@ export const cancelAIRequest = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — List All Requests
 // GET /api/v1/admin/ai/all
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getAllAIRequests = AsyncHandler(async (req, res, next) => {
   try {
@@ -684,10 +672,8 @@ export const getAllAIRequests = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Get Single Request (full detail, populated)
 // GET /api/v1/admin/ai/get/:requestId
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const adminGetAIRequestById = AsyncHandler(async (req, res, next) => {
   try {
@@ -711,10 +697,8 @@ export const adminGetAIRequestById = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Update Request
 // PUT /api/v1/admin/ai/update/:requestId
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const updateAIRequest = AsyncHandler(async (req, res, next) => {
   try {
@@ -744,10 +728,8 @@ export const updateAIRequest = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Delete Request
 // DELETE /api/v1/admin/ai/delete/:requestId
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const deleteAIRequest = AsyncHandler(async (req, res, next) => {
   try {
@@ -772,10 +754,8 @@ export const deleteAIRequest = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Usage Stats (aggregated)
 // GET /api/v1/admin/ai/stats
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const adminGetUsageStats = AsyncHandler(async (req, res, next) => {
   try {

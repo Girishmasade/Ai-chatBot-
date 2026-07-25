@@ -18,7 +18,6 @@ import {
 import { authMiddleware, isAdmin } from '@/middlewares/auth.middleware.js';
 import { validate } from '@/middlewares/zod.middleware.js';
 
-
 const userTransactionRouter  = Router();
 const adminTransactionRouter = Router();
 

@@ -9,7 +9,6 @@ import { ApiError } from '@/utils/apiError.util.js';
 import type { AuthUser } from '../auth/auth.payload.js';
 import { Types } from 'mongoose';
 
-
 export const uploadDocumentHandler = AsyncHandler(async (req, res, next) => {
   if (!req.file) {
     throw new ApiError(400, 'No file provided');

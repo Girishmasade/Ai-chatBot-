@@ -74,9 +74,7 @@ export interface IReverseTransactionPayload {
   ipAddress?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Query / Filter Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface ITransactionHistoryFilter {
   userId?: string;

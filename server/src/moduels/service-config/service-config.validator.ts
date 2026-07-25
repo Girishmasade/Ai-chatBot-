@@ -2,7 +2,6 @@ import { z } from "zod";
 import { AIService } from "./service-config.types.js";
 import { providerSchema } from "../Provider/provider-config.validator.js";
 
-
 export const createServiceSchema = z
   .object({
     service: z.nativeEnum(AIService, {
@@ -64,7 +63,6 @@ export const createServiceSchema = z
     }
   });
 
-
   // update service schema
 
   export const updateServiceSchema = z.object({
@@ -89,7 +87,6 @@ export const createServiceSchema = z
 });
 
 // toggle fallback schema
-
 
 export const toggleFallbackSchema = z.object({
   fallbackEnabled: z.boolean({ error: "fallbackEnabled must be a boolean" }),

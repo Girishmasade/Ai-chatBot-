@@ -5,9 +5,7 @@
  * gives full type-safety on both emit and listener sides.
  */
 
-// ─────────────────────────────────────────────
 // Payload Interfaces
-// ─────────────────────────────────────────────
 
 export interface SocketNotification {
   _id: string;
@@ -52,9 +50,22 @@ export interface SocketTypingPayload {
   isTyping: boolean;
 }
 
-// ─────────────────────────────────────────────
+export interface SocketAuditLog {
+  id: string;
+  action: string;
+  operator: string;
+  timestamp: string;
+  details: string;
+  level?: string;
+}
+
+export interface SocketAdminUpdatePayload {
+  entityType: "user" | "model" | "subscription" | "config";
+  action: "created" | "updated" | "deleted";
+  data: any;
+}
+
 // Server → Client events
-// ─────────────────────────────────────────────
 
 export interface ServerToClientEvents {
   // Notifications
@@ -74,11 +85,13 @@ export interface ServerToClientEvents {
   // Presence
   "user:online": (data: { userId: string }) => void;
   "user:offline": (data: { userId: string }) => void;
+
+  // Admin Dashboard
+  "admin:log_stream": (log: SocketAuditLog) => void;
+  "admin:entity_update": (payload: SocketAdminUpdatePayload) => void;
 }
 
-// ─────────────────────────────────────────────
 // Client → Server events
-// ─────────────────────────────────────────────
 
 export interface ClientToServerEvents {
   "chat:send": (data: { message: string; conversationId: string }) => void;
@@ -86,17 +99,13 @@ export interface ClientToServerEvents {
   "notification:read": (data: { notificationId: string }) => void;
 }
 
-// ─────────────────────────────────────────────
 // Inter-server events (unused for now, required by generics)
-// ─────────────────────────────────────────────
 
 export interface InterServerEvents {
   ping: () => void;
 }
 
-// ─────────────────────────────────────────────
 // Per-socket data (attached after auth)
-// ─────────────────────────────────────────────
 
 export interface SocketData {
   user: {

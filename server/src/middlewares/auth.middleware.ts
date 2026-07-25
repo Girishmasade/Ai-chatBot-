@@ -61,7 +61,6 @@ const silentRefresh = async (
   }
 };
 
-
 export const authMiddleware = async (
   req: Request,
   res: Response,

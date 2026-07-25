@@ -5,7 +5,6 @@ import { embedTexts } from '@/moduels/embedding/embedding.service.js';
 import { upsertVectors, type VectorRecord } from '@/vectorStore/pinecone.client.js';
 import { markEmbeddingComplete, markEmbeddingFailed } from '@/moduels/document/document.service.js';
 
-
 export async function embedDocumentChunks(documentId: Types.ObjectId, userId: Types.ObjectId): Promise<void> {
   const chunks = await ChunkModel.find({
     documentId,
@@ -59,7 +58,6 @@ export async function embedDocumentChunks(documentId: Types.ObjectId, userId: Ty
     await markEmbeddingFailed(documentId, message);
   }
 }
-
 
 export async function deleteVectorsForChunks(userId: Types.ObjectId, chunkIds: string[]): Promise<void> {
   const { deleteVectorsByIds } = await import('@/vectorStore/pinecone.client.js');

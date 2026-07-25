@@ -111,7 +111,6 @@ export const createProviderApiKey = AsyncHandler(async (req, res, next) => {
 
 // verify provider api key controller
 
-
 export const verifyProviderApiKey = AsyncHandler(async(req, res, next) => {
     try {
          const adminId = (req.user as AuthUser).id;

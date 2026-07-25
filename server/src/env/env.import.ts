@@ -56,7 +56,6 @@ const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME as string;
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY as string;
 const PINECONE_REGION = process.env.PINECONE_REGION as string;
 
-
 export {
   node_env,
   redisUrl,

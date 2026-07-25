@@ -14,7 +14,6 @@ import type { AuthUser } from "@/moduels/auth/auth.payload.js";
 import { TokenTransaction } from "./tokenTransaction.model.js";
 import TokenWalletModel from "../tokenWallet/tokenWallet.model.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
 // NOTE ON ARCHITECTURE:
 // Credit/debit/adjust/reverse logic lives directly in this controller — no
 // separate service layer, matching tokenWallet.controller.ts and the
@@ -26,11 +25,8 @@ import TokenWalletModel from "../tokenWallet/tokenWallet.model.js";
 // functions, not Express handlers — they exist so the future AIRequest
 // module can call them in-process:
 //   await debit({ userId, amount, aiRequestId });
-// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
 // User: get own transaction history
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getMyTransactions = AsyncHandler(async (req, res, next) => {
   try {
@@ -80,9 +76,7 @@ export const getMyTransactions = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin: list all transactions (platform-wide, filterable)
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const listAllTransactions = AsyncHandler(async (req, res, next) => {
   try {
@@ -130,9 +124,7 @@ export const listAllTransactions = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin: get a specific user's transaction history
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getUserTransactions = AsyncHandler(async (req, res, next) => {
   try {
@@ -176,9 +168,7 @@ export const getUserTransactions = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Get a single transaction by ID
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getTransactionById = AsyncHandler(async (req, res, next) => {
   try {
@@ -205,9 +195,7 @@ export const getTransactionById = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin: grant bonus tokens
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const grantBonus = AsyncHandler(async (req, res, next) => {
   try {
@@ -289,9 +277,7 @@ export const grantBonus = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin: manually adjust a user's balance (positive = credit, negative = debit)
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const adjustBalance = AsyncHandler(async (req, res, next) => {
   try {
@@ -388,9 +374,7 @@ export const adjustBalance = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin: reverse a completed CONSUMPTION transaction
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const reverseTransaction = AsyncHandler(async (req, res, next) => {
   try {
