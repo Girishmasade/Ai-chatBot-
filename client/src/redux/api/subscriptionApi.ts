@@ -54,6 +54,30 @@ export const subscriptionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["UserSubscription"],
     }),
+
+    // ── POST /api/v1/subscription/create-subscription ──────────────────
+    // Admin endpoint — creates a new subscription plan
+    createSubscriptionPlan: builder.mutation<
+      ApiResponse<{ createSubscription: SubscriptionPlan }>,
+      {
+        name: string;
+        plan: string;
+        price: number;
+        description: string;
+        tokens: number;
+        durationInDays: number;
+        services: string[];
+        isActive: boolean;
+        createdBy: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/subscription/create-subscription",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Subscription"],
+    }),
   }),
 });
 
@@ -64,4 +88,5 @@ export const {
   useGetUserSubscriptionQuery,
   useLazyGetUserSubscriptionQuery,
   useCancelUserSubscriptionMutation,
+  useCreateSubscriptionPlanMutation,
 } = subscriptionApi;

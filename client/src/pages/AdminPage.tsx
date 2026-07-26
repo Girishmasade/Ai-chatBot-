@@ -35,6 +35,13 @@ import {
   useGetConfigQuery,
   useUpdateBrandingMutation
 } from "../redux/api/apiSlice";
+import { useCreateSubscriptionPlanMutation } from "../redux/api/subscriptionApi";
+import {
+  useGetAdminMenuItemsQuery,
+  useCreateMenuItemMutation,
+  useDeleteMenuItemMutation,
+} from "../redux/api/menuApi";
+import { useAuth } from "../hooks/useAuth";
 import { calculateRevenue } from "../helpers/utils";
 
 interface AdminPageProps {
@@ -44,10 +51,10 @@ interface AdminPageProps {
 
 export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   // RTK Queries
-  const { data: usersData = [] } = useGetUsersQuery();
-  const { data: modelsData = [] } = useGetModelsQuery();
-  const { data: subscriptionsData = [] } = useGetSubscriptionsQuery();
-  const { data: logsData = [] } = useGetLogsQuery();
+  const { data: usersData } = useGetUsersQuery();
+  const { data: modelsData } = useGetModelsQuery();
+  const { data: subscriptionsData } = useGetSubscriptionsQuery();
+  const { data: logsData } = useGetLogsQuery();
   const { data: configData } = useGetConfigQuery();
 
   // RTK Mutations
@@ -56,6 +63,11 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [deleteUser] = useDeleteUserMutation();
   const [toggleModel] = useToggleModelMutation();
   const [updateBranding] = useUpdateBrandingMutation();
+  const [createSubscriptionPlan, { isLoading: isCreatingPlan }] = useCreateSubscriptionPlanMutation();
+  const { data: adminMenuData } = useGetAdminMenuItemsQuery();
+  const [createMenuItem] = useCreateMenuItemMutation();
+  const [deleteMenuItem] = useDeleteMenuItemMutation();
+  const { authUser } = useAuth();
 
   // Database local states synced with RTK Query caches
   const [users, setUsers] = useState<User[]>([]);
@@ -77,6 +89,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [isUserEditOpen, setIsUserEditOpen] = useState(false);
   const [isModelCreateOpen, setIsModelCreateOpen] = useState(false);
   const [isMenuCreateOpen, setIsMenuCreateOpen] = useState(false);
+  const [isPlanCreateOpen, setIsPlanCreateOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   // Form Fields
@@ -117,6 +130,19 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     target: "dashboard",
     visible: "User Menu"
   });
+
+  // Subscription Plan Form
+  const [planForm, setPlanForm] = useState({
+    name: "",
+    plan: "free",
+    price: 0,
+    description: "",
+    tokens: 100,
+    durationInDays: 30,
+    isActive: true
+  });
+  const [planServices, setPlanServices] = useState<string[]>([]);
+  const [serviceInput, setServiceInput] = useState("");
 
   // Footer configuration
   const [footerForm, setFooterForm] = useState({
@@ -169,6 +195,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   }, [logsData]);
 
   useEffect(() => {
+    if (adminMenuData?.data) {
+      setMenuItems(adminMenuData.data as any);
+    }
+  }, [adminMenuData]);
+
+  useEffect(() => {
     if (configData) {
       setBranding(configData.branding);
       setBrandingForm({
@@ -177,10 +209,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         footerText: configData.branding.footerText
       });
       setCookieConsents(configData.cookieConsents);
+      const totalAcc = configData.cookieConsents.filter((c: any) => c.consented !== false).length;
+      const essOnly = configData.cookieConsents.filter((c: any) => c.categories?.length === 1 && c.categories[0] === "Essential").length;
       setConsentsStats({
-        totalAccepted: configData.cookieConsents.length + 1,
-        essentialOnly: 0,
-        allConsents: configData.cookieConsents.length + 1
+        totalAccepted: totalAcc,
+        essentialOnly: essOnly,
+        allConsents: configData.cookieConsents.length
       });
     }
   }, [configData]);
@@ -294,23 +328,72 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   };
 
   // MENU OPERATION
-  const handleCreateMenuItem = () => {
-    const newItem = {
-      id: Date.now().toString(),
-      label: menuForm.label || "Untitled Link",
-      icon: menuForm.icon,
-      target: menuForm.target,
-      visible: menuForm.visible
-    };
-    setMenuItems([...menuItems, newItem]);
-    setMenuForm({ label: "", icon: "LayoutDashboard", target: "dashboard", visible: "User Menu" });
-    setIsMenuCreateOpen(false);
-    triggerToast("Navigation layout node updated successfully");
+  const handleCreateMenuItem = async () => {
+    try {
+      const newItem = {
+        label: menuForm.label || "Untitled Link",
+        icon: menuForm.icon,
+        target: menuForm.target,
+        visible: menuForm.visible as "User Menu" | "Admin Menu"
+      };
+      const res = await createMenuItem(newItem).unwrap();
+      if (res.success) {
+        setMenuForm({ label: "", icon: "LayoutDashboard", target: "dashboard", visible: "User Menu" });
+        setIsMenuCreateOpen(false);
+        triggerToast("Navigation layout node created successfully");
+      }
+    } catch (e: any) {
+      triggerToast("Failed to create menu item");
+    }
   };
 
-  const handlePurgeMenuItem = (id: string) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-    triggerToast("Navigation node purged.");
+  const handlePurgeMenuItem = async (id: string) => {
+    try {
+      await deleteMenuItem(id).unwrap();
+      triggerToast("Navigation node purged.");
+    } catch (e: any) {
+      triggerToast("Failed to delete menu item");
+    }
+  };
+
+  // SUBSCRIPTION PLAN CREATE
+  const handleCreatePlan = async () => {
+    try {
+      const payload = {
+        name: planForm.name,
+        plan: planForm.plan,
+        price: planForm.price,
+        description: planForm.description,
+        tokens: planForm.tokens,
+        durationInDays: planForm.durationInDays,
+        services: planServices,
+        isActive: planForm.isActive,
+        createdBy: authUser?.id || ""
+      };
+      const result = await createSubscriptionPlan(payload).unwrap();
+      if (result.success) {
+        triggerToast("Subscription plan created successfully");
+        setIsPlanCreateOpen(false);
+        setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+        setPlanServices([]);
+        setServiceInput("");
+      }
+    } catch (e: any) {
+      triggerToast(e?.data?.message || "Failed to create plan");
+      console.error(e);
+    }
+  };
+
+  const handleAddService = () => {
+    const trimmed = serviceInput.trim().toUpperCase();
+    if (trimmed && !planServices.includes(trimmed)) {
+      setPlanServices([...planServices, trimmed]);
+    }
+    setServiceInput("");
+  };
+
+  const handleRemoveService = (svc: string) => {
+    setPlanServices(planServices.filter(s => s !== svc));
   };
 
   // BILLING REVENUES
@@ -338,7 +421,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         </div>
         <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
           <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Monthly Revenue Est</p>
-          <p className="text-xl font-extrabold text-white font-numbers">₹{(totalRevenueEst || 35400).toLocaleString()}</p>
+          <p className="text-xl font-extrabold text-white font-numbers">₹{totalRevenueEst.toLocaleString()}</p>
         </div>
         <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
           <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Cookie Agreements</p>
@@ -482,9 +565,23 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       {/* 3. VIP SUBSCRIPTIONS TAB */}
       {activeTab === "billing" && (
         <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
-          <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F]">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">VIP Membership Ledger</h4>
-            <p className="text-[10px] text-zinc-500">Detailed transaction billing records in Indian Rupees (₹)</p>
+          <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] flex items-center justify-between">
+            <div>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">VIP Membership Ledger</h4>
+              <p className="text-[10px] text-zinc-500">Detailed transaction billing records in Indian Rupees (₹)</p>
+            </div>
+            <button
+              id="admin-btn-create-plan"
+              onClick={() => {
+                setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+                setPlanServices([]);
+                setServiceInput("");
+                setIsPlanCreateOpen(true);
+              }}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Create Plan
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -731,47 +828,67 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
       {/* 8. COOKIE LEDGER TAB */}
       {activeTab === "cookies" && (
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
-          <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] text-left">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Cookie Agreements Registry</h4>
-            <p className="text-[10px] text-zinc-500">Live logs of user consent configurations</p>
+        <div className="space-y-4">
+          {/* Dynamic Cookie Stats Header */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-[#111111] border border-[#242424] rounded-xl text-left">
+              <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold">Total Consent Records</span>
+              <h3 className="text-xl font-bold text-white mt-1">{consentsStats.allConsents}</h3>
+            </div>
+            <div className="p-4 bg-[#111111] border border-[#242424] rounded-xl text-left">
+              <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-bold">Accepted Agreements</span>
+              <h3 className="text-xl font-bold text-emerald-400 mt-1">{consentsStats.totalAccepted}</h3>
+            </div>
+            <div className="p-4 bg-[#111111] border border-[#242424] rounded-xl text-left">
+              <span className="text-[9px] uppercase tracking-widest text-amber-500 font-bold">Essential Category Only</span>
+              <h3 className="text-xl font-bold text-amber-400 mt-1">{consentsStats.essentialOnly}</h3>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left text-zinc-300">
-              <thead className="bg-[#111111] text-[10px] uppercase text-zinc-500 tracking-wider border-b border-[#1F1F1F]">
-                <tr>
-                  <th className="px-6 py-3.5">Identity User</th>
-                  <th className="px-6 py-3.5">Consent Categories</th>
-                  <th className="px-6 py-3.5">Agreement status</th>
-                  <th className="px-6 py-3.5">Logged Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
-                  <td className="px-6 py-4 font-semibold text-white font-mono">devcoderm13@gmail.com</td>
-                  <td className="px-6 py-4">essential, analytics, marketing</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      Accepted
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-zinc-500">2026-07-18 10:14:12</td>
-                </tr>
-                {cookieConsents.map((cc) => (
-                  <tr key={cc.id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
-                    <td className="px-6 py-4 font-semibold text-white font-mono">{cc.user}</td>
-                    <td className="px-6 py-4">{cc.categories.join(", ")}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                        Accepted
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-zinc-500">{cc.timestamp}</td>
+          <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] text-left">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Cookie Agreements Registry</h4>
+              <p className="text-[10px] text-zinc-500">Live logs of user consent configurations stored in MongoDB</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left text-zinc-300">
+                <thead className="bg-[#111111] text-[10px] uppercase text-zinc-500 tracking-wider border-b border-[#1F1F1F]">
+                  <tr>
+                    <th className="px-6 py-3.5">Identity User</th>
+                    <th className="px-6 py-3.5">Consent Categories</th>
+                    <th className="px-6 py-3.5">Agreement Status</th>
+                    <th className="px-6 py-3.5">Logged Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cookieConsents && cookieConsents.length > 0 ? (
+                    cookieConsents.map((cc) => (
+                      <tr key={cc.id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
+                        <td className="px-6 py-4 font-semibold text-white font-mono">{cc.user}</td>
+                        <td className="px-6 py-4">{Array.isArray(cc.categories) ? cc.categories.join(", ") : "Essential"}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                            cc.consented !== false
+                              ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                          }`}>
+                            {cc.consented !== false ? "Accepted" : "Declined"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500">{cc.timestamp}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-zinc-500 text-xs">
+                        No cookie consent logs registered in database yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1121,6 +1238,143 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                 <option value="Admin Menu">Admin Menu</option>
               </select>
             </div>
+          </div>
+        </div>
+      </CommonModal>
+
+      {/* MODAL: CREATE SUBSCRIPTION PLAN */}
+      <CommonModal
+        isOpen={isPlanCreateOpen}
+        onClose={() => setIsPlanCreateOpen(false)}
+        title="Create Subscription Plan"
+        confirmText={isCreatingPlan ? "Creating..." : "Create Plan"}
+        onConfirm={handleCreatePlan}
+      >
+        <div className="space-y-4 text-left">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Plan Name *</label>
+              <input
+                type="text"
+                value={planForm.name}
+                onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                placeholder="e.g. Pro Monthly"
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tier *</label>
+              <select
+                value={planForm.plan}
+                onChange={(e) => setPlanForm({ ...planForm, plan: e.target.value })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2.5 text-xs text-zinc-300"
+              >
+                <option value="free">Free</option>
+                <option value="daily">Daily</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Description</label>
+            <textarea
+              value={planForm.description}
+              onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+              placeholder="Brief plan description..."
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white h-16 resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Price (₹)</label>
+              <input
+                type="number"
+                min={0}
+                value={planForm.price}
+                onChange={(e) => setPlanForm({ ...planForm, price: parseFloat(e.target.value) || 0 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Duration (Days)</label>
+              <input
+                type="number"
+                min={1}
+                value={planForm.durationInDays}
+                onChange={(e) => setPlanForm({ ...planForm, durationInDays: parseInt(e.target.value) || 1 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Token Credits</label>
+              <input
+                type="number"
+                min={0}
+                value={planForm.tokens}
+                onChange={(e) => setPlanForm({ ...planForm, tokens: parseInt(e.target.value) || 0 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Active</label>
+              <div
+                onClick={() => setPlanForm({ ...planForm, isActive: !planForm.isActive })}
+                className="flex items-center gap-2 cursor-pointer mt-1"
+              >
+                {planForm.isActive
+                  ? <ToggleRight className="w-7 h-7 text-amber-500" />
+                  : <ToggleLeft className="w-7 h-7 text-zinc-600" />
+                }
+                <span className="text-[10px] text-zinc-400 font-medium">{planForm.isActive ? "Enabled" : "Disabled"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Services</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={serviceInput}
+                onChange={(e) => setServiceInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddService(); } }}
+                placeholder="e.g. CHAT, IMAGE, VIDEO"
+                className="flex-1 min-w-0 bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2 text-xs text-white"
+              />
+              <button
+                type="button"
+                onClick={handleAddService}
+                className="px-3 py-1.5 bg-[#1A1A1A] border border-[#242424] hover:border-amber-500/30 text-xs font-bold text-zinc-300 hover:text-white rounded-lg transition"
+              >
+                Add
+              </button>
+            </div>
+            {planServices.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {planServices.map((svc) => (
+                  <span
+                    key={svc}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-wider"
+                  >
+                    {svc}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveService(svc)}
+                      className="text-amber-500/60 hover:text-amber-400 transition"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CommonModal>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Bell, Search, Award, RefreshCw, Zap, ShieldCheck } from "lucide-react";
 import { ActiveScreen, User } from "../types";
+import { useGetLogsQuery } from "../redux/api/apiSlice";
 
 interface AppTopBarProps {
   activeScreen: ActiveScreen;
@@ -57,11 +58,23 @@ export default function AppTopBar({
     }
   };
 
-  const notifications = [
-    { id: 1, title: "Pro membership upgraded", time: "2 hours ago", read: false },
-    { id: 2, title: "Inference limits raised by Admin", time: "1 day ago", read: true },
-    { id: 3, title: "Gemini 3.5 Flash model online", time: "2 days ago", read: true }
-  ];
+  const { data: logsData } = useGetLogsQuery(undefined, { skip: currentUser.role !== "Administrator" });
+
+  const dynamicNotifications = React.useMemo(() => {
+    if (currentUser.role === "Administrator" && logsData) {
+      return logsData.slice(0, 10).map((log: any) => ({
+        id: log.id,
+        title: log.action,
+        details: log.details,
+        time: log.timestamp,
+        read: false
+      }));
+    }
+    return [
+      { id: 1, title: "Pro membership active", details: "Welcome to GoChat AI Platform", time: "Just now", read: false },
+      { id: 2, title: "Initial 200 Tokens Granted", details: "Fresh registration wallet loaded", time: "Today", read: true }
+    ];
+  }, [currentUser.role, logsData]);
 
   return (
     <header className="h-16 border-b border-[#242424] bg-[#090909]/80 backdrop-blur-md px-6 flex items-center justify-between select-none z-10 sticky top-0">
@@ -94,35 +107,37 @@ export default function AppTopBar({
 
       {/* Right Tools & Credits counter */}
       <div className="flex items-center gap-5">
-        {/* Credits Counter Panel */}
-        <div
-          onClick={() => setActiveScreen("subscription")}
-          className="bg-[#111111] border border-[#242424] rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 cursor-pointer hover:border-amber-500/30 transition group"
-        >
-          <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
-            <Zap className="w-3.5 h-3.5 animate-pulse" />
+        {/* Credits Counter Panel (Only shown for non-admin users) */}
+        {currentUser.role !== "Administrator" && (
+          <div
+            onClick={() => setActiveScreen("subscription")}
+            className="bg-[#111111] border border-[#242424] rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 cursor-pointer hover:border-amber-500/30 transition group"
+          >
+            <div className="p-1 rounded-md bg-amber-500/10 text-amber-500">
+              <Zap className="w-3.5 h-3.5 animate-pulse" />
+            </div>
+            <div className="text-left">
+              <p className="text-[8px] uppercase tracking-wider text-[#71717A] font-bold leading-none">
+                Inference Balance
+              </p>
+              <p className="text-xs font-bold text-white leading-tight font-numbers mt-0.5 flex items-center gap-1">
+                {currentUser.credits.toLocaleString()} <span className="text-[10px] text-amber-500/80">cr</span>
+              </p>
+            </div>
+            {onRefreshCredits && (
+              <button
+                id="topbar-btn-refresh"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRefreshCredits();
+                }}
+                className="p-1 rounded text-zinc-500 hover:text-white transition hover:bg-zinc-900 ml-1"
+              >
+                <RefreshCw className="w-3 h-3 group-hover:rotate-180 transition duration-500" />
+              </button>
+            )}
           </div>
-          <div className="text-left">
-            <p className="text-[8px] uppercase tracking-wider text-[#71717A] font-bold leading-none">
-              Inference Balance
-            </p>
-            <p className="text-xs font-bold text-white leading-tight font-numbers mt-0.5 flex items-center gap-1">
-              {currentUser.credits.toLocaleString()} <span className="text-[10px] text-amber-500/80">cr</span>
-            </p>
-          </div>
-          {onRefreshCredits && (
-            <button
-              id="topbar-btn-refresh"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRefreshCredits();
-              }}
-              className="p-1 rounded text-zinc-500 hover:text-white transition hover:bg-zinc-900 ml-1"
-            >
-              <RefreshCw className="w-3 h-3 group-hover:rotate-180 transition duration-500" />
-            </button>
-          )}
-        </div>
+        )}
 
         {/* Notifications Dropdown Container */}
         <div className="relative">
@@ -132,7 +147,7 @@ export default function AppTopBar({
             className="p-2 rounded-xl bg-[#111111] border border-[#242424] text-zinc-400 hover:text-white hover:border-zinc-700 transition relative"
           >
             <Bell className="w-4 h-4" />
-            {notifications.some(n => !n.read) && (
+            {dynamicNotifications.some((n) => !n.read) && (
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
             )}
           </button>
@@ -141,17 +156,17 @@ export default function AppTopBar({
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShowNotifications(false)} />
-              <div className="absolute right-0 mt-2.5 w-72 bg-[#111111] border border-[#242424] rounded-2xl p-4 shadow-2xl z-30">
+              <div className="absolute right-0 mt-2.5 w-80 bg-[#111111] border border-[#242424] rounded-2xl p-4 shadow-2xl z-30">
                 <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                    Notifications
+                    {currentUser.role === "Administrator" ? "System Audit Alerts" : "Notifications"}
                   </h4>
                   <span className="text-[9px] text-amber-500 font-semibold uppercase">
-                    1 New Alert
+                    {dynamicNotifications.length} Events Logged
                   </span>
                 </div>
-                <div className="mt-2.5 space-y-2 max-h-60 overflow-y-auto">
-                  {notifications.map((n) => (
+                <div className="mt-2.5 space-y-2 max-h-72 overflow-y-auto">
+                  {dynamicNotifications.map((n) => (
                     <div
                       key={n.id}
                       className={`p-2.5 rounded-xl border transition ${
@@ -162,7 +177,8 @@ export default function AppTopBar({
                         <p className="text-xs font-semibold text-zinc-200">{n.title}</p>
                         {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1 shrink-0" />}
                       </div>
-                      <span className="text-[10px] text-zinc-500">{n.time}</span>
+                      {n.details && <p className="text-[10px] text-zinc-400 mt-0.5">{n.details}</p>}
+                      <span className="text-[9px] text-zinc-500 mt-1 block">{n.time}</span>
                     </div>
                   ))}
                 </div>

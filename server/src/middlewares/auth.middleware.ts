@@ -32,7 +32,8 @@ const silentRefresh = async (
       .select("_id role email username isBlocked")
       .lean();
 
-    if (!user ) return null;
+    if (!user) return null;
+    if ((user as any).isBlocked || (user as any).status === "blocked" || (user as any).status === "disabled") return null;
 
     // rotate tokens
     await deleteRefreshToken(refreshToken);
@@ -110,12 +111,38 @@ export const authMiddleware = async (
         return next();
       }
 
-      // fetch user 
-      const user = await AuthModel.findById(decoded.userId)
-        .select("_id role email username isBlocked")
-        .lean();
+      // fetch user with high-speed Redis caching
+      const userCacheKey = `cache:user:${decoded.userId}`;
+      let user: any = null;
+
+      try {
+        const cachedUser = await redisClient.get(userCacheKey);
+        if (cachedUser) {
+          user = JSON.parse(cachedUser);
+        }
+      } catch (err) {
+        console.error("Redis user cache read error:", err);
+      }
+
+      if (!user) {
+        user = await AuthModel.findById(decoded.userId)
+          .select("_id role email username avatar isVerified isBlocked status")
+          .lean();
+
+        if (user) {
+          try {
+            await redisClient.setEx(userCacheKey, 300, JSON.stringify(user));
+          } catch (err) {
+            console.error("Redis user cache write error:", err);
+          }
+        }
+      }
 
       if (!user) return errorHandler(res, 404, false, "User not found", {});
+
+      if (user.isBlocked || user.status === "blocked" || user.status === "disabled") {
+        return errorHandler(res, 403, false, "Account blocked or disabled by administrator", {});
+      }
     
       req.user = {
         id: user._id.toString(),

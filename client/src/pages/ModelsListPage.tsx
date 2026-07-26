@@ -2,43 +2,42 @@ import React, { useState, useEffect } from "react";
 import { Cpu, Zap, Star, ShieldCheck, Sparkles, TrendingUp, AlertCircle, HelpCircle } from "lucide-react";
 import { SystemModel } from "../types";
 
-export default function ModelsListPage() {
-  const [models, setModels] = useState<SystemModel[]>([]);
-  const [loading, setLoading] = useState(true);
+import { useGetModelsQuery } from "../redux/api/apiSlice";
 
-  useEffect(() => {
-    const mockModels: SystemModel[] = [
-      {
-        id: "m-1",
-        name: "Gemini 1.5 Flash",
-        version: "gemini-1.5-flash",
-        type: "text",
-        status: "active",
-        latency: "230ms",
-        description: "High-speed multimodal intelligence optimized for quick, cost-efficient chat and reasoning tasks."
-      },
-      {
-        id: "m-2",
-        name: "Gemini 1.5 Pro",
-        version: "gemini-1.5-pro",
-        type: "text",
-        status: "active",
-        latency: "680ms",
-        description: "Maximum capability model for highly complex reasoning, advanced coding, and long-context analysis."
-      },
-      {
-        id: "m-3",
-        name: "Google Veo 2",
-        version: "veo-2.0-generate",
-        type: "video",
-        status: "active",
-        latency: "2.4s",
-        description: "State-of-the-art video generation engine creating high-fidelity, cinema-grade motion loops."
-      }
-    ];
-    setModels(mockModels);
-    setLoading(false);
-  }, []);
+export default function ModelsListPage() {
+  const { data: backendModels, isLoading: loading } = useGetModelsQuery();
+
+  const models: SystemModel[] = backendModels && backendModels.length > 0
+    ? backendModels
+    : [
+        {
+          id: "m-1",
+          name: "Gemini 1.5 Flash",
+          version: "gemini-1.5-flash",
+          type: "text",
+          status: "active",
+          latency: "230ms",
+          description: "High-speed multimodal intelligence optimized for quick, cost-efficient chat and reasoning tasks."
+        },
+        {
+          id: "m-2",
+          name: "Gemini 1.5 Pro",
+          version: "gemini-1.5-pro",
+          type: "text",
+          status: "active",
+          latency: "680ms",
+          description: "Maximum capability model for highly complex reasoning, advanced coding, and long-context analysis."
+        },
+        {
+          id: "m-3",
+          name: "Google Veo 2",
+          version: "veo-2.0-generate",
+          type: "video",
+          status: "active",
+          latency: "2.4s",
+          description: "State-of-the-art video generation engine creating high-fidelity, cinema-grade motion loops."
+        }
+      ];
 
   // Map high fidelity logos and tags to mock providers
   const getProviderInfo = (version: string) => {

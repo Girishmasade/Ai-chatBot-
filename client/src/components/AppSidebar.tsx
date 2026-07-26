@@ -23,6 +23,24 @@ import {
 } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 
+import { useGetUserMenuItemsQuery } from "../redux/api/menuApi";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  LayoutDashboard,
+  MessageSquareText,
+  ImageIcon,
+  Tv: VideoIcon,
+  VideoIcon,
+  Sliders,
+  Cpu,
+  FolderHeart,
+  BriefcaseBusiness,
+  CreditCard,
+  Settings,
+  User: UserIcon,
+  UserIcon,
+};
+
 interface AppSidebarProps {
   activeScreen: ActiveScreen;
   setActiveScreen: (screen: ActiveScreen) => void;
@@ -44,6 +62,9 @@ export default function AppSidebar({
   isAdminWorkspace,
   setIsAdminWorkspace
 }: AppSidebarProps) {
+  // Fetch dynamic user menu items from backend API
+  const { data: menuResponse } = useGetUserMenuItemsQuery();
+  const dynamicUserItems = menuResponse?.data?.data;
 
   // Scrolls the window (and any scrollable main-content container, if present)
   // back to the top whenever navigation happens. Without this, switching tabs
@@ -76,8 +97,8 @@ export default function AppSidebar({
     scrollContentToTop();
   };
 
-  // User Navigation Items
-  const userNavItems = [
+  // Default Fallback Navigation Items
+  const defaultUserNavItems = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
     { id: "chat", label: "Conversational Chat", icon: MessageSquareText },
     { id: "image", label: "Image Studio", icon: ImageIcon },
@@ -89,7 +110,16 @@ export default function AppSidebar({
     { id: "subscription", label: "VIP Membership", icon: CreditCard },
     { id: "settings", label: "Settings", icon: Settings },
     { id: "profile", label: "My Profile", icon: UserIcon }
-  ] as const;
+  ];
+
+  // Map dynamic menu items from API or fallback to default
+  const userNavItems = dynamicUserItems !== undefined
+    ? dynamicUserItems.map((item) => ({
+        id: item.target as ActiveScreen,
+        label: item.label,
+        icon: iconMap[item.icon] || LayoutDashboard,
+      }))
+    : defaultUserNavItems;
 
   // Admin Navigation Items
   const adminNavItems = [
@@ -139,7 +169,7 @@ export default function AppSidebar({
         </p>
 
         {!isAdminWorkspace ? (
-          // USER WORKSPACE NAVIGATION
+          // USER WORKSPACE NAVIGATION (DYNAMIC FROM BACKEND)
           userNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeScreen === item.id;

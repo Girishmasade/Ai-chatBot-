@@ -17,6 +17,7 @@ import RetrievalRoute from "@/moduels/retrieval/retrieval.route.js";
 import ModerationRouter from "@/moduels/moderation/moderation.route.js";
 import PromptBuilderRoute from "@/moduels/prompt/promptbuilder.route.js";
 import { paymentRouter } from "@/moduels/payment/payment.route.js";
+import { menuRouter } from "@/moduels/admin/menu.route.js";
 
 // NOTE: notification.route.ts is intentionally NOT mounted — its controller
 // (notification.controller.ts) is all empty stub functions and the route
@@ -30,6 +31,7 @@ RouterFile.use("/auth", authRouter)
 RouterFile.use("/otp", otpRouter)
 RouterFile.use("/user", userRouter)
 RouterFile.use("/admin", adminRouter)
+RouterFile.use("/menu", menuRouter)
 RouterFile.use("/service", serviceConfigRoute)
 RouterFile.use("/subscription", subscriptionRouter)
 RouterFile.use("/:service/provider", providerRouter)

@@ -146,7 +146,7 @@ export async function getFreePlanId(
             price: 0,
             currency: Currency.USD,
             description: "Default Free Subscription Plan",
-            tokens: 100, // Default signup bonus tokens
+            tokens: 200, // 200 fresh signup bonus tokens
             durationInDays: 30, // 30 days duration
             services: [ServiceType.CHAT],
             rolloverEnabled: false,

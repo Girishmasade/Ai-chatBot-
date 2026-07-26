@@ -60,7 +60,7 @@ export interface SocketAuditLog {
 }
 
 export interface SocketAdminUpdatePayload {
-  entityType: "user" | "model" | "subscription" | "config";
+  entityType: "user" | "model" | "subscription" | "config" | "menu";
   action: "created" | "updated" | "deleted";
   data: any;
 }

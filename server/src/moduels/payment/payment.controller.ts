@@ -57,6 +57,32 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
   // Mark transaction as successful
   transaction.status = PaymentStatus.SUCCESS;
   await transaction.save();
+
+  // Notify Admin Real-Time of Payment & Plan Purchase
+  try {
+    const { emitAdminEntityUpdate } = await import("@/socket/socket.emitter.js");
+    const { AuditLogModel } = await import("../admin/auditLog.model.js");
+
+    const amountInRupees = transaction.amount / 100;
+    await AuditLogModel.create({
+      action: "Payment & VIP Plan Purchased",
+      operator: transaction.user.toString(),
+      details: `Purchased ${transaction.itemType} for ₹${amountInRupees} (OrderID: ${transaction.orderId})`,
+      level: "info",
+    });
+
+    emitAdminEntityUpdate({
+      entityType: "user",
+      action: "updated",
+      data: {
+        userId: transaction.user.toString(),
+        purchasedItem: transaction.itemType,
+        amount: amountInRupees,
+      },
+    });
+  } catch (notifyErr) {
+    console.error("Admin payment notification error:", notifyErr);
+  }
 }
 
 /**

@@ -435,6 +435,34 @@ export const executeAIRequest = AsyncHandler(async (req, res, next) => {
       { new: true },
     ).lean();
 
+    // Notify Admin Real-Time of Service Usage (Privacy Safe: Service & Model only)
+    try {
+      const { emitAdminEntityUpdate } = await import("@/socket/socket.emitter.js");
+      const { AuditLogModel } = await import("../admin/auditLog.model.js");
+
+      const userEmail = (req.user as any)?.email || "User";
+      const userUsername = (req.user as any)?.username || "User";
+
+      await AuditLogModel.create({
+        action: "AI Model Utilized",
+        operator: userUsername,
+        details: `User ${userEmail} used service '${service}' with model '${usedModel}' (${actualCost} cr)`,
+        level: "info",
+      });
+
+      emitAdminEntityUpdate({
+        entityType: "user",
+        action: "updated",
+        data: {
+          id: userId,
+          serviceUsed: service,
+          modelUsed: usedModel,
+        },
+      });
+    } catch (notifyErr) {
+      console.error("Admin AI usage notification error:", notifyErr);
+    }
+
     console.log(
       `[AIRequest] COMPLETED ${aiRequest._id} — provider: ${usedProvider!.provider}, ` +
       `tokens: ${actualTokens}, cost: ${actualCost}, latency: ${providerResponse.latencyMs}ms`,

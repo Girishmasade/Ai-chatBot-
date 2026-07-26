@@ -8,15 +8,11 @@ import type {
   CookieConsent,
   AIAsset,
 } from "../../types";
-import { mockAssets, mockCookieConsents } from "./mockData";
-
-let assets = [...mockAssets];
-let consents = [...mockCookieConsents];
 
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/v1", // Proxy in vite config handles the rest
+    baseUrl: "/api/v1",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("accessToken");
       if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -61,6 +57,10 @@ export const apiSlice = createApi({
       transformResponse: (res: any) => res.data,
       providesTags: ["Subscription"],
     }),
+    createSubscription: builder.mutation<void, Partial<SubscriptionRecord>>({
+      query: (body) => ({ url: "/admin/subscriptions", method: "POST", body }),
+      invalidatesTags: ["Subscription", "Log"],
+    }),
 
     // ── Audit Logs ───────────────────────────────────────
     getLogs: builder.query<AuditLog[], void>({
@@ -80,43 +80,43 @@ export const apiSlice = createApi({
       invalidatesTags: ["Config", "Log"],
     }),
 
-    // ── Unimplemented Mock endpoints ─────────────────────
+    // ── Cookie Consents ──────────────────────────────────
     logConsent: builder.mutation<{ success: boolean }, { user: string; categories: string[] }>({
-      queryFn: ({ user, categories }) => {
-        consents.push({ id: `cc-${Date.now()}`, user, consented: true, categories, timestamp: new Date().toLocaleString() });
-        return { data: { success: true } };
-      },
+      query: (body) => ({ url: "/admin/cookie-consent", method: "POST", body }),
       invalidatesTags: ["Config"],
     }),
+
+    // ── User AI Assets ───────────────────────────────────
     getAssets: builder.query<AIAsset[], void>({
-      queryFn: () => ({ data: [...assets] }),
+      query: () => "/admin/assets",
+      transformResponse: (res: any) => res.data,
       providesTags: ["Asset"],
     }),
     deleteAsset: builder.mutation<{ success: boolean }, { id: string }>({
-      queryFn: ({ id }) => {
-        assets = assets.filter((a) => a.id !== id);
-        return { data: { success: true } };
-      },
+      query: ({ id }) => ({ url: `/admin/assets/${id}`, method: "DELETE" }),
       invalidatesTags: ["Asset"],
     }),
     generateImage: builder.mutation<{ success: boolean; asset?: AIAsset }, { prompt: string; aspectRatio: string }>({
-      queryFn: ({ prompt, aspectRatio }) => {
-        const dims = aspectRatio === "16:9" ? "1024x576" : "512x512";
-        const newAsset: AIAsset = {
-          id: `a-${Date.now()}`, type: "image", title: prompt.slice(0, 40), prompt,
-          content: `https://placehold.co/${dims}/111111/F59E0B?text=${encodeURIComponent(prompt.slice(0, 20))}`,
-          model: "gemini", timestamp: new Date().toLocaleString(),
-        };
-        assets.unshift(newAsset);
-        return { data: { success: true, asset: newAsset } };
-      },
+      query: (body) => ({ url: "/ai-request/generate-image", method: "POST", body }),
       invalidatesTags: ["Asset"],
     }),
   }),
 });
 
 export const {
-  useGetUsersQuery, useLazyGetUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation,
-  useGetModelsQuery, useToggleModelMutation, useGetSubscriptionsQuery, useGetLogsQuery, useGetConfigQuery,
-  useUpdateBrandingMutation, useLogConsentMutation, useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation,
+  useGetUsersQuery,
+  useLazyGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useGetModelsQuery,
+  useToggleModelMutation,
+  useGetSubscriptionsQuery,
+  useGetLogsQuery,
+  useGetConfigQuery,
+  useUpdateBrandingMutation,
+  useLogConsentMutation,
+  useGetAssetsQuery,
+  useDeleteAssetMutation,
+  useGenerateImageMutation,
 } = apiSlice;

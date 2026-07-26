@@ -180,6 +180,34 @@ export const verifyOTP = async (
 
     setTokenCookies(res, refreshToken);
 
+    // Notify Admin Real-Time & Log Audit
+    try {
+      const { emitAdminEntityUpdate } = await import("@/socket/socket.emitter.js");
+      const { AuditLogModel } = await import("../admin/auditLog.model.js");
+      
+      emitAdminEntityUpdate({
+        entityType: "user",
+        action: "created",
+        data: {
+          id: user._id.toString(),
+          name: user.username,
+          email: user.email,
+          role: user.role,
+          tier: "Free",
+          credits: tokensCredited,
+        },
+      });
+
+      await AuditLogModel.create({
+        action: "New Registration",
+        operator: user.username,
+        details: `User ${user.email} registered and received ${tokensCredited} initial tokens`,
+        level: "info",
+      });
+    } catch (e) {
+      console.error("Admin notification failed:", e);
+    }
+
     console.log(
       `Verified ${email} — credited ${tokensCredited} free-plan tokens`,
     );
