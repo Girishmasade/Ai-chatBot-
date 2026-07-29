@@ -378,6 +378,73 @@ async function callGemini(
   }
 }
 
+// HuggingFace Adapter
+async function callHuggingFace(
+  apiKey: string,
+  payload: IProviderRequestPayload,
+  service: string
+): Promise<IProviderResponse> {
+  const startTime = Date.now();
+  try {
+    const timeout = getTimeout(service);
+    
+    // For Chat / Text / Business / Prompt Gen -> Use OpenAI compatibility endpoint if possible
+    if (service === AIService.AI_CHAT || service === AIService.BUSINESS_IDEAS || service === AIService.PROMPT_GEN) {
+        // Many HF text-generation models support the /v1/chat/completions route.
+        // We reuse callOpenAI with the model-specific base URL.
+        return callOpenAI(apiKey, payload, service, `https://api-inference.huggingface.co/models/${payload.model}/v1`);
+    }
+
+    // For Image / Video Generation -> Use standard HF Inference API returning bytes
+    if (service === AIService.IMAGE_GEN || service === AIService.ASSET_GEN || service === "video_gen") {
+      const url = `https://api-inference.huggingface.co/models/${payload.model}`;
+      
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: payload.prompt }),
+        signal: AbortSignal.timeout(timeout),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        return errorResponse(
+          "PROVIDER_API_ERROR",
+          errorData?.error || "HuggingFace generation failed.",
+          Date.now() - startTime
+        );
+      }
+      
+      // The response is a blob for images/video
+      const blob = await res.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = blob.type || (service === "video_gen" ? "video/mp4" : "image/jpeg");
+      const base64 = buffer.toString("base64");
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      return {
+        success: true,
+        imageUrls: [dataUrl],
+        providerRequestId: `hf-${Date.now()}`,
+        usage: emptyUsage(),
+        latencyMs: Date.now() - startTime,
+      };
+    }
+    
+    return errorResponse("UNSUPPORTED_SERVICE", "Service not supported for HuggingFace", 0);
+  } catch (err: any) {
+    return errorResponse(
+      classifyFetchError(err).code,
+      classifyFetchError(err).message,
+      Date.now() - startTime
+    );
+  }
+}
+
 // Provider Gateway  —  public dispatch function
 //
 // Routing logic:
@@ -411,6 +478,9 @@ export async function executeProviderRequest(
 
     case ProviderName.GEMINI:
       return callGemini(apiKey, payload, service);
+      
+    case ProviderName.HUGGINGFACE:
+      return callHuggingFace(apiKey, payload, service);
 
     case ProviderName.GROK:
       return callOpenAI(apiKey, payload, service, PROVIDER_BASE_URLS.GROK);

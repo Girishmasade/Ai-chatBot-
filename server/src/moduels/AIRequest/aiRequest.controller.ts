@@ -18,6 +18,7 @@ import {
   AI_REQUEST_DEFAULT_SORT_ORDER,
 } from "./aiRequest.constant.js";
 import { ServiceConfigModel } from "../service-config/service-config.model.js";
+import { SystemModelModel } from "../admin/systemModel.model.js";
 import { UserSubscriptionModel } from "../subscription/userSubscription.model.js";
 import TokenWalletModel from "../token/tokenWallet/tokenWallet.model.js";
 import { TokenTransaction } from "../token/tokenTransaction/tokenTransaction.model.js";
@@ -59,27 +60,67 @@ export const executeAIRequest = AsyncHandler(async (req, res, next) => {
       return errorHandler(res, 401, false, "Unauthorized", {});
     }
 
-    // ── Step 1: Resolve ServiceConfig ─────────────────────────────────────────
-    // Providers are embedded in ServiceConfig.providers[] sorted by priority ASC.
+    // ── Step 1: Resolve Configuration (SystemModel + ServiceConfig fallback) ─────────────────────────────────────────
+    
+    // Map AIRequest service to SystemModel type
+    const serviceToModelType: Record<string, string> = {
+      ai_chat: "text",
+      business_ideas: "text",
+      prompt_gen: "text",
+      image_gen: "image",
+      asset_gen: "image",
+      video_gen: "video",
+    };
+    const modelType = serviceToModelType[service] || "text";
 
-    const serviceConfig = await ServiceConfigModel.findOne({
-      service,
-      enabled: true,
+    // Try finding an active system model for this service first
+    const activeSystemModels = await SystemModelModel.find({ 
+      type: modelType, 
+      status: "active" 
     }).lean();
 
-    if (!serviceConfig) {
-      return errorHandler(
-        res, 403, false,
-        `The "${service}" service is currently disabled or not configured.`,
-        {},
-      );
-    }
+    let enabledProviders: any[] = [];
+    let tokensPerUnit = 1;
 
-    // Providers are embedded in serviceConfig.providers[] (ProviderConfigSchema).
-    // Filter enabled ones and sort by priority ASC so priority=1 is tried first.
-    const enabledProviders = (serviceConfig.providers ?? [])
-      .filter((p: any) => p.enabled)
-      .sort((a: any, b: any) => a.priority - b.priority);
+    if (activeSystemModels && activeSystemModels.length > 0) {
+      // Map SystemModels to the expected Provider format
+      enabledProviders = activeSystemModels.map((sm, index) => ({
+        provider: sm.provider.toLowerCase(),
+        model: sm.version,
+        priority: index + 1,
+        enabled: true,
+        maxTokens: undefined,
+        temperature: undefined
+      }));
+      
+      // Parse cost if available (e.g., "2 cr / query" -> 2)
+      if (activeSystemModels[0].cost) {
+        const parsedCost = parseFloat(activeSystemModels[0].cost);
+        if (!isNaN(parsedCost)) {
+          tokensPerUnit = parsedCost;
+        }
+      }
+    } else {
+      // Fallback to ServiceConfigModel if no SystemModel found
+      const serviceConfig = await ServiceConfigModel.findOne({
+        service,
+        enabled: true,
+      }).lean();
+
+      if (!serviceConfig) {
+        return errorHandler(
+          res, 403, false,
+          `The "${service}" service is currently disabled or not configured.`,
+          {},
+        );
+      }
+
+      enabledProviders = (serviceConfig.providers ?? [])
+        .filter((p: any) => p.enabled)
+        .sort((a: any, b: any) => a.priority - b.priority);
+        
+      tokensPerUnit = (serviceConfig as any).tokensPerUnit ?? 1;
+    }
 
     if (!enabledProviders.length) {
       return errorHandler(
@@ -122,10 +163,6 @@ export const executeAIRequest = AsyncHandler(async (req, res, next) => {
     }
 
     const estimatedTokens = estimateTotalTokens(prompt, systemPrompt, conversationHistory);
-
-    // NOTE: Add `tokensPerUnit` to ServiceConfigSchema to make this type-safe.
-    // Defaults to 1 (1 token cost per 1 provider token) until the field is added.
-    const tokensPerUnit: number = (serviceConfig as any).tokensPerUnit ?? 1;
     const estimatedCost = Math.ceil(estimatedTokens * tokensPerUnit);
 
     if (wallet.balance < estimatedCost) {

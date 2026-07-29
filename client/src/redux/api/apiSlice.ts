@@ -50,6 +50,14 @@ export const apiSlice = createApi({
       query: ({ id }) => ({ url: `/admin/models/${id}/toggle`, method: "PUT" }),
       invalidatesTags: ["Model", "Log"],
     }),
+    createModel: builder.mutation<{ success: boolean; data: SystemModel }, Partial<SystemModel>>({
+      query: (body) => ({ url: "/admin/models", method: "POST", body }),
+      invalidatesTags: ["Model", "Log"],
+    }),
+    deleteModel: builder.mutation<{ success: boolean }, { id: string }>({
+      query: ({ id }) => ({ url: `/admin/models/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Model", "Log"],
+    }),
 
     // ── Subscriptions ────────────────────────────────────
     getSubscriptions: builder.query<SubscriptionRecord[], void>({
@@ -111,6 +119,8 @@ export const {
   useDeleteUserMutation,
   useGetModelsQuery,
   useToggleModelMutation,
+  useCreateModelMutation,
+  useDeleteModelMutation,
   useGetSubscriptionsQuery,
   useGetLogsQuery,
   useGetConfigQuery,

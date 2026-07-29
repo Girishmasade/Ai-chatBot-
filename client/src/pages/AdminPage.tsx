@@ -31,6 +31,8 @@ import {
   useDeleteUserMutation,
   useGetModelsQuery,
   useToggleModelMutation,
+  useCreateModelMutation,
+  useDeleteModelMutation,
   useGetSubscriptionsQuery,
   useGetLogsQuery,
   useGetConfigQuery,
@@ -70,6 +72,8 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const { data: adminMenuData } = useGetAdminMenuItemsQuery();
   const [createMenuItem] = useCreateMenuItemMutation();
   const [deleteMenuItem] = useDeleteMenuItemMutation();
+  const [createModel] = useCreateModelMutation();
+  const [deleteModel] = useDeleteModelMutation();
   const { authUser } = useAuth();
 
   // Database local states synced with RTK Query caches
@@ -310,20 +314,28 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     }
   };
 
-  const handleCreateModel = () => {
-    const newM: SystemModel = {
-      id: `m-${Date.now()}`,
-      name: modelForm.name || "Custom Model",
-      type: modelForm.type,
-      version: modelForm.version || "custom-v1",
-      status: "active",
-      description: modelForm.description || "Custom model deallocated via CMS.",
-      latency: modelForm.latency
-    };
-    setModels([newM, ...models]);
-    setIsModelCreateOpen(false);
-    setModelForm({ name: "", version: "", type: "Text", description: "", latency: "0.5s" });
-    triggerToast("Custom AI Model mapped to environment");
+  const handleCreateModel = async () => {
+    try {
+      const payload = {
+        name: modelForm.name || "Custom Model",
+        type: modelForm.type,
+        version: modelForm.version || "custom-v1",
+        status: "active",
+        description: modelForm.description || "Custom model deallocated via CMS.",
+        latency: modelForm.latency,
+        provider: "huggingface" // Default to huggingface so the backend routes to it
+      };
+      
+      const res = await createModel(payload).unwrap();
+      if (res.success) {
+        setIsModelCreateOpen(false);
+        setModelForm({ name: "", version: "", type: "text", description: "", latency: "0.5s" });
+        triggerToast("Custom AI Model mapped to environment");
+      }
+    } catch (e) {
+      console.error(e);
+      triggerToast("Failed to create model");
+    }
   };
 
   // BRANDING CMS SAVE
@@ -747,13 +759,31 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                   <p className="text-[10px] text-zinc-500 max-w-xs">{m.description}</p>
                 </div>
 
-                <button
-                  onClick={() => handleToggleModel(m.id)}
-                  className="p-1 text-zinc-400 hover:text-white transition"
-                  title="Toggle status"
-                >
-                  {m.status === "active" ? <ToggleRight className="w-7 h-7 text-amber-500" /> : <ToggleLeft className="w-7 h-7 text-zinc-600" />}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleModel(m.id)}
+                    className="p-1 text-zinc-400 hover:text-white transition"
+                    title="Toggle status"
+                  >
+                    {m.status === "active" ? <ToggleRight className="w-7 h-7 text-amber-500" /> : <ToggleLeft className="w-7 h-7 text-zinc-600" />}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if(window.confirm("Are you sure you want to delete this model?")) {
+                        try {
+                          await deleteModel({ id: m.id }).unwrap();
+                          triggerToast("Model deleted successfully");
+                        } catch (e) {
+                          triggerToast("Failed to delete model");
+                        }
+                      }
+                    }}
+                    className="p-1 text-zinc-500 hover:text-rose-500 transition"
+                    title="Delete Model"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

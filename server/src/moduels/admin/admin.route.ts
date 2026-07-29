@@ -3,7 +3,7 @@ import { Router } from "express";
 import { 
   adminDashboard, getAdminProfile, updateAdminProfile,
   getUsers, createUser, updateUser, deleteUser,
-  getModels, toggleModel,
+  getModels, toggleModel, createModel, deleteModel,
   getSubscriptions,
   getLogs,
   getConfig, updateBranding,
@@ -33,7 +33,9 @@ adminRouter.delete("/users/:id", isAdmin, deleteUser);
 
 // ai models
 adminRouter.get("/models", getModels);
+adminRouter.post("/models", isAdmin, createModel);
 adminRouter.put("/models/:id/toggle", isAdmin, toggleModel);
+adminRouter.delete("/models/:id", isAdmin, deleteModel);
 
 // subscriptions
 adminRouter.get("/subscriptions", isAdmin, getSubscriptions);

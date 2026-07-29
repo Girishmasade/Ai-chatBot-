@@ -238,6 +238,54 @@ export const toggleModel = AsyncHandler(async (req: Request, res: Response, next
   successHandler(res, 200, true, "Model toggled", { data: model });
 });
 
+// create model
+export const createModel = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const model = await SystemModelModel.create(req.body);
+
+  try {
+    await redisClient.del("cache:admin:models");
+  } catch (err) {
+    console.error("Redis clear error:", err);
+  }
+
+  await AuditLogModel.create({
+    action: "Model Created",
+    operator: (req.user as AuthUser)?.username || "Admin",
+    details: `Created new AI model configuration: ${model.name}`,
+    level: "info",
+  });
+
+  emitAdminEntityUpdate({ entityType: "model", action: "created", data: model });
+
+  successHandler(res, 201, true, "Model created", { data: model });
+});
+
+// delete model
+export const deleteModel = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const model = await SystemModelModel.findByIdAndDelete(req.params.id);
+
+  if (!model) {
+    return errorHandler(res, 404, false, "Model not found", {});
+  }
+
+  try {
+    await redisClient.del("cache:admin:models");
+  } catch (err) {
+    console.error("Redis clear error:", err);
+  }
+
+  await AuditLogModel.create({
+    action: "Model Deleted",
+    operator: (req.user as AuthUser)?.username || "Admin",
+    details: `Deleted AI model configuration: ${model.name}`,
+    level: "warning",
+  });
+
+  emitAdminEntityUpdate({ entityType: "model", action: "deleted", data: model });
+
+  successHandler(res, 200, true, "Model deleted", { data: model });
+});
+
 // get subscriptions
 export const getSubscriptions = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const subs = await UserSubscriptionModel.find().populate("user").lean();
