@@ -121,9 +121,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [modelForm, setModelForm] = useState({
     name: "",
     version: "",
-    type: "Text",
+    type: "text",
     description: "",
-    latency: "0.5s"
+    latency: "0.5s",
+    provider: "huggingface"
   });
 
   const [brandingForm, setBrandingForm] = useState({
@@ -323,13 +324,13 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         status: "active",
         description: modelForm.description || "Custom model deallocated via CMS.",
         latency: modelForm.latency,
-        provider: "huggingface" // Default to huggingface so the backend routes to it
+        provider: modelForm.provider || "huggingface"
       };
       
       const res = await createModel(payload).unwrap();
       if (res.success) {
         setIsModelCreateOpen(false);
-        setModelForm({ name: "", version: "", type: "text", description: "", latency: "0.5s" });
+        setModelForm({ name: "", version: "", type: "text", description: "", latency: "0.5s", provider: "huggingface" });
         triggerToast("Custom AI Model mapped to environment");
       }
     } catch (e) {
@@ -1355,10 +1356,25 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                 onChange={(e) => setModelForm({ ...modelForm, type: e.target.value })}
                 className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
               >
-                <option value="Text">Text</option>
-                <option value="Image">Image</option>
-                <option value="Video">Video</option>
-                <option value="Audio">Audio</option>
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+                <option value="audio">Audio</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Provider</label>
+              <select
+                value={modelForm.provider}
+                onChange={(e) => setModelForm({ ...modelForm, provider: e.target.value })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
+              >
+                <option value="huggingface">HuggingFace</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Gemini</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="grok">Grok</option>
               </select>
             </div>
             <div className="space-y-2">
