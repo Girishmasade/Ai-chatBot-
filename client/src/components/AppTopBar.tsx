@@ -107,9 +107,10 @@ export default function AppTopBar({
 
       {/* Right Tools & Credits counter */}
       <div className="flex items-center gap-5">
-        {/* Credits Counter Panel (Only shown for non-admin users) */}
-        {currentUser.role !== "Administrator" && (
+        {/* Credits Counter Panel (Interface Balance - Only shown on user side for non-admin users) */}
+        {currentUser.role !== "Administrator" && activeScreen !== "admin" && (
           <div
+            id="topbar-interface-balance"
             onClick={() => setActiveScreen("subscription")}
             className="bg-[#111111] border border-[#242424] rounded-xl px-3.5 py-1.5 flex items-center gap-2.5 cursor-pointer hover:border-amber-500/30 transition group"
           >
@@ -118,10 +119,10 @@ export default function AppTopBar({
             </div>
             <div className="text-left">
               <p className="text-[8px] uppercase tracking-wider text-[#71717A] font-bold leading-none">
-                Inference Balance
+                Interface Balance
               </p>
               <p className="text-xs font-bold text-white leading-tight font-numbers mt-0.5 flex items-center gap-1">
-                {currentUser.credits.toLocaleString()} <span className="text-[10px] text-amber-500/80">cr</span>
+                {(currentUser.credits || 200).toLocaleString()} <span className="text-[10px] text-amber-500/80">tokens</span>
               </p>
             </div>
             {onRefreshCredits && (

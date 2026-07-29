@@ -59,10 +59,10 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
                 razorpay_signature: response.razorpay_signature,
               }).unwrap();
               
-              // (Optional) Trigger a success toast here
-              alert("Payment successful and verified!");
+              alert("🎉 Payment Successful! Subscription activated & Official Invoice sent to your registered Gmail address.");
             } catch (verErr) {
               console.error("Payment verification failed:", verErr);
+              alert("Payment verification failed. Please contact support.");
             }
           },
           theme: {
@@ -75,7 +75,7 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
 
       } catch (err: any) {
         console.error("Subscription order creation failed:", err);
-        alert("Failed to create Razorpay order.");
+        alert(err?.data?.message || "Failed to create Razorpay payment order.");
       }
       return;
     }
@@ -111,9 +111,10 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             }).unwrap();
-            alert("Tokens purchased successfully!");
+            alert("🎉 Tokens purchased successfully! Invoice sent to your registered Gmail address.");
           } catch (verErr) {
             console.error("Payment verification failed:", verErr);
+            alert("Payment verification failed. Please contact support.");
           }
         },
         theme: { color: "#f59e0b" },
@@ -123,7 +124,7 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
       rzp.open();
     } catch (err: any) {
       console.error("Token order creation failed:", err);
-      alert("Failed to create Razorpay order for tokens.");
+      alert(err?.data?.message || "Failed to create Razorpay order for tokens.");
     }
   };
 

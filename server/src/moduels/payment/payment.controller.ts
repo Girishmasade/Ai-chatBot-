@@ -12,6 +12,8 @@ import { assignPlanToUser } from "../subscription/Subscription.assign.js";
 import { credit } from "../token/tokenTransaction/tokenTransaction.controller.js";
 import { TransactionType, TransactionSource } from "../token/tokenTransaction/tokenTransaction.types.js";
 import type { AuthUser } from "../auth/auth.payload.js";
+import { AuthModel } from "../auth/auth.models.js";
+import { sendEmail } from "@/services/mailer.utils.js";
 import { createOrderSchema, verifyPaymentSchema } from "./payment.validation.js";
 
 const RAZORPAY_API_SECRET_KEY = process.env.RAZORPAY_API_SECRET_KEY as string;
@@ -19,6 +21,8 @@ const RAZORPAY_API_SECRET_KEY = process.env.RAZORPAY_API_SECRET_KEY as string;
 // Helper function to fulfill the order securely
 async function fulfillOrder(transaction: IPaymentTransaction) {
   if (transaction.status === PaymentStatus.SUCCESS) return; // already fulfilled
+
+  let purchasedItemDetails: any = null;
 
   if (transaction.itemType === PaymentItemType.SUBSCRIPTION) {
     const session = await mongoose.startSession();
@@ -37,11 +41,14 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
 
         await assignPlanToUser(userId, transaction.itemId.toString(), session);
       });
+
+      purchasedItemDetails = await SubscriptionPlanModel.findById(transaction.itemId);
     } finally {
       await session.endSession();
     }
   } else if (transaction.itemType === PaymentItemType.TOKEN_PACKAGE) {
     const pkg = await TokenPackage.findById(transaction.itemId);
+    purchasedItemDetails = pkg;
     if (pkg) {
       await credit({
         userId: transaction.user.toString(),
@@ -57,6 +64,38 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
   // Mark transaction as successful
   transaction.status = PaymentStatus.SUCCESS;
   await transaction.save();
+
+  // Send Invoice via Gmail / Nodemailer to User
+  try {
+    const user = await AuthModel.findById(transaction.user);
+    if (user && user.email) {
+      const itemName = purchasedItemDetails?.name || (transaction.itemType === PaymentItemType.SUBSCRIPTION ? "VIP Subscription Plan" : "Token Package");
+      const tokensAllotted = purchasedItemDetails?.tokens || purchasedItemDetails?.tokenAmount || 0;
+      await sendEmail({
+        to: user.email,
+        type: "invoice",
+        payload: {
+          username: user.username || "Valued Customer",
+          orderId: transaction.orderId,
+          paymentId: transaction.paymentId || `PAY_${Date.now()}`,
+          itemName,
+          amount: transaction.amount / 100,
+          currency: transaction.currency || "INR",
+          tokens: tokensAllotted,
+          date: new Date().toLocaleDateString("en-IN", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      });
+      console.log(`Payment invoice successfully sent to Gmail address: ${user.email}`);
+    }
+  } catch (emailErr) {
+    console.error("Error sending invoice email via Gmail:", emailErr);
+  }
 
   // Notify Admin Real-Time of Payment & Plan Purchase
   try {

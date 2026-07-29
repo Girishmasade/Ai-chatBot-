@@ -45,7 +45,7 @@ export default function DashboardPage({
   }, [authUser?.id, triggerWallet]);
 
   const walletBalance = walletData?.data?.wallet?.balance;
-  const displayCredits = walletBalance ?? currentUser.credits;
+  const displayCredits = walletBalance ?? (currentUser.credits || 200);
 
   const quickActions = [
     {

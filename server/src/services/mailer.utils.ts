@@ -15,7 +15,7 @@ export const transporter = nodemailer.createTransport({
 
 // ── Types ──────────────────────────────────────────────────
 
-type EmailType = "otp" | "welcome" | "passwordChanged" | "notification";
+type EmailType = "otp" | "welcome" | "passwordChanged" | "notification" | "invoice";
 
 interface BaseEmailOptions {
   to: string;
@@ -42,11 +42,26 @@ interface NotificationEmailOptions extends BaseEmailOptions {
   payload: { username: string; title: string; body: string };
 }
 
+interface InvoiceEmailOptions extends BaseEmailOptions {
+  type: "invoice";
+  payload: {
+    username: string;
+    orderId: string;
+    paymentId: string;
+    itemName: string;
+    amount: number;
+    currency: string;
+    tokens: number;
+    date: string;
+  };
+}
+
 type EmailOptions =
   | OTPEmailOptions
   | WelcomeEmailOptions
   | PasswordChangedEmailOptions
-  | NotificationEmailOptions;
+  | NotificationEmailOptions
+  | InvoiceEmailOptions;
 
 // ── Templates ──────────────────────────────────────────────
 
@@ -173,6 +188,76 @@ const templates: Record<
         <h3 style="color: #4F46E5;">${title}</h3>
         <p style="color: #555;">${body}</p>
       `),
+    };
+  },
+
+  invoice: (payload) => {
+    const { username, orderId, paymentId, itemName, amount, currency, tokens, date } =
+      payload as InvoiceEmailOptions["payload"];
+    return {
+      subject: `Payment Invoice - ${itemName} [${orderId}]`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 580px; margin: auto; border: 1px solid #242424; border-radius: 12px; overflow: hidden; background-color: #09090b; color: #e4e4e7;">
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 24px 32px;">
+            <h1 style="color: #000; margin: 0; font-size: 22px; font-weight: 800;">GoChat AI — Official Receipt</h1>
+            <p style="color: #1c1917; margin: 4px 0 0 0; font-size: 13px; font-weight: 600;">Payment & Subscription Invoice</p>
+          </div>
+          <div style="padding: 32px;">
+            <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Hello ${username},</h2>
+            <p style="color: #a1a1aa; font-size: 14px; line-height: 1.6;">
+              Thank you for your purchase! Your payment has been successfully processed, and your plan credentials have been activated.
+            </p>
+
+            <div style="background-color: #141417; border: 1px solid #27272a; border-radius: 8px; padding: 20px; margin: 24px 0;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <tr>
+                  <td style="padding: 6px 0; color: #71717a;">Order ID:</td>
+                  <td style="padding: 6px 0; color: #ffffff; font-weight: bold; font-family: monospace;">${orderId}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #71717a;">Payment ID:</td>
+                  <td style="padding: 6px 0; color: #ffffff; font-weight: bold; font-family: monospace;">${paymentId}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #71717a;">Transaction Date:</td>
+                  <td style="padding: 6px 0; color: #ffffff;">${date}</td>
+                </tr>
+              </table>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px;">
+              <thead>
+                <tr style="border-bottom: 1px solid #27272a; text-transform: uppercase; font-size: 11px; color: #71717a;">
+                  <th style="padding: 10px 0; text-align: left;">Item Description</th>
+                  <th style="padding: 10px 0; text-align: center;">Tokens</th>
+                  <th style="padding: 10px 0; text-align: right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #1f1f23;">
+                  <td style="padding: 14px 0; color: #ffffff; font-weight: bold;">${itemName}</td>
+                  <td style="padding: 14px 0; text-align: center; color: #f59e0b; font-weight: bold;">+${tokens.toLocaleString()}</td>
+                  <td style="padding: 14px 0; text-align: right; color: #ffffff; font-weight: bold;">₹${amount.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="background-color: #18181b; border-radius: 8px; padding: 16px; text-align: right;">
+              <span style="color: #a1a1aa; font-size: 13px; margin-right: 12px;">Total Paid:</span>
+              <span style="color: #f59e0b; font-size: 22px; font-weight: 800;">₹${amount.toLocaleString()} ${currency}</span>
+            </div>
+
+            <p style="color: #71717a; font-size: 12px; margin-top: 28px; line-height: 1.5;">
+              If you have any questions regarding this invoice, please reach out to our support team at <a href="mailto:support@gochat.ai" style="color: #f59e0b; text-decoration: none;">support@gochat.ai</a>.
+            </p>
+          </div>
+          <div style="background-color: #121215; padding: 16px 32px; text-align: center; border-top: 1px solid #27272a;">
+            <p style="color: #52525b; font-size: 11px; margin: 0;">
+              © ${new Date().getFullYear()} GoChat AI Studio. All rights reserved.
+            </p>
+          </div>
+        </div>
+      `,
     };
   },
 };

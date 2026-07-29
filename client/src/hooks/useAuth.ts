@@ -113,9 +113,9 @@ export function useAuth() {
         id: currentUser.id,
         name: currentUser.username,
         email: currentUser.email,
-        role: currentUser.role === "admin" ? ("Administrator" as const) : ("Developer" as const),
-        tier: "pro" as const,
-        credits: 0,
+        role: (currentUser.role === "admin" ? "Administrator" : "User") as "User" | "Administrator" | "Developer",
+        tier: "free" as const,
+        credits: currentUser.role === "admin" ? 0 : 200,
         joined: new Date().toISOString().split("T")[0],
         status: "active" as const,
       }
@@ -125,7 +125,7 @@ export function useAuth() {
         email: "",
         role: "User" as const,
         tier: "free" as const,
-        credits: 0,
+        credits: 200,
         joined: "",
         status: "active" as const,
       };

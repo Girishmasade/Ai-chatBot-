@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { User, SystemModel, SubscriptionRecord, AuditLog, CookieConsent, BrandingConfig } from "../types";
 import CommonModal from "../components/CommonModal";
+import { getStoredSocialLinks, saveSocialLinks, PLATFORM_ICONS, SocialLinkItem } from "../helpers/socialLinks";
 import {
   useGetUsersQuery,
   useCreateUserMutation,
@@ -35,7 +36,7 @@ import {
   useGetConfigQuery,
   useUpdateBrandingMutation
 } from "../redux/api/apiSlice";
-import { useCreateSubscriptionPlanMutation } from "../redux/api/subscriptionApi";
+import { useCreateSubscriptionPlanMutation, useGetSubscriptionPlansQuery } from "../redux/api/subscriptionApi";
 import {
   useGetAdminMenuItemsQuery,
   useCreateMenuItemMutation,
@@ -54,6 +55,8 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const { data: usersData } = useGetUsersQuery();
   const { data: modelsData } = useGetModelsQuery();
   const { data: subscriptionsData } = useGetSubscriptionsQuery();
+  const { data: dbPlansResponse } = useGetSubscriptionPlansQuery();
+  const dbPlans = dbPlansResponse?.data?.subscriptionPlan || [];
   const { data: logsData } = useGetLogsQuery();
   const { data: configData } = useGetConfigQuery();
 
@@ -90,7 +93,16 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [isModelCreateOpen, setIsModelCreateOpen] = useState(false);
   const [isMenuCreateOpen, setIsMenuCreateOpen] = useState(false);
   const [isPlanCreateOpen, setIsPlanCreateOpen] = useState(false);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+
+  // Social Links State
+  const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>(getStoredSocialLinks());
+  const [socialForm, setSocialForm] = useState({
+    label: "",
+    href: "",
+    platform: "LinkedIn"
+  });
 
   // Form Fields
   const [userForm, setUserForm] = useState({
@@ -99,7 +111,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     email: "",
     role: "User",
     tier: "free",
-    credits: "100"
+    credits: "200"
   });
 
   const [modelForm, setModelForm] = useState({
@@ -396,6 +408,33 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     setPlanServices(planServices.filter(s => s !== svc));
   };
 
+  // SOCIAL LINKS OPERATIONS
+  const handleAddSocialLink = () => {
+    if (!socialForm.href.trim()) {
+      triggerToast("Please provide a valid URL link");
+      return;
+    }
+    const newItem: SocialLinkItem = {
+      id: `s-${Date.now()}`,
+      label: socialForm.label.trim() || socialForm.platform,
+      href: socialForm.href.trim().startsWith("http") ? socialForm.href.trim() : `https://${socialForm.href.trim()}`,
+      platform: socialForm.platform
+    };
+    const updated = [...socialLinks, newItem];
+    setSocialLinks(updated);
+    saveSocialLinks(updated);
+    setIsSocialModalOpen(false);
+    setSocialForm({ label: "", href: "", platform: "LinkedIn" });
+    triggerToast("Social icon added successfully!");
+  };
+
+  const handleDeleteSocialLink = (id: string) => {
+    const updated = socialLinks.filter(item => item.id !== id);
+    setSocialLinks(updated);
+    saveSocialLinks(updated);
+    triggerToast("Social icon deleted");
+  };
+
   // BILLING REVENUES
   const totalRevenueEst = calculateRevenue(subscriptions);
 
@@ -564,55 +603,116 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
       {/* 3. VIP SUBSCRIPTIONS TAB */}
       {activeTab === "billing" && (
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
-          <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] flex items-center justify-between">
-            <div>
+        <div className="space-y-6">
+          {/* Section: MongoDB Created Subscription Plans */}
+          <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
+              <div className="text-left">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Created Subscription Plans (`subscriptionplans` DB)</h4>
+                <p className="text-[10px] text-zinc-500">All active & configured subscription plans created in MongoDB for users</p>
+              </div>
+              <button
+                id="admin-btn-create-plan"
+                onClick={() => {
+                  setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+                  setPlanServices([]);
+                  setServiceInput("");
+                  setIsPlanCreateOpen(true);
+                }}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Create Plan
+              </button>
+            </div>
+
+            {dbPlans.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500 text-xs font-mono">
+                No subscription plans found in MongoDB. Click "Create Plan" to define one.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dbPlans.map((plan: any) => (
+                  <div
+                    key={plan._id}
+                    className="p-4 bg-[#161616] border border-[#242424] rounded-xl flex flex-col justify-between space-y-3 text-left hover:border-amber-500/30 transition"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-bold text-white">{plan.name}</h5>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${plan.isActive ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-zinc-800 text-zinc-500"}`}>
+                          {plan.isActive ? "Active" : "Disabled"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 line-clamp-2">{plan.description}</p>
+                    </div>
+
+                    <div className="py-2 border-y border-[#222] flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Price</span>
+                        <span className="font-bold text-amber-500 font-mono">₹{plan.price}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Tokens</span>
+                        <span className="font-bold text-white font-mono">{plan.tokens || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Validity</span>
+                        <span className="font-bold text-zinc-300 font-mono">{plan.durationInDays || 30}d</span>
+                      </div>
+                    </div>
+
+                    {plan.services && plan.services.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {plan.services.map((svc: string) => (
+                          <span key={svc} className="px-1.5 py-0.5 rounded bg-zinc-900 border border-[#2A2A2A] text-[9px] text-zinc-400 uppercase">
+                            {svc}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section: VIP Membership Transaction Ledger */}
+          <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] text-left">
               <h4 className="text-xs font-bold text-white uppercase tracking-wider">VIP Membership Ledger</h4>
               <p className="text-[10px] text-zinc-500">Detailed transaction billing records in Indian Rupees (₹)</p>
             </div>
-            <button
-              id="admin-btn-create-plan"
-              onClick={() => {
-                setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
-                setPlanServices([]);
-                setServiceInput("");
-                setIsPlanCreateOpen(true);
-              }}
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Create Plan
-            </button>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left text-zinc-300">
-              <thead className="bg-[#111111] text-[10px] uppercase text-zinc-500 tracking-wider border-b border-[#1F1F1F]">
-                <tr>
-                  <th className="px-6 py-3.5">User Identity</th>
-                  <th className="px-6 py-3.5">Plan Selected</th>
-                  <th className="px-6 py-3.5">Price</th>
-                  <th className="px-6 py-3.5">Cycle</th>
-                  <th className="px-6 py-3.5">Date Added</th>
-                  <th className="px-6 py-3.5">Invoice State</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subscriptions.map((s) => (
-                  <tr key={s.id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
-                    <td className="px-6 py-4 font-semibold text-white font-mono">{s.userEmail}</td>
-                    <td className="px-6 py-4">{s.plan}</td>
-                    <td className="px-6 py-4 font-mono font-bold text-amber-500">{s.price}</td>
-                    <td className="px-6 py-4 uppercase font-bold text-[9px] tracking-wider text-zinc-500">{s.cycle}</td>
-                    <td className="px-6 py-4 text-zinc-400">{s.date}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${s.status === "paid" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"}`}>
-                        {s.status}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left text-zinc-300">
+                <thead className="bg-[#111111] text-[10px] uppercase text-zinc-500 tracking-wider border-b border-[#1F1F1F]">
+                  <tr>
+                    <th className="px-6 py-3.5">User Identity</th>
+                    <th className="px-6 py-3.5">Plan Selected</th>
+                    <th className="px-6 py-3.5">Price</th>
+                    <th className="px-6 py-3.5">Cycle</th>
+                    <th className="px-6 py-3.5">Date Added</th>
+                    <th className="px-6 py-3.5">Invoice State</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {subscriptions.map((s) => (
+                    <tr key={s.id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
+                      <td className="px-6 py-4 font-semibold text-white font-mono">{s.userEmail}</td>
+                      <td className="px-6 py-4">{s.plan}</td>
+                      <td className="px-6 py-4 font-mono font-bold text-amber-500">{s.price}</td>
+                      <td className="px-6 py-4 uppercase font-bold text-[9px] tracking-wider text-zinc-500">{s.cycle}</td>
+                      <td className="px-6 py-4 text-zinc-400">{s.date}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${s.status === "paid" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"}`}>
+                          {s.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -773,6 +873,63 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
               </button>
             </div>
           </form>
+
+          {/* Social Media Icons Manager */}
+          <div className="pt-6 border-t border-[#1F1F1F] space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Social Icons & Media Links</h4>
+                <p className="text-[10px] text-zinc-500">Add or delete social media links displayed across the global platform footer</p>
+              </div>
+              <button
+                id="admin-btn-add-social"
+                type="button"
+                onClick={() => setIsSocialModalOpen(true)}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Add Social Icon
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {socialLinks.map((social) => {
+                const IconComp = PLATFORM_ICONS[social.platform] || PLATFORM_ICONS["Website"];
+                return (
+                  <div
+                    key={social.id}
+                    className="p-3.5 bg-[#161616] border border-[#242424] rounded-xl flex items-center justify-between gap-3 text-left hover:border-amber-500/20 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-lg bg-zinc-900 border border-[#2A2A2A] text-amber-500 shrink-0">
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-semibold text-white truncate">{social.label}</h5>
+                        <a
+                          href={social.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-zinc-500 hover:text-amber-400 truncate block font-mono"
+                        >
+                          {social.href}
+                        </a>
+                      </div>
+                    </div>
+
+                    <button
+                      id={`admin-btn-delete-social-${social.id}`}
+                      type="button"
+                      onClick={() => handleDeleteSocialLink(social.id)}
+                      className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition shrink-0"
+                      title="Delete Social Icon"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1375,6 +1532,54 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </CommonModal>
+
+      {/* MODAL: ADD SOCIAL LINK */}
+      <CommonModal
+        isOpen={isSocialModalOpen}
+        onClose={() => setIsSocialModalOpen(false)}
+        title="Add New Social Media Icon"
+        confirmText="Add Social Link"
+        onConfirm={handleAddSocialLink}
+      >
+        <div className="space-y-4 text-left">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Platform / Icon Type</label>
+            <select
+              value={socialForm.platform}
+              onChange={(e) => setSocialForm({ ...socialForm, platform: e.target.value, label: socialForm.label || e.target.value })}
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+            >
+              {Object.keys(PLATFORM_ICONS).map((plat) => (
+                <option key={plat} value={plat}>
+                  {plat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Display Label</label>
+            <input
+              type="text"
+              placeholder="e.g. LinkedIn, Official Twitter..."
+              value={socialForm.label}
+              onChange={(e) => setSocialForm({ ...socialForm, label: e.target.value })}
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Destination URL</label>
+            <input
+              type="text"
+              placeholder="https://..."
+              value={socialForm.href}
+              onChange={(e) => setSocialForm({ ...socialForm, href: e.target.value })}
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white font-mono"
+            />
           </div>
         </div>
       </CommonModal>

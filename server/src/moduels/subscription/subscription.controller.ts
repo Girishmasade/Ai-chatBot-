@@ -17,8 +17,21 @@ export const createSubscription = AsyncHandler(async (req, res, next) => {
       return errorHandler(res, 404, false, "Admin not found", {});
     }
 
-    const { name, plan, price, description, services, isActive, createdBy } =
-      req.body as CreateSubInput;
+    const {
+      name,
+      plan,
+      price,
+      currency,
+      description,
+      tokens,
+      durationInDays,
+      services,
+      isActive,
+    } = req.body as CreateSubInput & { tokens?: number; durationInDays?: number; currency?: string };
+
+    if (!name || !plan || price === undefined || !description) {
+      return errorHandler(res, 400, false, "Name, plan, price and description are required", {});
+    }
 
     const existing = await SubscriptionPlanModel.findOne({ name });
     if (existing) {
@@ -31,25 +44,16 @@ export const createSubscription = AsyncHandler(async (req, res, next) => {
       );
     }
 
-    if (
-      !name ||
-      !plan ||
-      price === undefined ||
-      !description ||
-      !services ||
-      isActive === undefined ||
-      !createdBy
-    ) {
-      return errorHandler(res, 400, false, "All fields are required", {});
-    }
-
     const createSubscription = await SubscriptionPlanModel.create({
       name,
       plan,
       price,
+      currency: currency || "INR",
       description,
-      services,
-      isActive,
+      tokens: tokens ?? 500,
+      durationInDays: durationInDays ?? 30,
+      services: services && services.length > 0 ? services : ["CHAT"],
+      isActive: isActive !== undefined ? isActive : true,
       createdBy: AdminId,
     });
 
@@ -68,13 +72,16 @@ export const createSubscription = AsyncHandler(async (req, res, next) => {
   }
 });
 
-// admin get the Subscription plan for user
-
+// admin and user get subscription plans
 export const getSubscriptionForUser = AsyncHandler(async (req, res, next) => {
   try {
-    const subscriptionPlan = await SubscriptionPlanModel.find({
-      isActive: true,
-    });
+    const userRole = (req.user as AuthUser)?.role;
+    const isAdminUser = userRole === "admin" || userRole === "Administrator";
+    
+    // Admin sees all subscription plans created; Users see active subscription plans
+    const queryFilter = isAdminUser ? {} : { isActive: true };
+
+    const subscriptionPlan = await SubscriptionPlanModel.find(queryFilter).sort({ price: 1 });
 
     console.log("subscription Plan :", subscriptionPlan);
 

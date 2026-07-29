@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ActiveScreen } from "../types";
 import {
   Mail,
@@ -10,10 +10,12 @@ import {
   Facebook,
   Instagram,
   Youtube,
+  Globe,
   ArrowRight,
   Check,
   Code2
 } from "lucide-react";
+import { getStoredSocialLinks, PLATFORM_ICONS, SocialLinkItem } from "../helpers/socialLinks";
 
 interface AppFooterProps {
   setActiveScreen: (screen: ActiveScreen) => void;
@@ -23,6 +25,21 @@ interface AppFooterProps {
 export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterProps) {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>(getStoredSocialLinks());
+
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      if (e.detail) {
+        setSocialLinks(e.detail);
+      } else {
+        setSocialLinks(getStoredSocialLinks());
+      }
+    };
+    window.addEventListener("gochat_social_links_updated", handleUpdate);
+    return () => {
+      window.removeEventListener("gochat_social_links_updated", handleUpdate);
+    };
+  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,15 +50,6 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
       setEmail("");
     }, 4000);
   };
-
-  const socialLinks = [
-    { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: Github, href: "https://github.com", label: "GitHub" },
-    { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
-    { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
-    { icon: Youtube, href: "https://youtube.com", label: "YouTube" }
-  ];
 
   return (
     <footer
@@ -149,11 +157,11 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
               Follow Us
             </h5>
             <div className="flex flex-wrap gap-2.5">
-              {socialLinks.map((social, idx) => {
-                const IconComp = social.icon;
+              {socialLinks.map((social) => {
+                const IconComp = PLATFORM_ICONS[social.platform] || Globe;
                 return (
                   <a
-                    key={idx}
+                    key={social.id}
                     href={social.href}
                     target="_blank"
                     rel="noreferrer"
