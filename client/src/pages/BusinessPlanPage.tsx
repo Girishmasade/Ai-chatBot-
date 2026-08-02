@@ -187,7 +187,7 @@ ${companyName} will leverage direct relations, premium design showcases, and com
   };
 
   return (
-    <div className="flex flex-col h-full lg:h-[calc(100vh-130px)] -mx-6 md:-mx-8 -my-6 md:-my-8 overflow-hidden select-none text-left">
+    <div className="flex flex-col h-full lg:h-[calc(100vh-130px)] -mx-6 md:-mx-8 -my-6 md:-my-8 overflow-hidden  text-left">
       {/* Top thin status ribbon */}
       <div className="px-6 py-2.5 bg-[#0C0C0C] border-b border-[#1F1F1F] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -441,7 +441,7 @@ ${companyName} will leverage direct relations, premium design showcases, and com
               </div>
 
               {/* Segmented Navigation bar */}
-              <div className="flex border-b border-[#1F1F1F] bg-[#111111] overflow-x-auto scrollbar-none select-none shrink-0">
+              <div className="flex border-b border-[#1F1F1F] bg-[#111111] overflow-x-auto scrollbar-none  shrink-0">
                 {[
                   { id: "summary", label: "Executive Summary" },
                   { id: "market", label: "Market Research" },

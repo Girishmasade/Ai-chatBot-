@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Sparkles, Save, BookOpen, Star, Copy, Check, Trash2, Sliders, Palette, Zap } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface SavedPrompt {
   id: string;
@@ -16,7 +17,6 @@ export default function PromptStudioPage() {
   const [selectedMood, setSelectedMood] = useState("Cinematic");
   const [selectedStyle, setSelectedStyle] = useState("3D Obsidian Glow");
   const [selectedLighting, setSelectedLighting] = useState("Dramatic Chiaroscuro");
-  const [toastMessage, setToastMessage] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([
@@ -65,7 +65,7 @@ export default function PromptStudioPage() {
     const presetText = `A high-end ${selectedStyle.toLowerCase()} visual art, styled with a ${selectedMood.toLowerCase()} theme and ${selectedLighting.toLowerCase()} lighting. Highly polished, premium 8k render, perfect composition.`;
     setPromptInput(presetText);
     setPromptTitle(`${selectedStyle} Concept`);
-    triggerToast("Style formula compiled and loaded into prompt box!");
+    toast.success("Style formula compiled and loaded into prompt box!");
   };
 
   const handleSavePrompt = (e: React.FormEvent) => {
@@ -84,7 +84,7 @@ export default function PromptStudioPage() {
     setSavedPrompts([newPrompt, ...savedPrompts]);
     setPromptInput("");
     setPromptTitle("");
-    triggerToast("Prompt successfully archived in your studio library!");
+    toast.success("Prompt successfully archived in your studio library!");
   };
 
   const toggleStar = (id: string) => {
@@ -93,7 +93,7 @@ export default function PromptStudioPage() {
 
   const deletePrompt = (id: string) => {
     setSavedPrompts(savedPrompts.filter(p => p.id !== id));
-    triggerToast("Prompt curation removed.");
+    toast.success("Prompt curation removed.");
   };
 
   const copyText = (id: string, text: string) => {
@@ -102,24 +102,15 @@ export default function PromptStudioPage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 2500);
-  };
+
 
   const filteredPrompts = selectedCategory === "All" 
     ? savedPrompts 
     : savedPrompts.filter(p => p.category === selectedCategory);
 
   return (
-    <div className="space-y-8 select-none p-1 text-left relative">
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          {toastMessage}
-        </div>
-      )}
+    <div className="space-y-8  p-1 text-left relative">
+
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">

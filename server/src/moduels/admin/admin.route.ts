@@ -45,4 +45,13 @@ adminRouter.get("/logs", isAdmin, getLogs);
 
 // branding config
 adminRouter.get("/config", getConfig);
-adminRouter.put("/config/branding", isAdmin, updateBranding);
+adminRouter.put(
+  "/config/branding",
+  isAdmin,
+  upload.fields([
+    { name: "mainLogo", maxCount: 1 },
+    { name: "favicon", maxCount: 1 },
+    { name: "mobileLogo", maxCount: 1 },
+  ]),
+  updateBranding
+);

@@ -57,7 +57,7 @@ export default function VideoPage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 select-none p-1 text-left">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6  p-1 text-left">
       {/* Configuration Sidebar */}
       <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 space-y-6 h-fit lg:col-span-1">
         <div className="space-y-1 pb-3 border-b border-[#1F1F1F]">

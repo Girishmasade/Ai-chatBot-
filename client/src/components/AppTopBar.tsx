@@ -58,11 +58,14 @@ export default function AppTopBar({
     }
   };
 
-  const { data: logsData } = useGetLogsQuery(undefined, { skip: currentUser.role !== "Administrator" });
+  const isAdmin = currentUser.role === "Administrator" || currentUser.role === "admin";
+  const { data: logsData } = useGetLogsQuery(undefined, { skip: !isAdmin });
 
   const dynamicNotifications = React.useMemo(() => {
-    if (currentUser.role === "Administrator" && logsData) {
-      return logsData.slice(0, 10).map((log: any) => ({
+    if (isAdmin && logsData) {
+      // RTK Query might return the raw response { data: [...] } instead of the array directly
+      const logsArray = Array.isArray(logsData) ? logsData : ((logsData as any).data || []);
+      return logsArray.slice(0, 10).map((log: any) => ({
         id: log.id,
         title: log.action,
         details: log.details,
@@ -77,7 +80,7 @@ export default function AppTopBar({
   }, [currentUser.role, logsData]);
 
   return (
-    <header className="h-16 border-b border-[#242424] bg-[#090909]/80 backdrop-blur-md px-6 flex items-center justify-between select-none z-10 sticky top-0">
+    <header className="h-16 border-b border-[#242424] bg-[#090909]/80 backdrop-blur-md px-6 flex items-center justify-between  z-10 sticky top-0">
       {/* Left Title and Status */}
       <div className="flex items-center gap-3">
         <div>
@@ -108,7 +111,7 @@ export default function AppTopBar({
       {/* Right Tools & Credits counter */}
       <div className="flex items-center gap-5">
         {/* Credits Counter Panel (Interface Balance - Only shown on user side for non-admin users) */}
-        {currentUser.role !== "Administrator" && activeScreen !== "admin" && (
+        {!isAdmin && activeScreen !== "admin" && (
           <div
             id="topbar-interface-balance"
             onClick={() => setActiveScreen("subscription")}
@@ -160,7 +163,7 @@ export default function AppTopBar({
               <div className="absolute right-0 mt-2.5 w-80 bg-[#111111] border border-[#242424] rounded-2xl p-4 shadow-2xl z-30">
                 <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                    {currentUser.role === "Administrator" ? "System Audit Alerts" : "Notifications"}
+                    {isAdmin ? "System Audit Alerts" : "Notifications"}
                   </h4>
                   <span className="text-[9px] text-amber-500 font-semibold uppercase">
                     {dynamicNotifications.length} Events Logged

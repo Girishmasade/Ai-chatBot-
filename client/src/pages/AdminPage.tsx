@@ -14,17 +14,27 @@ import {
   Sparkles,
   Save,
   CheckCircle,
+  CheckCircle2,
   FileText,
   AlertCircle,
   Sliders,
   Palette,
   Fingerprint,
-  RefreshCw
+  RefreshCw,
+  DollarSign,
+  Activity,
+  LayoutTemplate,
+  MessageSquare,
+  Image as ImageIcon2,
+  Video,
+  Box
 } from "lucide-react";
 import { User, SystemModel, SubscriptionRecord, AuditLog, CookieConsent, BrandingConfig } from "../types";
 import CommonModal from "../components/CommonModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { getStoredSocialLinks, saveSocialLinks, PLATFORM_ICONS, SocialLinkItem } from "../helpers/socialLinks";
 import {
+  useGetDashboardStatsQuery,
   useGetUsersQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
@@ -43,9 +53,11 @@ import {
   useGetAdminMenuItemsQuery,
   useCreateMenuItemMutation,
   useDeleteMenuItemMutation,
+  useUpdateMenuItemMutation,
 } from "../redux/api/menuApi";
 import { useAuth } from "../hooks/useAuth";
 import { calculateRevenue } from "../helpers/utils";
+import toast from "react-hot-toast";
 
 interface AdminPageProps {
   activeTab: string;
@@ -54,6 +66,9 @@ interface AdminPageProps {
 
 export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   // RTK Queries
+  const { data: dashboardStatsResponse } = useGetDashboardStatsQuery();
+  const dashboardStats = dashboardStatsResponse?.data || {};
+  
   const { data: usersData } = useGetUsersQuery();
   const { data: modelsData } = useGetModelsQuery();
   const { data: subscriptionsData } = useGetSubscriptionsQuery();
@@ -70,7 +85,9 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [updateBranding] = useUpdateBrandingMutation();
   const [createSubscriptionPlan, { isLoading: isCreatingPlan }] = useCreateSubscriptionPlanMutation();
   const { data: adminMenuData } = useGetAdminMenuItemsQuery();
+  console.log("adminMenuData",adminMenuData);
   const [createMenuItem] = useCreateMenuItemMutation();
+  const [updateMenuItem] = useUpdateMenuItemMutation();
   const [deleteMenuItem] = useDeleteMenuItemMutation();
   const [createModel] = useCreateModelMutation();
   const [deleteModel] = useDeleteModelMutation();
@@ -83,8 +100,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [cookieConsents, setCookieConsents] = useState<CookieConsent[]>([]);
   const [branding, setBranding] = useState<BrandingConfig>({
+    appName: "GoChat AI",
     logoName: "GoChat AI",
     logoImage: "",
+    mainLogo: "",
+    favicon: "",
+    mobileLogo: "",
     themeMode: "Black Amber",
     primaryColor: "#F59E0B",
     accentGlow: "rgba(245, 158, 11, 0.15)",
@@ -99,6 +120,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [isPlanCreateOpen, setIsPlanCreateOpen] = useState(false);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
 
   // Social Links State
   const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>(getStoredSocialLinks());
@@ -128,9 +150,20 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   });
 
   const [brandingForm, setBrandingForm] = useState({
+    appName: "GoChat AI",
     logoName: "GoChat AI",
     primaryColor: "#F59E0B",
     footerText: ""
+  });
+  
+  const [brandingFiles, setBrandingFiles] = useState<{
+    mainLogo: File | null;
+    favicon: File | null;
+    mobileLogo: File | null;
+  }>({
+    mainLogo: null,
+    favicon: null,
+    mobileLogo: null
   });
 
   const [menuItems, setMenuItems] = useState([
@@ -141,12 +174,21 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     { id: "5", label: "AI Model Manager", icon: "Cpu", target: "models", visible: "Admin Menu" }
   ]);
 
-  const [menuForm, setMenuForm] = useState({
+  const [menuForm, setMenuForm] = useState<{
+    id?: string;
+    label: string;
+    icon: string;
+    target: string;
+    visible: string;
+    parentId: string;
+  }>({
     label: "",
     icon: "LayoutDashboard",
     target: "dashboard",
-    visible: "User Menu"
+    visible: "User Menu",
+    parentId: ""
   });
+  const [menuFilter, setMenuFilter] = useState<"All" | "User Menu" | "Admin Menu">("All");
 
   // Subscription Plan Form
   const [planForm, setPlanForm] = useState({
@@ -187,12 +229,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     activeSessionsLimit: "3"
   });
 
-  const [toastMessage, setToastMessage] = useState("");
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 2500);
-  };
 
   // Sync state values with RTK Query cache responses
   useEffect(() => {
@@ -213,7 +250,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
   useEffect(() => {
     if (adminMenuData?.data) {
-      setMenuItems(adminMenuData.data as any);
+      setMenuItems(adminMenuData?.data?.data as any);
     }
   }, [adminMenuData]);
 
@@ -221,9 +258,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     if (configData) {
       setBranding(configData.branding);
       setBrandingForm({
-        logoName: configData.branding.logoName,
-        primaryColor: configData.branding.primaryColor,
-        footerText: configData.branding.footerText
+        appName: configData.branding.appName || "GoChat AI",
+        logoName: configData.branding.logoName || "GoChat AI",
+        primaryColor: configData.branding.primaryColor || "#F59E0B",
+        footerText: configData.branding.footerText || ""
       });
       setCookieConsents(configData.cookieConsents);
       const totalAcc = configData.cookieConsents.filter((c: any) => c.consented !== false).length;
@@ -248,7 +286,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       };
       const data = await createUser(payload).unwrap();
       if (data.success) {
-        triggerToast("User account deployed successfully");
+        toast.success("User account deployed successfully");
         setIsUserCreateOpen(false);
         setUserForm({ id: "", name: "", email: "", role: "User", tier: "free", credits: "100" });
       }
@@ -281,7 +319,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       };
       const data = await updateUser(payload).unwrap();
       if (data.success) {
-        triggerToast("User account specs updated");
+        toast.success("User account specs updated");
         setIsUserEditOpen(false);
         setUserForm({ id: "", name: "", email: "", role: "User", tier: "free", credits: "100" });
       }
@@ -295,7 +333,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     try {
       const data = await deleteUser({ id: deleteUserId }).unwrap();
       if (data.success) {
-        triggerToast("User record purged successfully");
+        toast.success("User record purged successfully");
         setDeleteUserId(null);
       }
     } catch (e) {
@@ -308,7 +346,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     try {
       const data = await toggleModel({ id }).unwrap();
       if (data.success) {
-        triggerToast("Model allocation toggled");
+        toast.success("Model allocation toggled");
       }
     } catch (e) {
       console.error(e);
@@ -321,7 +359,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         name: modelForm.name || "Custom Model",
         type: modelForm.type,
         version: modelForm.version || "custom-v1",
-        status: "active",
+        status: "active" as const,
         description: modelForm.description || "Custom model deallocated via CMS.",
         latency: modelForm.latency,
         provider: modelForm.provider || "huggingface"
@@ -331,11 +369,11 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       if (res.success) {
         setIsModelCreateOpen(false);
         setModelForm({ name: "", version: "", type: "text", description: "", latency: "0.5s", provider: "huggingface" });
-        triggerToast("Custom AI Model mapped to environment");
+        toast.success("Custom AI Model mapped to environment");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      triggerToast("Failed to create model");
+      toast.error(e?.data?.message || "Failed to create model");
     }
   };
 
@@ -343,41 +381,74 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const data = await updateBranding(brandingForm).unwrap();
+      const formData = new FormData();
+      formData.append("appName", brandingForm.appName);
+      formData.append("logoName", brandingForm.logoName);
+      formData.append("primaryColor", brandingForm.primaryColor);
+      formData.append("footerText", brandingForm.footerText);
+
+      if (brandingFiles.mainLogo) formData.append("mainLogo", brandingFiles.mainLogo);
+      if (brandingFiles.favicon) formData.append("favicon", brandingFiles.favicon);
+      if (brandingFiles.mobileLogo) formData.append("mobileLogo", brandingFiles.mobileLogo);
+
+      const data = await updateBranding(formData).unwrap();
       if (data.success) {
-        triggerToast("Platform CMS branding saved successfully");
+        toast.success("Platform CMS branding saved successfully");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e?.data?.message || "Failed to save branding");
     }
   };
 
   // MENU OPERATION
   const handleCreateMenuItem = async () => {
     try {
-      const newItem = {
+      const payload = {
         label: menuForm.label || "Untitled Link",
         icon: menuForm.icon,
         target: menuForm.target,
-        visible: menuForm.visible as "User Menu" | "Admin Menu"
+        visible: menuForm.visible as "User Menu" | "Admin Menu",
+        parentId: menuForm.parentId || undefined
       };
-      const res = await createMenuItem(newItem).unwrap();
-      if (res.success) {
-        setMenuForm({ label: "", icon: "LayoutDashboard", target: "dashboard", visible: "User Menu" });
-        setIsMenuCreateOpen(false);
-        triggerToast("Navigation layout node created successfully");
+      
+      if (menuForm.id) {
+        const res = await updateMenuItem({ id: menuForm.id, data: payload }).unwrap();
+        if (res.success) {
+          toast.success("Navigation layout node updated successfully");
+        }
+      } else {
+        const res = await createMenuItem(payload).unwrap();
+        if (res.success) {
+          toast.success("Navigation layout node created successfully");
+        }
       }
+
+      setMenuForm({ label: "", icon: "LayoutDashboard", target: "dashboard", visible: "User Menu", parentId: "", id: undefined });
+      setIsMenuCreateOpen(false);
     } catch (e: any) {
-      triggerToast("Failed to create menu item");
+      toast.error(e?.data?.message || (menuForm.id ? "Failed to update menu item" : "Failed to create menu item"));
     }
+  };
+
+  const handleEditMenuItem = (item: any) => {
+    setMenuForm({
+      id: item.id || item._id,
+      label: item.label,
+      icon: item.icon,
+      target: item.target,
+      visible: item.visible,
+      parentId: item.parentId || ""
+    });
+    setIsMenuCreateOpen(true);
   };
 
   const handlePurgeMenuItem = async (id: string) => {
     try {
       await deleteMenuItem(id).unwrap();
-      triggerToast("Navigation node purged.");
+      toast.success("Navigation node purged.");
     } catch (e: any) {
-      triggerToast("Failed to delete menu item");
+      toast.error(e?.data?.message || "Failed to delete menu item");
     }
   };
 
@@ -397,14 +468,14 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       };
       const result = await createSubscriptionPlan(payload).unwrap();
       if (result.success) {
-        triggerToast("Subscription plan created successfully");
+        toast.success("Subscription plan created successfully");
         setIsPlanCreateOpen(false);
         setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
         setPlanServices([]);
         setServiceInput("");
       }
     } catch (e: any) {
-      triggerToast(e?.data?.message || "Failed to create plan");
+      toast.error(e?.data?.message || "Failed to create plan");
       console.error(e);
     }
   };
@@ -424,7 +495,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   // SOCIAL LINKS OPERATIONS
   const handleAddSocialLink = () => {
     if (!socialForm.href.trim()) {
-      triggerToast("Please provide a valid URL link");
+      toast.success("Please provide a valid URL link");
       return;
     }
     const newItem: SocialLinkItem = {
@@ -438,48 +509,22 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     saveSocialLinks(updated);
     setIsSocialModalOpen(false);
     setSocialForm({ label: "", href: "", platform: "LinkedIn" });
-    triggerToast("Social icon added successfully!");
+    toast.success("Social icon added successfully!");
   };
 
   const handleDeleteSocialLink = (id: string) => {
     const updated = socialLinks.filter(item => item.id !== id);
     setSocialLinks(updated);
     saveSocialLinks(updated);
-    triggerToast("Social icon deleted");
+    toast.success("Social icon deleted");
   };
 
   // BILLING REVENUES
   const totalRevenueEst = calculateRevenue(subscriptions);
 
   return (
-    <div className="space-y-6 select-none p-1 text-left relative">
-      {/* Toast Notification HUD */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-amber-500" />
-          {toastMessage}
-        </div>
-      )}
+    <div className="space-y-6  p-1 text-left relative">
 
-      {/* KPI Stats counters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
-          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Total User Pool</p>
-          <p className="text-xl font-extrabold text-white font-numbers">{users.length}</p>
-        </div>
-        <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
-          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Active AI Models</p>
-          <p className="text-xl font-extrabold text-white font-numbers">{models.filter(m => m.status === "active").length} / {models.length}</p>
-        </div>
-        <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
-          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Monthly Revenue Est</p>
-          <p className="text-xl font-extrabold text-white font-numbers">₹{totalRevenueEst.toLocaleString()}</p>
-        </div>
-        <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
-          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Cookie Agreements</p>
-          <p className="text-xl font-extrabold text-white font-numbers">{consentsStats.totalAccepted}</p>
-        </div>
-      </div>
 
       {/* -------------------------------------------------------------
           TABS VIEWPORTS DETAILED MATCHING 10 SCREENS
@@ -487,57 +532,196 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
       {/* 1. OVERVIEW TAB */}
       {activeTab === "overview" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-4">
-            <div className="border-b border-[#1F1F1F] pb-3 text-left">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Hardware Health Monitor</h4>
-              <p className="text-[10px] text-zinc-500">Live CPU and memory usage deallocated on container</p>
+        <div className="space-y-6">
+          {/* KPI Stats counters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
+              <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Total User Pool</p>
+              <p className="text-xl font-extrabold text-white font-numbers">{users.length}</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-zinc-900/60 border border-[#242424] rounded-xl space-y-2">
-                <div className="flex justify-between text-xs font-bold text-zinc-400">
-                  <span>Express API Node CPU</span>
-                  <span className="text-amber-500 font-mono">14.8%</span>
-                </div>
-                <div className="h-1.5 bg-[#1F1F1F] rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 w-[14.8%] rounded-full" />
-                </div>
-              </div>
-
-              <div className="p-4 bg-zinc-900/60 border border-[#242424] rounded-xl space-y-2">
-                <div className="flex justify-between text-xs font-bold text-zinc-400">
-                  <span>Node.js Memory heap</span>
-                  <span className="text-amber-500 font-mono">240MB / 512MB</span>
-                </div>
-                <div className="h-1.5 bg-[#1F1F1F] rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 w-[46.8%] rounded-full" />
-                </div>
-              </div>
+            <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
+              <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Active AI Models</p>
+              <p className="text-xl font-extrabold text-white font-numbers">{models.filter(m => m.status === "active").length} / {models.length}</p>
             </div>
-
-            <div className="p-4 bg-[#18181B]/40 border border-[#242424] rounded-xl space-y-1.5 text-xs text-zinc-400">
-              <h5 className="font-bold text-white">System Status: Optimal</h5>
-              <p className="leading-relaxed">All sub-seconds proxy channels running securely with 0.4s average latency. No memory leaks detected in Node memory ledger.</p>
+            <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
+              <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Monthly Revenue Est</p>
+              <p className="text-xl font-extrabold text-white font-numbers">₹{totalRevenueEst.toLocaleString()}</p>
+            </div>
+            <div className="bg-[#111111] border border-[#242424] p-5 rounded-xl space-y-1">
+              <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Cookie Agreements</p>
+              <p className="text-xl font-extrabold text-white font-numbers">{consentsStats.totalAccepted}</p>
             </div>
           </div>
 
-          <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 flex flex-col h-[340px]">
-            <div className="border-b border-[#1F1F1F] pb-3 text-left">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Quick Actions log</h4>
-              <p className="text-[10px] text-zinc-500">Latest administrative triggers</p>
-            </div>
-            <div className="flex-1 overflow-y-auto mt-4 space-y-3.5 pr-1 custom-scrollbar text-xs text-zinc-400">
-              {auditLogs.slice(0, 4).map((log) => (
-                <div key={log.id} className="p-2.5 bg-zinc-900/60 border border-[#242424] rounded-xl text-left">
-                  <div className="flex justify-between items-center text-[10px] text-zinc-500">
-                    <span className="font-bold uppercase text-amber-500">{log.action}</span>
-                    <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
-                  </div>
-                  <p className="mt-1 font-mono text-zinc-300">{log.operator}</p>
+          {/* Top Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Users */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-xs font-bold text-zinc-400">Total Users</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                  <Users className="w-4 h-4" />
                 </div>
-              ))}
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white font-mono">{dashboardStats?.totalUsers?.toLocaleString() || 0}</h3>
+                <p className="text-[10px] text-emerald-500 font-bold mt-1 tracking-wider"><span className="text-emerald-500">+12%</span> <span className="text-zinc-500">this month</span></p>
+              </div>
             </div>
+
+            {/* Active Plans */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-xs font-bold text-zinc-400">Active Plans</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white font-mono">{dashboardStats?.activePlans?.toLocaleString() || 0}</h3>
+              </div>
+            </div>
+
+            {/* AI Models */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-xs font-bold text-zinc-400">AI Models</span>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+                  <Cpu className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white font-mono">{dashboardStats?.activeModels || 0}/{dashboardStats?.totalModels || 0}</h3>
+              </div>
+            </div>
+
+            {/* Revenue */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-xs font-bold text-zinc-400">Revenue (Est.)</span>
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white font-mono">${dashboardStats?.revenue?.toLocaleString() || 0}</h3>
+                <p className="text-[10px] text-emerald-500 font-bold mt-1 tracking-wider"><span className="text-emerald-500">+8%</span> <span className="text-zinc-500">this month</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Middle Panels */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* System Health */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-5">
+                <Activity className="w-4 h-4 text-amber-500" />
+                <h4 className="text-sm font-bold text-white">System Health</h4>
+              </div>
+              <div className="space-y-4">
+                {(dashboardStats?.systemHealth || []).map((h: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-300 font-semibold">{h.service}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> {h.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Subscription Overview */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-5">
+                <LayoutTemplate className="w-4 h-4 text-amber-500" />
+                <h4 className="text-sm font-bold text-white">Subscription Overview</h4>
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-zinc-300 font-semibold">Free Users</span>
+                  <span className="font-mono text-zinc-400 font-bold">{dashboardStats?.subscriptionOverview?.freeUsers || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-zinc-300 font-semibold">Paid Users</span>
+                  <span className="font-mono text-amber-500 font-bold">{dashboardStats?.subscriptionOverview?.paidUsers || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-zinc-300 font-semibold">Enterprise</span>
+                  <span className="font-mono text-purple-500 font-bold">{dashboardStats?.subscriptionOverview?.enterpriseUsers || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Service Usage */}
+            <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <h4 className="text-sm font-bold text-white">AI Service Usage</h4>
+              </div>
+              <div className="space-y-3.5">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <MessageSquare className="w-3.5 h-3.5 text-zinc-500" /> <span className="font-semibold">Chat Usage</span>
+                  </div>
+                  <span className="font-mono text-zinc-100 font-bold">{dashboardStats?.serviceUsage?.chatUsage || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <ImageIcon2 className="w-3.5 h-3.5 text-zinc-500" /> <span className="font-semibold">Image Usage</span>
+                  </div>
+                  <span className="font-mono text-zinc-100 font-bold">{dashboardStats?.serviceUsage?.imageUsage || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <Video className="w-3.5 h-3.5 text-zinc-500" /> <span className="font-semibold">Video Usage</span>
+                  </div>
+                  <span className="font-mono text-zinc-100 font-bold">{dashboardStats?.serviceUsage?.videoUsage || 0}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2 text-zinc-300">
+                    <Box className="w-3.5 h-3.5 text-zinc-500" /> <span className="font-semibold">Asset Usage</span>
+                  </div>
+                  <span className="font-mono text-zinc-100 font-bold">{dashboardStats?.serviceUsage?.assetUsage || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Panel */}
+          <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 min-h-[250px] flex flex-col">
+            <div className="flex items-center gap-2 mb-5">
+              <History className="w-4 h-4 text-amber-500" />
+              <h4 className="text-sm font-bold text-white">Recent Activities</h4>
+            </div>
+            
+            {(!auditLogs || auditLogs.length === 0) ? (
+              <div className="flex-1 flex items-center justify-center text-xs text-zinc-600 font-semibold">
+                No recent activities
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <table className="w-full text-xs text-left">
+                  <thead className="text-[10px] uppercase text-zinc-600 border-b border-[#1F1F1F]">
+                    <tr>
+                      <th className="pb-3 font-semibold">Action</th>
+                      <th className="pb-3 font-semibold">Details</th>
+                      <th className="pb-3 font-semibold">Operator</th>
+                      <th className="pb-3 font-semibold text-right">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.slice(0, 10).map((log, idx) => (
+                      <tr key={log.id || idx} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
+                        <td className="py-3 font-bold text-amber-500 uppercase">{log.action}</td>
+                        <td className="py-3 text-zinc-400 truncate max-w-[300px]">{log.details}</td>
+                        <td className="py-3 text-zinc-300 font-mono">{log.operator}</td>
+                        <td className="py-3 text-zinc-500 text-right">{new Date(log.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -770,14 +954,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                   </button>
                   <button
                     onClick={async () => {
-                      if(window.confirm("Are you sure you want to delete this model?")) {
-                        try {
-                          await deleteModel({ id: m.id }).unwrap();
-                          triggerToast("Model deleted successfully");
-                        } catch (e) {
-                          triggerToast("Failed to delete model");
-                        }
-                      }
+                        setDeleteModelId(m.id);
                     }}
                     className="p-1 text-zinc-500 hover:text-rose-500 transition"
                     title="Delete Model"
@@ -799,12 +976,34 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
               <h4 className="text-xs font-bold text-white uppercase tracking-wider">Navigation Menu Node Manager</h4>
               <p className="text-[10px] text-zinc-500">Configure visual layout order and side visibility metrics</p>
             </div>
-            <button
-              onClick={() => setIsMenuCreateOpen(true)}
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Add Menu Link
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="flex bg-[#111111] border border-[#242424] rounded-lg p-0.5">
+                <button
+                  onClick={() => setMenuFilter("All")}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition ${menuFilter === "All" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setMenuFilter("User Menu")}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition ${menuFilter === "User Menu" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                >
+                  User
+                </button>
+                <button
+                  onClick={() => setMenuFilter("Admin Menu")}
+                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition ${menuFilter === "Admin Menu" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                >
+                  Admin
+                </button>
+              </div>
+              <button
+                onClick={() => setIsMenuCreateOpen(true)}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Add Menu Link
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -819,26 +1018,68 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                 </tr>
               </thead>
               <tbody>
-                {menuItems.map((item) => (
-                  <tr key={item.id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
-                    <td className="px-6 py-4 font-semibold text-white">{item.label}</td>
-                    <td className="px-6 py-4 font-mono text-zinc-400">{item.icon}</td>
-                    <td className="px-6 py-4 font-mono text-zinc-400">{item.target}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded bg-zinc-800 text-[9px] font-bold text-zinc-300 uppercase tracking-wider">
-                        {item.visible}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right flex justify-end">
-                      <button
-                        onClick={() => handlePurgeMenuItem(item.id)}
-                        className="p-1 hover:text-rose-500 transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {menuItems
+                  .filter((item: any) => (menuFilter === "All" || item.visible === menuFilter) && !item.parentId)
+                  .map((parent: any) => (
+                    <React.Fragment key={parent.id || parent._id}>
+                      <tr className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition">
+                        <td className="px-6 py-4 font-semibold text-white">{parent.label}</td>
+                        <td className="px-6 py-4 font-mono text-zinc-400">{parent.icon}</td>
+                        <td className="px-6 py-4 font-mono text-zinc-400">{parent.target}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 rounded bg-zinc-800 text-[9px] font-bold text-zinc-300 uppercase tracking-wider">
+                            {parent.visible}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right flex justify-end">
+                          <button
+                            onClick={() => handleEditMenuItem(parent)}
+                            className="p-1 hover:text-amber-500 transition mr-2"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handlePurgeMenuItem(parent.id || parent._id)}
+                            className="p-1 hover:text-rose-500 transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                      {menuItems
+                        .filter((child: any) => child.parentId === (parent.id || parent._id))
+                        .map((child: any) => (
+                          <tr key={child.id || child._id} className="border-b border-[#1F1F1F] hover:bg-zinc-900/30 transition bg-[#0C0C0C]/50">
+                            <td className="px-6 py-4 font-semibold text-zinc-300">
+                              <div className="flex items-center gap-2 pl-4 border-l-2 border-zinc-700">
+                                <span className="text-zinc-500">↳</span> {child.label}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-mono text-zinc-400">{child.icon}</td>
+                            <td className="px-6 py-4 font-mono text-zinc-400">{child.target}</td>
+                            <td className="px-6 py-4">
+                              <span className="px-2 py-0.5 rounded bg-zinc-800 text-[9px] font-bold text-zinc-300 uppercase tracking-wider">
+                                {child.visible}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right flex justify-end">
+                              <button
+                                onClick={() => handleEditMenuItem(child)}
+                                className="p-1 hover:text-amber-500 transition mr-2"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handlePurgeMenuItem(child.id || child._id)}
+                                className="p-1 hover:text-rose-500 transition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </React.Fragment>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -853,7 +1094,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
             <p className="text-[10px] text-zinc-500">Modify regional company support hotline and social anchors</p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); triggerToast("Footer parameters stored successfully!"); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); toast.success("Footer parameters stored successfully!"); }} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Support Contact Hotline</label>
@@ -966,52 +1207,139 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
       {/* 7. BRANDING CMS TAB */}
       {activeTab === "branding" && (
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-6">
-          <div className="pb-3 border-b border-[#1F1F1F] text-left">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">CMS Branding Configuration</h4>
-            <p className="text-[10px] text-zinc-500">Change logo signature and footer text content dynamically</p>
-          </div>
-
-          <form onSubmit={handleSaveBranding} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Brand Logo Signature</label>
-                <input
-                  type="text"
-                  value={brandingForm.logoName}
-                  onChange={(e) => setBrandingForm({ ...brandingForm, logoName: e.target.value })}
-                  className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Accent Core Color</label>
-                <input
-                  type="text"
-                  value={brandingForm.primaryColor}
-                  onChange={(e) => setBrandingForm({ ...brandingForm, primaryColor: e.target.value })}
-                  className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white font-mono"
-                />
-              </div>
+        <form onSubmit={handleSaveBranding} className="space-y-6 max-w-4xl">
+          <div className="flex justify-between items-start mb-6">
+            <div className="text-left">
+              <h2 className="text-2xl font-extrabold text-white">Branding</h2>
+              <p className="text-sm text-zinc-400 mt-1">Manage logos and app identity</p>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Footer signature CMS</label>
-              <textarea
-                value={brandingForm.footerText}
-                onChange={(e) => setBrandingForm({ ...brandingForm, footerText: e.target.value })}
-                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white h-24 resize-none"
-              />
-            </div>
-
             <button
               type="submit"
               className="px-5 py-2.5 text-xs font-bold text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition flex items-center gap-1.5 shadow-lg shadow-amber-500/15 cursor-pointer"
             >
-              <Save className="w-4 h-4" /> Save CMS Signature
+              <Save className="w-4 h-4" /> Save Branding Settings
             </button>
-          </form>
-        </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Application Name */}
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <label className="block text-xs font-bold text-white mb-3">Application Name</label>
+              <input
+                type="text"
+                value={brandingForm.appName}
+                onChange={(e) => setBrandingForm({ ...brandingForm, appName: e.target.value })}
+                className="w-full max-w-md bg-[#1E1E1E] border border-[#333] focus:border-[#555] focus:outline-none rounded-lg p-2.5 text-xs text-white"
+                placeholder="GoChat AI"
+              />
+            </div>
+
+            {/* Main Logo */}
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-white">Main Logo</h4>
+                  <p className="text-xs text-zinc-500 mt-0.5">Shown in sidebar, dashboard, and auth pages</p>
+                </div>
+                <label className="px-4 py-1.5 bg-[#1E1E1E] border border-[#333] hover:bg-[#2A2A2A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer">
+                  <span className="text-lg pb-1">↑</span> Upload
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBrandingFiles({...brandingFiles, mainLogo: e.target.files[0]});
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="border border-dashed border-[#333] rounded-lg p-8 flex flex-col items-center justify-center text-center bg-[#111111]/50">
+                {brandingFiles.mainLogo ? (
+                  <img src={URL.createObjectURL(brandingFiles.mainLogo)} alt="Main Logo Preview" className="h-16 object-contain" />
+                ) : branding.mainLogo ? (
+                  <img src={branding.mainLogo} alt="Main Logo" className="h-16 object-contain" />
+                ) : (
+                  <>
+                    <ImageIcon2 className="w-8 h-8 text-zinc-600 mb-2" />
+                    <p className="text-xs text-zinc-500 font-semibold">No image uploaded</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Favicon */}
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-white">Favicon</h4>
+                  <p className="text-xs text-zinc-500 mt-0.5">Browser tab icon (recommended: 32x32 or 64x64)</p>
+                </div>
+                <label className="px-4 py-1.5 bg-[#1E1E1E] border border-[#333] hover:bg-[#2A2A2A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer">
+                  <span className="text-lg pb-1">↑</span> Upload
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBrandingFiles({...brandingFiles, favicon: e.target.files[0]});
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="border border-dashed border-[#333] rounded-lg p-8 flex flex-col items-center justify-center text-center bg-[#111111]/50">
+                {brandingFiles.favicon ? (
+                  <img src={URL.createObjectURL(brandingFiles.favicon)} alt="Favicon Preview" className="h-12 w-12 object-contain" />
+                ) : branding.favicon ? (
+                  <img src={branding.favicon} alt="Favicon" className="h-12 w-12 object-contain" />
+                ) : (
+                  <>
+                    <ImageIcon2 className="w-8 h-8 text-zinc-600 mb-2" />
+                    <p className="text-xs text-zinc-500 font-semibold">No image uploaded</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Logo */}
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-white">Mobile Logo</h4>
+                  <p className="text-xs text-zinc-500 mt-0.5">Optimized logo for mobile devices</p>
+                </div>
+                <label className="px-4 py-1.5 bg-[#1E1E1E] border border-[#333] hover:bg-[#2A2A2A] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer">
+                  <span className="text-lg pb-1">↑</span> Upload
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBrandingFiles({...brandingFiles, mobileLogo: e.target.files[0]});
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="border border-dashed border-[#333] rounded-lg p-8 flex flex-col items-center justify-center text-center bg-[#111111]/50">
+                {brandingFiles.mobileLogo ? (
+                  <img src={URL.createObjectURL(brandingFiles.mobileLogo)} alt="Mobile Logo Preview" className="h-12 object-contain" />
+                ) : branding.mobileLogo ? (
+                  <img src={branding.mobileLogo} alt="Mobile Logo" className="h-12 object-contain" />
+                ) : (
+                  <>
+                    <ImageIcon2 className="w-8 h-8 text-zinc-600 mb-2" />
+                    <p className="text-xs text-zinc-500 font-semibold">No image uploaded</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
       )}
 
       {/* 8. COOKIE LEDGER TAB */}
@@ -1116,7 +1444,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
             <p className="text-[10px] text-zinc-500">Enforce password complexities and active session lock thresholds</p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); triggerToast("System settings saved!"); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); toast.success("System settings saved!"); }} className="space-y-4">
             <div className="flex items-center justify-between p-3.5 bg-[#18181B]/40 border border-[#242424] rounded-xl">
               <div className="space-y-0.5 text-left">
                 <h5 className="text-xs font-bold text-white">Two-Factor Authentication</h5>
@@ -1319,6 +1647,26 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         </p>
       </CommonModal>
 
+      {/* CONFIRM MODAL: DELETE MODEL */}
+      <ConfirmModal
+        isOpen={deleteModelId !== null}
+        onCancel={() => setDeleteModelId(null)}
+        onConfirm={async () => {
+          if (!deleteModelId) return;
+          try {
+            await deleteModel({ id: deleteModelId }).unwrap();
+            toast.success("Model deleted successfully");
+          } catch (e) {
+            toast.success("Failed to delete model");
+          }
+          setDeleteModelId(null);
+        }}
+        title="Confirm Model Deletion"
+        message="Are you sure you want to permanently delete this AI model from the system? This action cannot be undone."
+        isDestructive
+        confirmText="Delete Model"
+      />
+
       {/* MODAL: ADD AI MODEL */}
       <CommonModal
         isOpen={isModelCreateOpen}
@@ -1404,8 +1752,8 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       <CommonModal
         isOpen={isMenuCreateOpen}
         onClose={() => setIsMenuCreateOpen(false)}
-        title="Add Navigation Menu Node"
-        confirmText="Add Navigation Link"
+        title={menuForm.id ? "Update Navigation Menu Node" : "Add Navigation Menu Node"}
+        confirmText={menuForm.id ? "Update Navigation Link" : "Add Navigation Link"}
         onConfirm={handleCreateMenuItem}
       >
         <div className="space-y-4 text-left">
@@ -1434,13 +1782,31 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Assigned View</label>
               <select
                 value={menuForm.visible}
-                onChange={(e) => setMenuForm({ ...menuForm, visible: e.target.value })}
+                onChange={(e) => setMenuForm({ ...menuForm, visible: e.target.value, parentId: "" })}
                 className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
               >
                 <option value="User Menu">User Menu</option>
                 <option value="Admin Menu">Admin Menu</option>
+                <option value="All">All (Both Workspaces)</option>
               </select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Parent Menu (Optional)</label>
+            <select
+              value={menuForm.parentId}
+              onChange={(e) => setMenuForm({ ...menuForm, parentId: e.target.value })}
+              className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
+            >
+              <option value="">None (Top Level)</option>
+              {menuItems
+                .filter((item: any) => item.visible === menuForm.visible && !item.parentId)
+                .map((item: any) => (
+                  <option key={item.id || item._id} value={item.id || item._id}>
+                    {item.label}
+                  </option>
+              ))}
+            </select>
           </div>
         </div>
       </CommonModal>

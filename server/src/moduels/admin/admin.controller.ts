@@ -13,6 +13,7 @@ import { AIAssetModel } from "./asset.model.js";
 import { emitAdminEntityUpdate, emitAdminLog } from "@/socket/socket.emitter.js";
 import type { AuthUser } from "../auth/auth.payload.js";
 import redisClient from "@/config/redis.config.js";
+import { uploadFile } from "@/utils/cloudinary.util.js";
 
 // Default seed system models if DB is empty
 const defaultSystemModels = [
@@ -55,13 +56,61 @@ const defaultSystemModels = [
 export const adminDashboard = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const totalUsers = await AuthModel.countDocuments();
   const activeSubscriptions = await UserSubscriptionModel.countDocuments({ status: "active" });
-  const modelsCount = await SystemModelModel.countDocuments();
+  const activeModels = await SystemModelModel.countDocuments({ status: "active" });
+  const totalModels = await SystemModelModel.countDocuments();
+
+  // Compute Revenue (Est.) by summing price of active subscriptions
+  const revAgg = await UserSubscriptionModel.aggregate([
+    { $match: { status: "active" } },
+    { $group: { _id: null, totalRevenue: { $sum: "$price" } } }
+  ]);
+  const revenue = revAgg.length > 0 ? revAgg[0].totalRevenue : 0;
+
+  // Compute User Tiers (assuming subscription planName or fetching all active)
+  const paidUsersCount = await UserSubscriptionModel.distinct("user", { status: "active", planName: { $ne: "Enterprise" } });
+  const enterpriseUsersCount = await UserSubscriptionModel.distinct("user", { status: "active", planName: "Enterprise" });
+  const paidUsers = paidUsersCount.length;
+  const enterpriseUsers = enterpriseUsersCount.length;
+  const freeUsers = Math.max(0, totalUsers - paidUsers - enterpriseUsers);
+
+  // Compute AI Service Usage
+  const assetsAgg = await AIAssetModel.aggregate([
+    { $group: { _id: "$type", count: { $sum: 1 } } }
+  ]);
+  
+  let chatUsage = 0, imageUsage = 0, videoUsage = 0, assetUsage = 0;
+  assetsAgg.forEach((agg) => {
+    if (agg._id === "text") chatUsage = agg.count;
+    if (agg._id === "image") imageUsage = agg.count;
+    if (agg._id === "video") videoUsage = agg.count;
+  });
+  assetUsage = chatUsage + imageUsage + videoUsage;
+
+  // Mocked System Health
+  const systemHealth = [
+    { service: "API Gateway", status: "Operational" },
+    { service: "Database", status: "Operational" },
+    { service: "AI Service", status: "Operational" }
+  ];
 
   successHandler(res, 200, true, "Dashboard stats fetched", {
     totalUsers,
-    activeSubscriptions,
-    modelsCount,
-    revenue: 0,
+    activePlans: activeSubscriptions,
+    activeModels,
+    totalModels,
+    revenue,
+    subscriptionOverview: {
+      freeUsers,
+      paidUsers,
+      enterpriseUsers
+    },
+    serviceUsage: {
+      chatUsage,
+      imageUsage,
+      videoUsage,
+      assetUsage
+    },
+    systemHealth
   });
 });
 
@@ -351,8 +400,12 @@ export const getConfig = AsyncHandler(async (req: Request, res: Response, next: 
 
   const responseData = {
     branding: {
+      appName: branding.appName,
       logoName: branding.logoName,
       logoImage: branding.logoImage,
+      mainLogo: branding.mainLogo,
+      favicon: branding.favicon,
+      mobileLogo: branding.mobileLogo,
       themeMode: branding.themeMode,
       primaryColor: branding.primaryColor,
       accentGlow: branding.accentGlow,
@@ -381,10 +434,28 @@ export const getConfig = AsyncHandler(async (req: Request, res: Response, next: 
 export const updateBranding = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   let branding = await BrandingModel.findOne();
 
+  const updateData = { ...req.body };
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+  if (files) {
+    if (files.mainLogo && files.mainLogo[0]) {
+      const file = files.mainLogo[0];
+      updateData.mainLogo = (file as any).path || (file as any).secure_url;
+    }
+    if (files.favicon && files.favicon[0]) {
+      const file = files.favicon[0];
+      updateData.favicon = (file as any).path || (file as any).secure_url;
+    }
+    if (files.mobileLogo && files.mobileLogo[0]) {
+      const file = files.mobileLogo[0];
+      updateData.mobileLogo = (file as any).path || (file as any).secure_url;
+    }
+  }
+
   if (!branding) {
-    branding = await BrandingModel.create(req.body);
+    branding = await BrandingModel.create(updateData);
   } else {
-    Object.assign(branding, req.body);
+    Object.assign(branding, updateData);
     await branding.save();
   }
 

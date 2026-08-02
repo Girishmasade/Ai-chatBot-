@@ -1,0 +1,170 @@
+[
+  {
+    "label": "Overview",
+    "icon": "LayoutDashboard",
+    "target": "dashboard",
+    "visible": "User Menu",
+    "order": 1,
+    "isActive": true
+  },
+  {
+    "label": "Conversational Chat",
+    "icon": "MessageSquareText",
+    "target": "chat",
+    "visible": "User Menu",
+    "order": 2,
+    "isActive": true
+  },
+  {
+    "label": "Image Studio",
+    "icon": "ImageIcon",
+    "target": "image",
+    "visible": "User Menu",
+    "order": 3,
+    "isActive": true
+  },
+  {
+    "label": "Motion Studio",
+    "icon": "VideoIcon",
+    "target": "video",
+    "visible": "User Menu",
+    "order": 4,
+    "isActive": true
+  },
+  {
+    "label": "Prompt Engineer",
+    "icon": "Sliders",
+    "target": "prompt-studio",
+    "visible": "User Menu",
+    "order": 5,
+    "isActive": true
+  },
+  {
+    "label": "AI Models",
+    "icon": "Cpu",
+    "target": "models-list",
+    "visible": "User Menu",
+    "order": 6,
+    "isActive": true
+  },
+  {
+    "label": "My Assets",
+    "icon": "FolderHeart",
+    "target": "assets-library",
+    "visible": "User Menu",
+    "order": 7,
+    "isActive": true
+  },
+  {
+    "label": "Business Plan AI",
+    "icon": "BriefcaseBusiness",
+    "target": "business-plan",
+    "visible": "User Menu",
+    "order": 8,
+    "isActive": true
+  },
+  {
+    "label": "VIP Membership",
+    "icon": "CreditCard",
+    "target": "subscription",
+    "visible": "User Menu",
+    "order": 9,
+    "isActive": true
+  },
+  {
+    "label": "Settings",
+    "icon": "Settings",
+    "target": "settings",
+    "visible": "User Menu",
+    "order": 10,
+    "isActive": true
+  },
+  {
+    "label": "My Profile",
+    "icon": "UserIcon",
+    "target": "profile",
+    "visible": "User Menu",
+    "order": 11,
+    "isActive": true
+  },
+  {
+    "label": "Dashboard Overview",
+    "icon": "LayoutDashboard",
+    "target": "overview",
+    "visible": "Admin Menu",
+    "order": 1,
+    "isActive": true
+  },
+  {
+    "label": "User Pool",
+    "icon": "Users",
+    "target": "users",
+    "visible": "Admin Menu",
+    "order": 2,
+    "isActive": true
+  },
+  {
+    "label": "VIP Subscriptions",
+    "icon": "CreditCard",
+    "target": "billing",
+    "visible": "Admin Menu",
+    "order": 3,
+    "isActive": true
+  },
+  {
+    "label": "AI Model Manager",
+    "icon": "Cpu",
+    "target": "models",
+    "visible": "Admin Menu",
+    "order": 4,
+    "isActive": true
+  },
+  {
+    "label": "Menu Control",
+    "icon": "Sliders",
+    "target": "menu",
+    "visible": "Admin Menu",
+    "order": 5,
+    "isActive": true
+  },
+  {
+    "label": "Footer CMS",
+    "icon": "FileText",
+    "target": "footer",
+    "visible": "Admin Menu",
+    "order": 6,
+    "isActive": true
+  },
+  {
+    "label": "Branding CMS",
+    "icon": "Palette",
+    "target": "branding",
+    "visible": "Admin Menu",
+    "order": 7,
+    "isActive": true
+  },
+  {
+    "label": "Cookie Ledger",
+    "icon": "Fingerprint",
+    "target": "cookies",
+    "visible": "Admin Menu",
+    "order": 8,
+    "isActive": true
+  },
+  {
+    "label": "Audit Records",
+    "icon": "History",
+    "target": "audits",
+    "visible": "Admin Menu",
+    "order": 9,
+    "isActive": true
+  },
+  {
+    "label": "System Settings",
+    "icon": "Settings",
+    "target": "settings",
+    "visible": "Admin Menu",
+    "order": 10,
+    "isActive": true
+  }
+]

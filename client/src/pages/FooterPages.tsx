@@ -21,7 +21,7 @@ function DevCredit() {
 // -------------------------------------------------------------
 export function TermsOfServicePage() {
   return (
-    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+    <div className="w-full max-w-full space-y-6 sm:space-y-8  p-1 text-left overflow-x-hidden">
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
         <div className="relative flex items-center gap-3 sm:gap-4">
@@ -74,7 +74,7 @@ export function TermsOfServicePage() {
 // -------------------------------------------------------------
 export function PrivacyPolicyPage() {
   return (
-    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+    <div className="w-full max-w-full space-y-6 sm:space-y-8  p-1 text-left overflow-x-hidden">
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
         <div className="relative flex items-center gap-3 sm:gap-4">
@@ -122,7 +122,7 @@ export function PrivacyPolicyPage() {
 // -------------------------------------------------------------
 export function AboutUsPage() {
   return (
-    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left overflow-x-hidden">
+    <div className="w-full max-w-full space-y-6 sm:space-y-8  p-1 text-left overflow-x-hidden">
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-6 md:p-8">
         <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full pointer-events-none" />
         <div className="relative flex items-center gap-3 sm:gap-4">
@@ -185,7 +185,7 @@ export function ContactUsPage() {
   };
 
   return (
-    <div className="w-full max-w-full space-y-6 sm:space-y-8 select-none p-1 text-left relative overflow-x-hidden">
+    <div className="w-full max-w-full space-y-6 sm:space-y-8  p-1 text-left relative overflow-x-hidden">
       {/* Toast - safely contained on mobile, floats top-right on larger screens */}
       {toastMessage && (
         <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">

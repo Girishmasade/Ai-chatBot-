@@ -5,23 +5,43 @@ import {
   generateRefreshToken,
   setTokenCookies,
 } from "../../utils/token.utils.js";
+import { initWallet } from "../token/tokenWallet/tokenWallet.controller.js";
+import { assignPlanToUser, getFreePlanId } from "../subscription/Subscription.assign.js";
+import mongoose from "mongoose";
 
 const oauthCallback =
   (strategy: string) => (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate(
       strategy,
-      { failureRedirect: "/signin" },
+      { failureRedirect: `${process.env.FRONTEND_URL}/login` },
       async (err: any, user: any) => {
-        if (err || !user) return res.redirect("/signin");
+        if (err || !user) return res.redirect(`${process.env.FRONTEND_URL}/login`);
+
+        // Initialize wallet and assign free plan if the user is new or hasn't received them
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+          const userIdStr = user._id.toString();
+          await initWallet(userIdStr, session);
+          const freePlanId = await getFreePlanId(session);
+          await assignPlanToUser(userIdStr, freePlanId, session);
+          await session.commitTransaction();
+        } catch (error) {
+          await session.abortTransaction();
+          console.error("Failed to initialize wallet/plan for OAuth user:", error);
+        } finally {
+          session.endSession();
+        }
 
         const accessToken = await generateAccessToken(user);
         const refreshToken = await generateRefreshToken(user._id.toString()) as string;
 
-        // store both in HttpOnly cookies
+        // store refreshToken in HttpOnly cookie
+        setTokenCookies(res, refreshToken);
 
-        setTokenCookies(res, accessToken, refreshToken);
-
-        return res.redirect(`${process.env.FRONTEND_URL}/oauth-success`);
+        // We can pass accessToken via URL so frontend can easily capture it, or rely on silentRefresh.
+        // I will pass it as a URL parameter to be safe.
+        return res.redirect(`${process.env.FRONTEND_URL}/?token=${accessToken}`);
       },
     )(req, res, next);
   };

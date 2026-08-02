@@ -49,19 +49,31 @@ passport.use(
   },
   async (accessToken: string, refreshToken: string, profile: GoogleProfile, done: (error: any, user?: any) => void) => {
     try {
-      const user = await AuthModel.findOne({ googleId: profile.id });
+      let user = await AuthModel.findOne({ googleId: profile.id });
       if (user) {
-        done(null, user);
-      } else {
-        const newUser = new AuthModel({
-          googleId: profile.id,
-          name: profile.displayName,
-          email: profile.emails?.[0].value,
-          avatar: profile.photos?.[0].value,
-        });
-        await newUser.save();
-        done(null, newUser);
+        return done(null, user);
       }
+      
+      const email = profile.emails?.[0].value;
+      if (email) {
+        user = await AuthModel.findOne({ email });
+        if (user) {
+          user.googleId = profile.id;
+          user.isVerified = true;
+          await user.save();
+          return done(null, user);
+        }
+      }
+
+      const newUser = new AuthModel({
+        googleId: profile.id,
+        username: profile.displayName || "GoogleUser",
+        email: email,
+        avatar: profile.photos?.[0].value,
+        isVerified: true,
+      });
+      await newUser.save();
+      done(null, newUser);
     } catch (error) {
       done(error, null);
     }
@@ -78,19 +90,31 @@ passport.use(
     },
     async (accessToken: string, refreshToken: string, profile: GithubProfile, done: (error: any, user?: any) => void) => {
         try {
-            const user = await AuthModel.findOne({ githubId: profile.id });
+            let user = await AuthModel.findOne({ githubId: profile.id });
             if (user) {
-                done(null, user);
-            } else {
-                const newUser = new AuthModel({
-                    githubId: profile.id,
-                    name: profile.displayName,
-                    email: profile.emails?.[0].value,
-                    avatar: profile.photos?.[0].value,
-                })
-                await newUser.save();
-                done(null, newUser);
+                return done(null, user);
             }
+            
+            const email = profile.emails?.[0].value;
+            if (email) {
+              user = await AuthModel.findOne({ email });
+              if (user) {
+                user.githubId = profile.id;
+                user.isVerified = true;
+                await user.save();
+                return done(null, user);
+              }
+            }
+
+            const newUser = new AuthModel({
+                githubId: profile.id,
+                username: profile.displayName || profile.username || "GithubUser",
+                email: email,
+                avatar: profile.photos?.[0].value,
+                isVerified: true,
+            })
+            await newUser.save();
+            done(null, newUser);
         } catch (error) {
             done(error, null)
         }
@@ -109,19 +133,31 @@ passport.use(
     },
     async (_accessToken, _refreshToken, profile: FacebookProfile, done: (error: any, user?: any) => void) => {
       try {
-        const user = await AuthModel.findOne({ facebookId: profile.id });
+        let user = await AuthModel.findOne({ facebookId: profile.id });
         if (user) {
-          done(null, user);
-        } else {
-          const newUser = new AuthModel({
-            facebookId: profile.id,
-            name: profile.displayName,
-            email: profile.emails?.[0].value,
-            avatar: profile.photos?.[0].value,
-          });
-          await newUser.save();
-          done(null, newUser);
+          return done(null, user);
         }
+        
+        const email = profile.emails?.[0].value;
+        if (email) {
+          user = await AuthModel.findOne({ email });
+          if (user) {
+            user.facebookId = profile.id;
+            user.isVerified = true;
+            await user.save();
+            return done(null, user);
+          }
+        }
+
+        const newUser = new AuthModel({
+          facebookId: profile.id,
+          username: profile.displayName || `${profile.name?.givenName} ${profile.name?.familyName}`.trim() || "FacebookUser",
+          email: email,
+          avatar: profile.photos?.[0].value,
+          isVerified: true,
+        });
+        await newUser.save();
+        done(null, newUser);
       } catch (err) {
         done(err as Error, undefined);
       }

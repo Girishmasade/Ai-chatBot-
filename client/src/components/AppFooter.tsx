@@ -54,7 +54,7 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
   return (
     <footer
       id="app-global-footer"
-      className="w-full max-w-full bg-[#09090b] text-zinc-400 border-t border-[#1a1a1f] select-none text-left pt-12 sm:pt-16 pb-8 px-4 sm:px-6 md:px-12 mt-12 overflow-x-hidden"
+      className="w-full max-w-full bg-[#09090b] text-zinc-400 border-t border-[#1a1a1f]  text-left pt-12 sm:pt-16 pb-8 px-4 sm:px-6 md:px-12 mt-12 overflow-x-hidden"
     >
       <div className="max-w-7xl mx-auto">
         {/* Main Footer Grid */}

@@ -6,6 +6,7 @@ import {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
+  getMenuItemById
 } from "./menu.controller.js";
 
 export const menuRouter = Router();
@@ -16,5 +17,6 @@ menuRouter.get("/user", authMiddleware, getUserMenuItems);
 // Admin Management Routes
 menuRouter.get("/admin", authMiddleware, isAdmin, getAdminMenuItems);
 menuRouter.post("/create", authMiddleware, isAdmin, createMenuItem);
+menuRouter.get("/:id", authMiddleware, isAdmin, getMenuItemById);
 menuRouter.put("/:id", authMiddleware, isAdmin, updateMenuItem);
 menuRouter.delete("/:id", authMiddleware, isAdmin, deleteMenuItem);

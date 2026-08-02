@@ -10,6 +10,7 @@ import {
   useOutlet
 } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
+import { Toaster } from "react-hot-toast";
 
 // Types & Hooks
 import { ActiveScreen } from "./types";
@@ -81,9 +82,16 @@ function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const mainContainer = document.querySelector("main");
-    if (mainContainer) mainContainer.scrollTo(0, 0);
-    window.scrollTo(0, 0);
+    // Wait for page transition to complete (0.35s) before scrolling
+    const timeout = setTimeout(() => {
+      const mainContainer = document.querySelector("main");
+      if (mainContainer) {
+        mainContainer.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 350);
+
+    return () => clearTimeout(timeout);
   }, [pathname]);
 
   return null;
@@ -95,8 +103,51 @@ function ScrollToTop() {
 
 function LandingRoute() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { isAuthenticated, setAuth } = useAuth();
   const goToScreen = useScreenNavigate();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get("token");
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        // Pad with '=' to make the length a multiple of 4
+        const pad = base64.length % 4;
+        if (pad) {
+          if (pad === 1) {
+            throw new Error('InvalidLengthError: Input base64url string is the wrong length to determine padding');
+          }
+          base64 += new Array(5 - pad).join('=');
+        }
+        
+        const jsonPayload = decodeURIComponent(
+          window.atob(base64).split('').map(function(c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join('')
+        );
+        const payload = JSON.parse(jsonPayload);
+        
+        const user = {
+          id: payload.userId,
+          username: payload.username,
+          email: payload.email,
+          role: payload.role as "user" | "admin",
+          avatar: payload.avatar,
+          isVerified: true,
+        };
+
+        setAuth(token, user);
+        
+        // Remove token from URL and go to dashboard
+        navigate("/app/dashboard", { replace: true });
+      } catch (e) {
+        console.error("Failed to parse token", e);
+      }
+    }
+  }, [location.search, navigate, setAuth]);
 
   return (
     <LandingPage
@@ -143,7 +194,7 @@ function WorkspaceShell({ isAdminSection }: { isAdminSection: boolean }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#090909] text-white flex select-none overflow-hidden relative w-full">
+    <div className="min-h-screen bg-[#090909] text-white flex  overflow-hidden relative w-full">
       {/* Subtle Background Elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/[0.015] rounded-full blur-[100px] pointer-events-none" />
 
@@ -225,6 +276,30 @@ function AdminTabRoute() {
   );
 }
 
+import { useGetConfigQuery } from "./redux/api/apiSlice";
+
+function BrandingSync() {
+  const { data: configData } = useGetConfigQuery();
+  const branding = configData?.branding || (configData as any)?.data?.branding;
+
+  useEffect(() => {
+    if (branding?.favicon) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "shortcut icon";
+        document.getElementsByTagName("head")[0].appendChild(link);
+      }
+      link.href = branding.favicon;
+    }
+    if (branding?.appName || branding?.logoName) {
+      document.title = branding.appName || branding.logoName;
+    }
+  }, [branding]);
+
+  return null;
+}
+
 // ------------------------------------------------------------------
 //  MAIN APP COMPONENT
 // ------------------------------------------------------------------
@@ -232,7 +307,18 @@ function AdminTabRoute() {
 export default function App() {
   return (
     <BrowserRouter>
+      <BrandingSync />
       <ScrollToTop />
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#1A1A1A',
+            color: '#fff',
+            border: '1px solid #242424'
+          }
+        }} 
+      />
       <CookieBanner />
 
       <Suspense fallback={<PageLoader />}>

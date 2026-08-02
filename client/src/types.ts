@@ -76,8 +76,12 @@ export interface CookieConsent {
 }
 
 export interface BrandingConfig {
+  appName: string;
   logoName: string;
   logoImage: string;
+  mainLogo: string;
+  favicon: string;
+  mobileLogo: string;
   themeMode: string;
   primaryColor: string;
   accentGlow: string;

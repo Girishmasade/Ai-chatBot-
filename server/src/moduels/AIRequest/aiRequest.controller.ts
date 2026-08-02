@@ -908,3 +908,95 @@ export const adminGetUsageStats = AsyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+// USER — Generate Image (with upload)
+// POST /api/v1/ai-request/generate-image
+
+import { uploadFile } from "@/utils/cloudinary.util.js";
+import { AIAssetModel } from "../admin/asset.model.js";
+
+export const generateImageHandler = AsyncHandler(async (req, res, next) => {
+  try {
+    const userId = req.user?.id;
+    const { prompt, aspectRatio, modelType } = req.body;
+
+    console.log(`[AIRequest] generateImageHandler — userId: ${userId}`);
+
+    if (!userId) {
+      return errorHandler(res, 401, false, "Unauthorized", {});
+    }
+
+    let uploadedImageUrl = "";
+    if (req.file) {
+      const uploadRes = await uploadFile(req.file.path, "assets", "image");
+      uploadedImageUrl = uploadRes.secure_url;
+    }
+
+    const finalPrompt = uploadedImageUrl 
+      ? `[Reference Image: ${uploadedImageUrl}] ${prompt}`
+      : prompt;
+
+    // ── Check Subscription & Tokens (Simplified) ──
+    const subscription = await UserSubscriptionModel.findOne({ user: userId, status: "active" }).lean();
+    if (!subscription || (subscription.endDate && new Date(subscription.endDate) < new Date())) {
+      return errorHandler(res, 403, false, "Active subscription required.", {});
+    }
+
+    const wallet = await TokenWalletModel.findOne({ userId });
+    if (!wallet) return errorHandler(res, 404, false, "Wallet not found.", {});
+
+    const estimatedCost = 5; // Image generation fixed cost for now
+    if (wallet.balance < estimatedCost) {
+      return errorHandler(res, 402, false, "Insufficient tokens for image generation.", {});
+    }
+
+    // ── Execute Provider Call ──
+    const serviceConfig = await ServiceConfigModel.findOne({ service: "image_gen", enabled: true }).lean();
+    const providers = serviceConfig?.providers?.filter((p: any) => p.enabled).sort((a: any, b: any) => a.priority - b.priority) || [];
+    const provider = providers[0] || { provider: "huggingface", model: "stabilityai/stable-diffusion-xl-base-1.0" };
+    const modelToUse = modelType || provider.model;
+
+    // Reserve Tokens
+    wallet.balance -= estimatedCost;
+    await wallet.save();
+    
+    await TokenTransaction.create([{
+      userId,
+      type: TransactionType.CONSUMPTION,
+      source: TransactionSource.AI_REQUEST,
+      status: TransactionStatus.COMPLETED,
+      amount: estimatedCost,
+      balanceBefore: wallet.balance + estimatedCost,
+      balanceAfter: wallet.balance,
+      metadata: { service: "image_gen" },
+    }]);
+
+    const result = await executeProviderRequest(
+      provider.provider,
+      "",
+      { model: modelToUse, prompt: finalPrompt },
+      "image_gen"
+    );
+
+    if (!result.success || !result.imageUrls?.length) {
+      // Refund
+      wallet.balance += estimatedCost;
+      await wallet.save();
+      return errorHandler(res, 500, false, result.error?.message || "Failed to generate image", {});
+    }
+
+    // ── Save Asset ──
+    const newAsset = await AIAssetModel.create({
+      user: userId,
+      type: "image",
+      title: prompt.substring(0, 40) + "...",
+      prompt: finalPrompt,
+      content: result.imageUrls[0],
+      model: modelToUse
+    });
+
+    return successHandler(res, 201, true, "Image generated successfully.", { asset: newAsset });
+  } catch (error) {
+    console.error("❌ Error in generateImageHandler:", error);
+    next(error);
+  }
+});

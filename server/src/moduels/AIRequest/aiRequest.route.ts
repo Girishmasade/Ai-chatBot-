@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
+import { upload } from "@/middlewares/multer.middleware.js";
 import { validate } from "@/middlewares/zod.middleware.js";
 import {
   executeAIRequestSchema,
@@ -21,11 +22,19 @@ import {
   updateAIRequest,
   deleteAIRequest,
   adminGetUsageStats,
+  generateImageHandler,
 } from "./aiRequest.controller.js";
 
 export const aiRequestRouter = Router();
 
 // ─── User routes (auth required) ─────────────────────────────────────────────
+
+aiRequestRouter.post(
+  "/generate-image",
+  authMiddleware,
+  upload.single("image"),
+  generateImageHandler
+);
 
 /**
  * @route   POST /api/v1/ai/execute

@@ -3,18 +3,13 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import {
   Zap,
   TrendingUp,
-  MessageSquare,
   Image as ImageIcon,
-  ArrowRight,
   Clock,
-  CheckCircle,
-  FileText,
-  AlertCircle,
   Tv,
   Sparkles,
-  ShieldAlert,
-  Sliders,
-  UserCheck
+  Flag,
+  Activity,
+  FileText
 } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 import { useGetAssetsQuery } from "../redux/api/apiSlice";
@@ -26,6 +21,19 @@ import { formatCredits } from "../helpers/utils";
 interface DashboardPageProps {
   currentUser: User;
   setActiveScreen: (screen: ActiveScreen) => void;
+}
+
+function timeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return `Just now`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 export default function DashboardPage({
@@ -44,233 +52,287 @@ export default function DashboardPage({
     }
   }, [authUser?.id, triggerWallet]);
 
+  const stats = React.useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start
+
+    let chatsMonth = 0, chatsWeek = 0;
+    let imagesTotal = 0, imagesWeek = 0;
+    let videosTotal = 0, videosWeek = 0;
+
+    // Initialize chart data for Mon-Sun
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const chartMap: Record<string, { chats: number; images: number }> = {};
+    days.forEach(d => chartMap[d] = { chats: 0, images: 0 });
+
+    const sortedAssets = [...assets].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    sortedAssets.forEach(asset => {
+      const assetDate = new Date(asset.timestamp);
+      const isThisMonth = assetDate >= startOfMonth;
+      const isThisWeek = assetDate >= startOfWeek;
+      const dayName = days[assetDate.getDay()];
+
+      if (asset.type === 'chat') {
+        if (isThisMonth) chatsMonth++;
+        if (isThisWeek) { chatsWeek++; chartMap[dayName].chats++; }
+      } else if (asset.type === 'image') {
+        imagesTotal++;
+        if (isThisWeek) { imagesWeek++; chartMap[dayName].images++; }
+      } else if (asset.type === 'video') {
+        videosTotal++;
+        if (isThisWeek) videosWeek++;
+      }
+    });
+
+    const dynamicChartData = [
+      { name: "Mon", ...chartMap["Mon"] },
+      { name: "Tue", ...chartMap["Tue"] },
+      { name: "Wed", ...chartMap["Wed"] },
+      { name: "Thu", ...chartMap["Thu"] },
+      { name: "Fri", ...chartMap["Fri"] },
+      { name: "Sat", ...chartMap["Sat"] },
+      { name: "Sun", ...chartMap["Sun"] }
+    ];
+
+    const dynamicRecentActivity = sortedAssets.slice(0, 4).map((asset, i) => {
+      let icon = Flag;
+      let color = "text-amber-500";
+      let bg = "bg-amber-500/10";
+      
+      if (asset.type === "image") { icon = ImageIcon; color = "text-blue-500"; bg = "bg-blue-500/10"; }
+      else if (asset.type === "video") { icon = Tv; color = "text-purple-500"; bg = "bg-purple-500/10"; }
+      else if (asset.type === "plan") { icon = FileText; color = "text-emerald-500"; bg = "bg-emerald-500/10"; }
+
+      return {
+        id: asset.id || i,
+        action: asset.title || `Generated ${asset.type}`,
+        type: asset.type.charAt(0).toUpperCase() + asset.type.slice(1),
+        time: timeAgo(asset.timestamp),
+        icon, color, bg
+      };
+    });
+
+    return {
+      chatsMonth, chatsWeek,
+      imagesTotal, imagesWeek,
+      videosTotal, videosWeek,
+      dynamicChartData,
+      dynamicRecentActivity
+    };
+  }, [assets]);
+
+  const PLAN_MAX_CREDITS = {
+    free: 100,
+    basic: 1000,
+    pro: 5000,
+    enterprise: 100000
+  };
+
   const walletBalance = walletData?.data?.wallet?.balance;
-  const displayCredits = walletBalance ?? (currentUser.credits || 200);
-
-  const quickActions = [
-    {
-      title: "Start Chat Core",
-      desc: "Connect server-side with Gemini 3.5 Flash",
-      screen: "chat" as ActiveScreen,
-      icon: MessageSquare,
-      color: "from-amber-400 to-amber-600"
-    },
-    {
-      title: "Generate Image",
-      desc: "Render high-definition visuals instantly",
-      screen: "image" as ActiveScreen,
-      icon: ImageIcon,
-      color: "from-amber-500 to-yellow-600"
-    },
-    {
-      title: "Render Motion Video",
-      desc: "Animate custom text prompts using Veo Lite",
-      screen: "video" as ActiveScreen,
-      icon: Tv,
-      color: "from-amber-600 to-amber-800"
-    },
-    {
-      title: "Venture Capital Plan",
-      desc: "Compile detailed financial & strategic plans",
-      screen: "business-plan" as ActiveScreen,
-      icon: FileText,
-      color: "from-yellow-500 to-amber-600"
-    },
-    {
-      title: "Prompt Engineer",
-      desc: "Compile and curate advanced visual styles",
-      screen: "prompt-studio" as ActiveScreen,
-      icon: Sliders,
-      color: "from-amber-500 to-amber-700"
-    }
-  ];
-
-  const valuePillars = [
-    {
-      title: "True Obsidian Contrast",
-      desc: "Strictly bound to 100% true dark workspace styles using pure Obsidian bases (#090909) and selective golden Amber highlights.",
-      icon: CheckCircle
-    },
-    {
-      title: "Secured Server Proxies",
-      desc: "No sensitive API tokens or Google Workspace secrets are exposed to client browsers. Node proxies shield your private infrastructure.",
-      icon: UserCheck
-    },
-    {
-      title: "Typography Pairings",
-      desc: "Inter typography pairs cleanly with geometric monospaces (JetBrains Mono) for display stats, providing an uncompromised high-end look.",
-      icon: Sparkles
-    },
-    {
-      title: "Immutable Security Audits",
-      desc: "Every model generation, user state change, or branding configuration update writes live logs to the central administrator panel.",
-      icon: ShieldAlert
-    }
-  ];
+  const displayCredits = walletBalance ?? (currentUser.credits || 0);
+  const totalCredits = PLAN_MAX_CREDITS[currentUser.tier] || 5000;
+  const usedCredits = Math.max(0, totalCredits - displayCredits);
+  const percentageUsed = Math.min(100, Math.round((usedCredits / totalCredits) * 100));
+  const planName = currentUser.tier ? currentUser.tier.charAt(0).toUpperCase() + currentUser.tier.slice(1) + " Plan" : "Free Plan";
 
   return (
-    <div className="space-y-8 p-1 text-left selection:bg-amber-500 selection:text-black">
-      {/* 1. TOP HEADER WITH GREETING */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none">
-            Good afternoon, {currentUser.name.split(" ")[0]}
-          </h2>
-          <p className="text-xs text-zinc-500 mt-1.5">
-            Optimize your administrative workspace. All systems are performing at sub-second latencies.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-mono font-bold text-[#71717A] uppercase tracking-wider">
-            Operational Server v3.5
-          </span>
-        </div>
-      </div>
-
-      {/* 2. CIRCULAR RADIAL HIGHLIGHTS SECTION */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Widget 1: Models Available */}
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 relative flex flex-col items-center justify-between min-h-[190px] overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/[0.01] group-hover:bg-amber-500/[0.03] blur-lg rounded-full" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Available Engines</p>
+    <div className="space-y-6 p-1 text-left">
+      
+      {/* ROW 1: STATUS & BALANCE */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Credit Balance (col-span-2) */}
+        <div className="lg:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Credit Balance</h3>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{planName}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setActiveScreen("subscription")}
+              className="text-xs font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 transition"
+            >
+              <TrendingUp className="w-3.5 h-3.5" /> Upgrade
+            </button>
+          </div>
           
-          <div className="relative flex items-center justify-center my-3">
-            {/* SVG circle */}
-            <svg className="w-24 h-24 transform -rotate-90">
-              <circle cx="48" cy="48" r="38" stroke="#1F1F1F" strokeWidth="4" fill="transparent" />
-              <circle cx="48" cy="48" r="38" stroke="#F59E0B" strokeWidth="4.5" fill="transparent" 
-                strokeDasharray={238} strokeDashoffset={0} strokeLinecap="round" className="transition-all duration-1000" />
-            </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-xl font-extrabold text-white font-sans">5 / 5</span>
-              <span className="text-[8px] text-zinc-500 uppercase tracking-wider">Allocated</span>
+          <div>
+            <div className="flex items-baseline gap-2 mb-4">
+              <span className="text-4xl font-extrabold text-white font-numbers tracking-tight">{formatCredits(usedCredits)}</span>
+              <span className="text-xs font-semibold text-zinc-500">/ {formatCredits(totalCredits)} credits</span>
+            </div>
+            
+            <div className="w-full bg-[#1F1F1F] rounded-full h-2 mb-2 relative overflow-hidden">
+              <div 
+                className="bg-amber-500 h-2 rounded-full" 
+                style={{ width: `${percentageUsed}%` }}
+              ></div>
+            </div>
+            
+            <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500">
+              <span>{formatCredits(usedCredits)} used ({percentageUsed}%)</span>
+              <span>{formatCredits(displayCredits)} remaining</span>
             </div>
           </div>
-
-          <p className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1">
-            <CheckCircle className="w-3.5 h-3.5" /> High Speed Channels Online
-          </p>
         </div>
 
-        {/* Widget 2: Credits Remaining */}
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 relative flex flex-col items-center justify-between min-h-[190px] overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/[0.01] group-hover:bg-amber-500/[0.03] blur-lg rounded-full" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Credits Balance</p>
-
-          <div className="relative flex items-center justify-center my-3">
-            <svg className="w-24 h-24 transform -rotate-90">
-              <circle cx="48" cy="48" r="38" stroke="#1F1F1F" strokeWidth="4" fill="transparent" />
-              <circle cx="48" cy="48" r="38" stroke="#F59E0B" strokeWidth="4.5" fill="transparent" 
-                strokeDasharray={238} strokeDashoffset={60} strokeLinecap="round" />
-            </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-base font-extrabold text-white font-numbers">{formatCredits(displayCredits)}</span>
-              <span className="text-[8px] text-[#F59E0B] uppercase font-bold tracking-wider">Remaining</span>
-            </div>
+        {/* Account Status (col-span-1) */}
+        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-bold text-white">Account Status</h3>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-xs font-bold text-emerald-500">Active</span>
           </div>
 
-          <p className="text-[10px] text-zinc-500">Auto-refresh schedule verified</p>
-        </div>
-
-        {/* Widget 3: Creations Counter */}
-        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 relative flex flex-col items-center justify-between min-h-[190px] overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/[0.01] group-hover:bg-amber-500/[0.03] blur-lg rounded-full" />
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Archived Assets</p>
-
-          <div className="relative flex items-center justify-center my-3">
-            <svg className="w-24 h-24 transform -rotate-90">
-              <circle cx="48" cy="48" r="38" stroke="#1F1F1F" strokeWidth="4" fill="transparent" />
-              <circle cx="48" cy="48" r="38" stroke="#F59E0B" strokeWidth="4.5" fill="transparent" 
-                strokeDasharray={238} strokeDashoffset={140} strokeLinecap="round" />
-            </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-xl font-extrabold text-white font-numbers">{loading ? "..." : assets.length}</span>
-              <span className="text-[8px] text-zinc-500 uppercase tracking-wider">Generations</span>
-            </div>
+          <div className="flex-1 flex items-center justify-center relative my-6">
+            {/* Animated Sphere / Globe placeholder */}
+            <div className="w-24 h-24 rounded-full border border-amber-500/30 border-dashed animate-[spin_10s_linear_infinite] absolute"></div>
+            <div className="w-20 h-20 rounded-full border border-amber-500/20 border-dotted animate-[spin_15s_linear_infinite_reverse] absolute"></div>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/5 shadow-[0_0_30px_rgba(245,158,11,0.2)]"></div>
           </div>
 
-          <p className="text-[10px] text-zinc-500">Saved in Node persistent memory</p>
+          <div className="flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-4 border-t border-[#1F1F1F] pt-4">
+            <span>MODELS</span>
+            <span>PLANS</span>
+          </div>
         </div>
       </div>
 
-      {/* 3. QUICK ACTIONS GRID CARDS */}
-      <div className="space-y-4">
-        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#71717A] border-b border-[#1F1F1F] pb-2">
-          Workspace Quick Actions
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {quickActions.map((action, i) => {
-            const Icon = action.icon;
-            return (
-              <div
-                id={`quick-action-card-${i}`}
-                key={i}
-                onClick={() => setActiveScreen(action.screen)}
-                className="bg-[#111111] border border-[#242424] hover:border-amber-500/30 p-5 rounded-2xl cursor-pointer transition-all duration-300 group flex flex-col justify-between hover:-translate-y-0.5 space-y-4"
-              >
-                <div className={`p-2.5 w-fit rounded-xl bg-gradient-to-br ${action.color} text-black shrink-0 shadow-lg shadow-amber-500/10 group-hover:scale-105 transition`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="space-y-1.5 text-left">
-                  <h5 className="text-xs font-bold text-white group-hover:text-amber-500 transition">{action.title}</h5>
-                  <p className="text-[10px] text-zinc-500 leading-normal">{action.desc}</p>
-                </div>
+      {/* ROW 2: 4 STATS CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div className="bg-[#111111] border border-[#242424] p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden group">
+          <div className="absolute top-4 right-4 text-zinc-800 group-hover:text-amber-500/20 transition">
+            <Flag className="w-5 h-5" />
+          </div>
+          <h4 className="text-3xl font-extrabold text-white font-numbers">{stats.chatsMonth}</h4>
+          <div>
+            <p className="text-[10px] font-bold text-zinc-500">Chats This Month</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">+{stats.chatsWeek} this week</p>
+          </div>
+        </div>
+
+        <div className="bg-[#111111] border border-[#242424] p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden group">
+          <div className="absolute top-4 right-4 text-zinc-800 group-hover:text-amber-500/20 transition">
+            <ImageIcon className="w-5 h-5" />
+          </div>
+          <h4 className="text-3xl font-extrabold text-white font-numbers">{stats.imagesTotal}</h4>
+          <div>
+            <p className="text-[10px] font-bold text-zinc-500">Images Created</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">+{stats.imagesWeek} this week</p>
+          </div>
+        </div>
+
+        <div className="bg-[#111111] border border-[#242424] p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden group">
+          <div className="absolute top-4 right-4 text-zinc-800 group-hover:text-amber-500/20 transition">
+            <Tv className="w-5 h-5" />
+          </div>
+          <h4 className="text-3xl font-extrabold text-white font-numbers">{stats.videosTotal}</h4>
+          <div>
+            <p className="text-[10px] font-bold text-zinc-500">Videos Created</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">+{stats.videosWeek} this week</p>
+          </div>
+        </div>
+
+        <div className="bg-[#111111] border border-[#242424] p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden group">
+          <div className="absolute top-4 right-4 text-zinc-800 group-hover:text-amber-500/20 transition">
+            <Zap className="w-5 h-5" />
+          </div>
+          <h4 className="text-3xl font-extrabold text-white font-numbers">{formatCredits(usedCredits)}</h4>
+          <div>
+            <p className="text-[10px] font-bold text-zinc-500">Credits Used</p>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1">{percentageUsed}% of plan</p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* ROW 3: CHARTS & ACTIVITY */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Usage Chart (col-span-2) */}
+        <div className="lg:col-span-2 bg-[#111111] border border-[#242424] rounded-2xl p-6 flex flex-col">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-white">Usage This Week</h3>
+              <p className="text-[10px] text-zinc-500">Chats and images generated</p>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] font-bold">
+              <div className="flex items-center gap-1.5 text-zinc-400">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span> Chats
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. WHY GOCHAT VALUE PILLARS */}
-      <div className="space-y-4">
-        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#71717A] border-b border-[#1F1F1F] pb-2">
-          Design & Operational Integrity
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {valuePillars.map((pillar, i) => {
-            const Icon = pillar.icon;
-            return (
-              <div key={i} className="bg-[#111111] border border-[#242424] p-5 rounded-2xl flex gap-4 text-left items-start">
-                <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/10 text-amber-500 mt-0.5">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="space-y-1.5">
-                  <h5 className="text-xs font-bold text-white">{pillar.title}</h5>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">{pillar.desc}</p>
-                </div>
+              <div className="flex items-center gap-1.5 text-zinc-400">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span> Images
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 5. MEMBERSHIP PROMOTIONAL BANNER */}
-      {currentUser.tier !== "enterprise" && (
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#111111] via-[#161616] to-[#111111] border border-amber-500/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />
-          <div className="space-y-1.5 relative z-10 text-left">
-            <span className="px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-widest w-fit block font-mono">
-              Upgrade Incentive
-            </span>
-            <h4 className="text-base font-bold text-white tracking-tight font-sans">
-              Ready to unlock your full generative potential?
-            </h4>
-            <p className="text-xs text-zinc-400 max-w-xl">
-              Upgrade your current account credentials to our VIP Membership and gain access to all systems, including sub-100ms response bands and Veo video frames.
-            </p>
+            </div>
           </div>
-
-          <button
-            id="dashboard-upgrade-banner-btn"
-            onClick={() => setActiveScreen("subscription")}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/25 relative z-10 font-sans cursor-pointer shrink-0"
-          >
-            Claim VIP Membership
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          
+          <div className="flex-1 min-h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.dynamicChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorChats" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorImages" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717A' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717A' }} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#161616', borderColor: '#242424', borderRadius: '8px', fontSize: '12px' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Area type="monotone" dataKey="chats" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorChats)" />
+                <Area type="monotone" dataKey="images" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorImages)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      )}
+
+        {/* Recent Activity (col-span-1) */}
+        <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 flex flex-col">
+          <div className="flex items-center gap-2 mb-6">
+            <Clock className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-bold text-white">Recent Activity</h3>
+          </div>
+          
+          <div className="flex-1 space-y-6">
+            {stats.dynamicRecentActivity.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-zinc-500 text-xs">No recent activity</div>
+            ) : stats.dynamicRecentActivity.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.id} className="flex gap-4">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.bg} ${item.color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white">{item.action}</p>
+                    <p className="text-[10px] text-zinc-500 mt-1">{item.type} &middot; {item.time}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

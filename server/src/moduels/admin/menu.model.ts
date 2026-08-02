@@ -7,6 +7,7 @@ export interface IMenuItem extends Document {
   visible: "User Menu" | "Admin Menu";
   order: number;
   isActive: boolean;
+  parentId?: mongoose.Types.ObjectId;
   createdBy?: mongoose.Types.ObjectId;
 }
 
@@ -29,7 +30,7 @@ const menuItemSchema = new Schema<IMenuItem>(
     },
     visible: {
       type: String,
-      enum: ["User Menu", "Admin Menu"],
+      enum: ["User Menu", "Admin Menu", "All"],
       default: "User Menu",
     },
     order: {
@@ -39,6 +40,10 @@ const menuItemSchema = new Schema<IMenuItem>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    parentId: {
+      type: Schema.Types.ObjectId,
+      ref: "MenuItem",
     },
     createdBy: {
       type: Schema.Types.ObjectId,

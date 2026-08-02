@@ -51,7 +51,6 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    /** Manually set credentials (e.g. from OAuth callback) */
     setCredentials: (
       state,
       action: PayloadAction<{ accessToken: string; user: AuthUser }>
@@ -60,6 +59,17 @@ const authSlice = createSlice({
       state.currentUser = action.payload.user;
       state.isAuthenticated = true;
       persistAuth(action.payload);
+    },
+
+    /** Update only the access token (e.g. after silent refresh) */
+    updateAccessToken: (state, action: PayloadAction<string>) => {
+      state.accessToken = action.payload;
+      if (state.currentUser) {
+        persistAuth({
+          accessToken: action.payload,
+          user: state.currentUser,
+        });
+      }
     },
 
     /** Clear auth state on logout */
@@ -124,5 +134,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout, updateCurrentUser } = authSlice.actions;
+export const { setCredentials, logout, updateCurrentUser, updateAccessToken } = authSlice.actions;
 export default authSlice.reducer;

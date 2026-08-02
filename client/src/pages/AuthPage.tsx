@@ -19,6 +19,7 @@ import {
   User,
   Github,
   Chrome,
+  Facebook,
 } from "lucide-react";
 import { env } from "../config/envImport";
 
@@ -34,8 +35,12 @@ import {
   useVerifyOtpMutation,
   useResendOtpMutation,
 } from "../redux/api/authApi";
+import { useGetConfigQuery } from "../redux/api/apiSlice";
 
 export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPageProps) {
+  const { data: configData } = useGetConfigQuery();
+  const branding = configData?.branding || (configData as any)?.data?.branding;
+
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -84,6 +89,12 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
       icon: Github,
       color: "hover:border-zinc-400/30 hover:text-zinc-300",
     },
+    {
+      name: "Facebook",
+      url: `${BACKEND_URL}/api/v1/auth/facebook`,
+      icon: Facebook,
+      color: "hover:border-blue-500/30 hover:text-blue-500",
+    },
   ];
 
   // Send OTP — calls real backend
@@ -102,7 +113,8 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
         // Register → backend sends OTP email automatically
         const result = await registerMutation({ username: name, email }).unwrap();
         if (result.success) {
-          setSuccessMessage(result.message || "Account created. OTP sent to your email.");
+          const devOtp = (result.data as any)?.otp;
+          setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "Account created. OTP sent to your email."));
           setOtpSent(true);
           setTimer(60);
         } else {
@@ -112,7 +124,8 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
         // Login → backend sends OTP email
         const result = await loginMutation({ email }).unwrap();
         if (result.success) {
-          setSuccessMessage(result.message || "OTP sent to your email.");
+          const devOtp = (result.data as any)?.otp;
+          setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "OTP sent to your email."));
           setOtpSent(true);
           setTimer(60);
         } else {
@@ -161,7 +174,8 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
       const result = await resendOtpMutation({ email }).unwrap();
       if (result.success) {
         setTimer(60);
-        setSuccessMessage("OTP resent successfully.");
+        const devOtp = (result.data as any)?.otp;
+        setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : "OTP resent successfully.");
         setUserInputOtp("");
       } else {
         setErrorMessage(result.message || "Failed to resend OTP.");
@@ -182,7 +196,7 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#090909] relative text-white select-none overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex bg-[#090909] relative text-white  overflow-hidden font-sans">
       
       {/* Background vector elements and high-contrast ambient orbs */}
       <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(to_right,#111111_1px,transparent_1px),linear-gradient(to_bottom,#111111_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 pointer-events-none" />
@@ -205,10 +219,20 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
 
           {/* Top Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <span className="text-black font-black text-sm tracking-tighter">GC</span>
-            </div>
-            <span className="text-sm font-bold tracking-wider text-white uppercase">GoChat AI Workspace</span>
+            {branding?.mainLogo || branding?.logoImage ? (
+              <img 
+                src={branding.mainLogo || branding.logoImage} 
+                alt="Brand Logo" 
+                className="h-9 max-w-[140px] object-contain" 
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <span className="text-black font-black text-sm tracking-tighter">GC</span>
+              </div>
+            )}
+            <span className="text-sm font-bold tracking-wider text-white uppercase">
+              {branding?.appName || branding?.logoName || "GoChat AI Workspace"}
+            </span>
           </div>
 
           {/* Central Cosmic Interactive Animations */}
@@ -440,7 +464,7 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                   </div>
 
                   {/* Social OAuth Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {socialProviders.map((provider) => {
                       const Icon = provider.icon;
                       return (

@@ -9,6 +9,7 @@ export interface MenuItem {
   visible: "User Menu" | "Admin Menu";
   order?: number;
   isActive?: boolean;
+  parentId?: string;
 }
 
 export const menuApi = apiSlice.injectEndpoints({

@@ -1,8 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBrandingConfig extends Document {
+  appName: string;
   logoName: string;
   logoImage: string;
+  mainLogo: string;
+  favicon: string;
+  mobileLogo: string;
   themeMode: string;
   primaryColor: string;
   accentGlow: string;
@@ -16,8 +20,12 @@ export interface IBrandingConfig extends Document {
 
 const brandingSchema = new Schema<IBrandingConfig>(
   {
+    appName: { type: String, default: "GoChat AI" },
     logoName: { type: String, default: "GoChat AI" },
     logoImage: { type: String, default: "" },
+    mainLogo: { type: String, default: "" },
+    favicon: { type: String, default: "" },
+    mobileLogo: { type: String, default: "" },
     themeMode: { type: String, default: "Black Amber" },
     primaryColor: { type: String, default: "#F59E0B" },
     accentGlow: { type: String, default: "rgba(245, 158, 11, 0.15)" },

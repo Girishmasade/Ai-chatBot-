@@ -1,16 +1,22 @@
 import React, { useState } from "react";
 import { Image as ImageIcon, Sparkles, Download, Maximize2, Trash2, Calendar, HardDrive } from "lucide-react";
-import { useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation } from "../redux/api/apiSlice";
+import { useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation, useGetModelsQuery } from "../redux/api/apiSlice";
 
 export default function ImagePage() {
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [modelType, setModelType] = useState("gemini-3.1-flash-lite-image");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const { data: allAssets = [] } = useGetAssetsQuery();
+  const { data: models = [] } = useGetModelsQuery();
   const [deleteAsset] = useDeleteAssetMutation();
   const [generateImage, { isLoading: generating }] = useGenerateImageMutation();
+
+  const imageModels = models.filter((m: any) => m.type === "image");
+  const activeModelType = imageModels.some((m: any) => m.id === modelType) ? modelType : (imageModels[0]?.id || "");
 
   const assets = allAssets.filter((a: any) => a.type === "image");
 
@@ -19,9 +25,19 @@ export default function ImagePage() {
     if (!prompt.trim()) return;
 
     try {
-      const data = await generateImage({ prompt, aspectRatio }).unwrap();
+      const formData = new FormData();
+      formData.append("prompt", prompt);
+      formData.append("aspectRatio", aspectRatio);
+      formData.append("modelType", activeModelType);
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const data = await generateImage(formData).unwrap();
       if (data.success) {
         setPrompt("");
+        setImageFile(null);
+        setImagePreview(null);
       }
     } catch (e) {
       console.error(e);
@@ -37,7 +53,7 @@ export default function ImagePage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 select-none p-1">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6  p-1">
       {/* Left Configuration Panel */}
       <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 space-y-6 text-left lg:col-span-1 h-fit">
         <div className="space-y-1 pb-3 border-b border-[#1F1F1F]">
@@ -57,6 +73,37 @@ export default function ImagePage() {
               className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white placeholder-zinc-600 h-24 resize-none transition"
               disabled={generating}
             />
+          </div>
+
+          {/* Optional Image Upload */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> Reference Image (Optional)
+            </label>
+            <input 
+              type="file" 
+              accept="image/*"
+              className="w-full text-[10px] text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20 file:transition file:cursor-pointer"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setImageFile(e.target.files[0]);
+                  setImagePreview(URL.createObjectURL(e.target.files[0]));
+                }
+              }}
+              disabled={generating}
+            />
+            {imagePreview && (
+              <div className="relative mt-2 w-full h-24 rounded-lg overflow-hidden border border-[#242424]">
+                <img src={imagePreview} className="object-cover w-full h-full opacity-80" alt="Preview" />
+                <button
+                  type="button"
+                  onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-md hover:bg-rose-500 transition"
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Aspect Ratio Toggle cards */}
@@ -93,12 +140,19 @@ export default function ImagePage() {
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">AI Vision Engine</label>
             <select
               id="image-model-select"
-              value={modelType}
+              value={activeModelType}
               onChange={(e) => setModelType(e.target.value)}
               className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-2.5 text-xs text-zinc-300 cursor-pointer transition"
             >
-              <option value="gemini-3.1-flash-lite-image">Gemini Image Lite (Default)</option>
-              <option value="gemini-3.1-flash-image">Gemini Image Ultra (1K HD)</option>
+              {imageModels.length === 0 ? (
+                <option value="">No models available</option>
+              ) : (
+                imageModels.map((m: any) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.provider})
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

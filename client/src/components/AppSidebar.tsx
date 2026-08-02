@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   LayoutDashboard,
   MessageSquareText,
@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 
-import { useGetUserMenuItemsQuery } from "../redux/api/menuApi";
+import { useGetUserMenuItemsQuery, useGetAdminMenuItemsQuery } from "../redux/api/menuApi";
+import { useGetConfigQuery } from "../redux/api/apiSlice";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -60,8 +61,16 @@ export default function AppSidebar({
   adminActiveTab,
   setAdminActiveTab,
   isAdminWorkspace,
-  setIsAdminWorkspace
+  setIsAdminWorkspace,
 }: AppSidebarProps) {
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  const toggleMenu = (menuId: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [menuId]: !prev[menuId],
+    }));
+  };
   // Fetch dynamic user menu items from backend API
   const { data: menuResponse } = useGetUserMenuItemsQuery();
   const dynamicUserItems = menuResponse?.data?.data;
@@ -115,14 +124,20 @@ export default function AppSidebar({
   // Map dynamic menu items from API or fallback to default
   const userNavItems = dynamicUserItems !== undefined
     ? dynamicUserItems.map((item) => ({
+        _id: item.id,
         id: item.target as ActiveScreen,
         label: item.label,
         icon: iconMap[item.icon] || LayoutDashboard,
+        parentId: item.parentId,
       }))
     : defaultUserNavItems;
 
-  // Admin Navigation Items
-  const adminNavItems = [
+  const userRoots = userNavItems.filter((item: any) => !item.parentId);
+  const userChildren = userNavItems.filter((item: any) => item.parentId);
+
+  const { data: adminMenuResponse } = useGetAdminMenuItemsQuery(undefined, { skip: !isAdminWorkspace });
+  // Map dynamic admin menu items from API or fallback to default
+  const defaultAdminNavItems = [
     { id: "overview", label: "Dashboard Overview", icon: LayoutDashboard },
     { id: "users", label: "User Pool", icon: Users },
     { id: "billing", label: "VIP Subscriptions", icon: CreditCard },
@@ -133,12 +148,33 @@ export default function AppSidebar({
     { id: "cookies", label: "Cookie Ledger", icon: Fingerprint },
     { id: "audits", label: "Audit Records", icon: History },
     { id: "settings", label: "System Settings", icon: Settings }
-  ] as const;
+  ];
 
-  const isEmployee = currentUser.role === "Administrator" || currentUser.role === "Developer";
+  const adminMenuData = adminMenuResponse?.data?.data?.filter(
+    (item: any) => item.visible === "Admin Menu" || item.visible === "All" || item.visible === "Both"
+  );
+
+  const adminNavItems = adminMenuData && adminMenuData.length > 0
+    ? adminMenuData.map((item: any) => ({
+        _id: item.id,
+        id: item.target,
+        label: item.label,
+        icon: iconMap[item.icon] || LayoutDashboard,
+        parentId: item.parentId,
+      }))
+    : defaultAdminNavItems;
+
+  const adminRoots = adminNavItems.filter((item: any) => !item.parentId);
+  const adminChildren = adminNavItems.filter((item: any) => item.parentId);
+
+  const isAdminRole = currentUser.role === "Administrator" || currentUser.role === "admin";
+  const isEmployee = isAdminRole || currentUser.role === "Developer";
+
+  const { data: configData } = useGetConfigQuery();
+  const branding = configData?.branding || (configData as any)?.data?.branding;
 
   return (
-    <aside className="w-64 bg-[#111111] border-r border-[#242424] flex flex-col h-screen select-none shrink-0 z-20">
+    <aside className="w-64 bg-[#111111] border-r border-[#242424] flex flex-col h-screen  shrink-0 z-20">
       {/* Brand Header */}
       <div className="p-6 border-b border-[#1F1F1F] flex items-center justify-between">
         <div
@@ -148,12 +184,20 @@ export default function AppSidebar({
           }}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/15 group-hover:scale-[1.03] transition duration-300">
-            <span className="text-black font-black text-sm tracking-tighter">GC</span>
-          </div>
+          {branding?.mainLogo || branding?.logoImage ? (
+            <img 
+              src={branding.mainLogo || branding.logoImage} 
+              alt="Platform Logo" 
+              className="h-8 max-w-[120px] object-contain" 
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/15 group-hover:scale-[1.03] transition duration-300">
+              <span className="text-black font-black text-sm tracking-tighter">GC</span>
+            </div>
+          )}
           <div className="text-left">
             <h1 className="text-sm font-bold text-white tracking-wider group-hover:text-amber-400 transition">
-              GoChat AI
+              {branding?.appName || branding?.logoName || "GoChat AI"}
             </h1>
             <p className="text-[9px] uppercase tracking-widest text-[#71717A] font-semibold">
               {isAdminWorkspace ? "Admin Control" : "Platform Elite"}
@@ -169,53 +213,138 @@ export default function AppSidebar({
         </p>
 
         {!isAdminWorkspace ? (
-          // USER WORKSPACE NAVIGATION (DYNAMIC FROM BACKEND)
-          userNavItems.map((item) => {
+          // USER WORKSPACE NAVIGATION (DYNAMIC FROM BACKEND WITH NESTING)
+          userRoots.map((item: any) => {
             const Icon = item.icon;
+            const itemChildren = userChildren.filter((child: any) => child.parentId === item._id);
+            const hasChildren = itemChildren.length > 0;
+            const isExpanded = expandedMenus[item._id];
             const isActive = activeScreen === item.id;
+            const isChildActive = hasChildren && itemChildren.some((child: any) => activeScreen === child.id);
+
             return (
-              <button
-                id={`sidebar-item-${item.id}`}
-                key={item.id}
-                onClick={() => navigateTo(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
-                  isActive
-                    ? "bg-amber-500/5 text-amber-500 border border-amber-500/10 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.05)]"
-                    : "text-zinc-400 hover:text-white hover:bg-zinc-900/50 border border-transparent"
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.7)]" />
+              <div key={item._id || item.id} className="space-y-1">
+                <button
+                  id={`sidebar-item-${item.id}`}
+                  onClick={() => {
+                    if (hasChildren) {
+                      toggleMenu(item._id);
+                    } else {
+                      navigateTo(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
+                    isActive || isChildActive
+                      ? "bg-amber-500/5 text-amber-500 border border-amber-500/10 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.05)]"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-900/50 border border-transparent"
+                  }`}
+                >
+                  {(isActive || isChildActive) && (
+                    <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.7)]" />
+                  )}
+                  <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive || isChildActive ? "text-amber-500" : "text-zinc-500 group-hover:text-zinc-300 group-hover:scale-105"}`} />
+                  <span className="truncate">{item.label}</span>
+                  {hasChildren ? (
+                    <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-transform ${isExpanded ? "rotate-90" : ""} group-hover:opacity-100`} />
+                  ) : (
+                    <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-opacity ${isActive ? "opacity-100 text-amber-500/60" : "opacity-0 group-hover:opacity-100"}`} />
+                  )}
+                </button>
+                
+                {/* Render Children */}
+                {hasChildren && isExpanded && (
+                  <div className="pl-4 space-y-1 overflow-hidden transition-all duration-300">
+                    <div className="border-l border-[#2A2A2A] pl-2 space-y-1">
+                      {itemChildren.map((child: any) => {
+                        const ChildIcon = child.icon;
+                        const isChildCurrent = activeScreen === child.id;
+                        return (
+                          <button
+                            key={child._id || child.id}
+                            onClick={() => navigateTo(child.id)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition duration-200 group ${
+                              isChildCurrent
+                                ? "text-amber-500 bg-amber-500/10"
+                                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+                            }`}
+                          >
+                            <ChildIcon className={`w-3.5 h-3.5 shrink-0 transition-transform ${isChildCurrent ? "text-amber-500" : "text-zinc-500 group-hover:scale-105"}`} />
+                            <span className="truncate">{child.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-                <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? "text-amber-500" : "text-zinc-500 group-hover:text-zinc-300 group-hover:scale-105"}`} />
-                <span className="truncate">{item.label}</span>
-                <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-opacity ${isActive ? "opacity-100 text-amber-500/60" : "opacity-0 group-hover:opacity-100"}`} />
-              </button>
+              </div>
             );
           })
         ) : (
-          // ADMIN WORKSPACE NAVIGATION
-          adminNavItems.map((item) => {
+          // ADMIN WORKSPACE NAVIGATION (DYNAMIC FROM BACKEND WITH NESTING)
+          adminRoots.map((item: any) => {
             const Icon = item.icon;
+            const itemChildren = adminChildren.filter((child: any) => child.parentId === item._id);
+            const hasChildren = itemChildren.length > 0;
+            const isExpanded = expandedMenus[item._id];
             const isActive = activeScreen === "admin" && adminActiveTab === item.id;
+            const isChildActive = hasChildren && itemChildren.some((child: any) => activeScreen === "admin" && adminActiveTab === child.id);
+
             return (
-              <button
-                id={`sidebar-admin-item-${item.id}`}
-                key={item.id}
-                onClick={() => navigateToAdminTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
-                  isActive
-                    ? "bg-amber-500/5 text-amber-500 border border-amber-500/10"
-                    : "text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/10 border border-transparent"
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.7)]" />
+              <div key={item._id || item.id} className="space-y-1">
+                <button
+                  id={`sidebar-admin-item-${item.id}`}
+                  onClick={() => {
+                    if (hasChildren) {
+                      toggleMenu(item._id);
+                    } else {
+                      navigateToAdminTab(item.id);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition duration-200 group relative ${
+                    isActive || isChildActive
+                      ? "bg-amber-500/5 text-amber-500 border border-amber-500/10"
+                      : "text-rose-400/90 hover:text-rose-300 hover:bg-rose-950/10 border border-transparent"
+                  }`}
+                >
+                  {(isActive || isChildActive) && (
+                    <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.7)]" />
+                  )}
+                  <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive || isChildActive ? "text-amber-500" : "text-rose-500/80 group-hover:text-rose-400 group-hover:scale-105"}`} />
+                  <span className="truncate">{item.label}</span>
+                  {hasChildren ? (
+                    <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-transform ${isExpanded ? "rotate-90" : ""} group-hover:opacity-100`} />
+                  ) : (
+                    <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-opacity ${isActive ? "opacity-100 text-amber-500/60" : "opacity-0 group-hover:opacity-100"}`} />
+                  )}
+                </button>
+                
+                {/* Render Children */}
+                {hasChildren && isExpanded && (
+                  <div className="pl-4 space-y-1 overflow-hidden transition-all duration-300">
+                    <div className="border-l border-[#2A2A2A] pl-2 space-y-1">
+                      {itemChildren.map((child: any) => {
+                        const ChildIcon = child.icon;
+                        const isChildCurrent = activeScreen === "admin" && adminActiveTab === child.id;
+                        return (
+                          <button
+                            id={`sidebar-admin-item-${child.id}`}
+                            key={child._id || child.id}
+                            onClick={() => navigateToAdminTab(child.id)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition group ${
+                              isChildCurrent
+                                ? "bg-amber-500/10 text-amber-500 font-bold"
+                                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+                            }`}
+                          >
+                            <ChildIcon className={`w-3.5 h-3.5 shrink-0 ${isChildCurrent ? "text-amber-500" : "text-zinc-600 group-hover:text-zinc-400"}`} />
+                            <span className="truncate">{child.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-                <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? "text-amber-500" : "text-rose-500/80 group-hover:text-rose-400 group-hover:scale-105"}`} />
-                <span className="truncate">{item.label}</span>
-                <ChevronRight className={`w-3.5 h-3.5 ml-auto text-zinc-600 transition-opacity ${isActive ? "opacity-100 text-amber-500/60" : "opacity-0 group-hover:opacity-100"}`} />
-              </button>
+              </div>
             );
           })
         )}

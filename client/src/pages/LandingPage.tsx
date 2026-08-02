@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import LuxuryOrb from "../components/LuxuryOrb";
 import { ActiveScreen } from "../types";
+import { useGetConfigQuery } from "../redux/api/apiSlice";
 
 interface LandingPageProps {
   onEnterApp: () => void;
@@ -22,6 +23,9 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPageProps) {
+  const { data: configData } = useGetConfigQuery();
+  const branding = configData?.branding || (configData as any)?.data?.branding;
+
   // Stagger animation helpers
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -48,10 +52,20 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
       {/* Landing Navbar */}
       <nav className="border-b border-[#1F1F1F]/60 backdrop-blur-md sticky top-0 z-30 bg-[#090909]/80 h-16 flex items-center justify-between px-6 md:px-12">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-            <span className="text-black font-black text-xs">GC</span>
-          </div>
-          <span className="text-sm font-bold tracking-wider text-white">GoChat AI</span>
+          {branding?.mainLogo || branding?.logoImage ? (
+            <img 
+              src={branding.mainLogo || branding.logoImage} 
+              alt="Brand Logo" 
+              className="h-8 max-w-[120px] object-contain" 
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <span className="text-black font-black text-xs">GC</span>
+            </div>
+          )}
+          <span className="text-sm font-bold tracking-wider text-white">
+            {branding?.appName || branding?.logoName || "GoChat AI"}
+          </span>
         </div>
 
         <div className="hidden md:flex items-center gap-8">

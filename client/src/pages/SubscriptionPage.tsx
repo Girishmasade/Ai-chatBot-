@@ -208,7 +208,7 @@ export default function SubscriptionPage({ onUpgrade }: SubscriptionPageProps) {
     : fallbackPlans.map((p) => ({ ...p, planId: undefined as string | undefined, priceValue: 0 }));
 
   return (
-    <div className="space-y-8 select-none p-1 text-left">
+    <div className="space-y-8  p-1 text-left">
       {/* Banner */}
       <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8 relative overflow-hidden">
         {/* Decorative backdrop glow */}

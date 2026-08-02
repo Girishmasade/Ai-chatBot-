@@ -283,7 +283,9 @@ export const resendOTP = async (
 
     console.log("resend : ", resend);
 
-    successHandler(res, 200, true, "OTP sent to your email.", {});
+    successHandler(res, 200, true, "OTP sent to your email.", {
+      ...(node_env === "development" && { otp }),
+    });
   } catch (error) {
     console.error("error in the resend otp :", error);
     next();

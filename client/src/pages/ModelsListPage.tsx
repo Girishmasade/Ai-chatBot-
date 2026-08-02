@@ -50,7 +50,7 @@ export default function ModelsListPage() {
   };
 
   return (
-    <div className="space-y-8 select-none p-1 text-left">
+    <div className="space-y-8  p-1 text-left">
       {/* Hero Banner */}
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">
         <div className="absolute top-1/2 -translate-y-1/2 right-10 w-48 h-48 bg-amber-500/[0.04] blur-2xl rounded-full" />

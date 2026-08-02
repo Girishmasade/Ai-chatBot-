@@ -61,7 +61,12 @@ app.get("/", (req, res) => {
 })
 
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
-    res.status(404).json({});
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.status(200).json({
+      "workspace": {
+        "root": "/"
+      }
+    });
 })
 
 // FIX: errorHandler is Express error-handling middleware (arity 4:

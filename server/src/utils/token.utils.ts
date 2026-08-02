@@ -75,7 +75,7 @@ export const deleteRefreshToken = async (token: string): Promise<void> => {
   const userId = await redisClient.get(keys.refreshToken(token));
 
   if (userId) {
-    await redisClient.srem(keys.userToken(userId), token); //it's used to remove one item from the set
+    await redisClient.sRem(keys.userToken(userId), token); //it's used to remove one item from the set
   }
 
   await redisClient.del(keys.refreshToken(token));

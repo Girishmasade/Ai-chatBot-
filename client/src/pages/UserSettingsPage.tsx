@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Settings, Globe, Bell, Sliders, Shield, Save, Eye, CheckCircle, Smartphone } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function UserSettingsPage() {
   const [language, setLanguage] = useState("English (US)");
@@ -7,27 +8,16 @@ export default function UserSettingsPage() {
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [telemetry, setTelemetry] = useState(false);
   const [systemLogs, setSystemLogs] = useState(true);
-  const [toastMessage, setToastMessage] = useState("");
 
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 2500);
-  };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    triggerToast("Workspace preferences saved successfully!");
+    toast.success("Workspace preferences saved successfully!");
   };
 
   return (
-    <div className="space-y-8 select-none p-1 text-left relative">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 bg-[#111111] border border-amber-500/20 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-xl z-50 text-xs font-semibold text-amber-500 uppercase tracking-widest flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-amber-500" />
-          {toastMessage}
-        </div>
-      )}
+    <div className="space-y-8  p-1 text-left relative">
+
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden bg-[#111111] border border-[#242424] rounded-2xl p-6 md:p-8">

@@ -19,13 +19,12 @@ const uploadFilesMiddleware = new CloudinaryStorage({
       folder = "media";
     }
 
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+
     return {
       folder,
       resource_type: file.mimetype.startsWith("video") ? "video" : "image",
-      public_id: (req: Request, file: Express.Multer.File) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        return file.fieldname + "-" + uniqueSuffix;
-      },
+      public_id: file.fieldname + "-" + uniqueSuffix,
     };
   },
 });

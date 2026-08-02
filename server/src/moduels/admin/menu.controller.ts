@@ -31,7 +31,7 @@ export const getUserMenuItems = AsyncHandler(async (req: Request, res: Response,
     console.error("Redis read error:", err);
   }
 
-  const items = await MenuItemModel.find({ visible: "User Menu", isActive: true }).sort({ order: 1 }).lean();
+  const items = await MenuItemModel.find({ visible: { $in: ["User Menu", "All"] }, isActive: true }).sort({ order: 1 }).lean();
 
   const mapped = items.map((item) => ({
     id: item._id.toString(),
@@ -41,6 +41,7 @@ export const getUserMenuItems = AsyncHandler(async (req: Request, res: Response,
     visible: item.visible,
     order: item.order,
     isActive: item.isActive,
+    parentId: item.parentId?.toString() || undefined,
   }));
 
   try {
@@ -74,6 +75,7 @@ export const getAdminMenuItems = AsyncHandler(async (req: Request, res: Response
     visible: item.visible,
     order: item.order,
     isActive: item.isActive,
+    parentId: item.parentId?.toString() || undefined,
   }));
 
   try {
@@ -87,7 +89,7 @@ export const getAdminMenuItems = AsyncHandler(async (req: Request, res: Response
 
 export const createMenuItem = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const adminId = (req.user as AuthUser)?.id;
-  const { label, icon, target, visible, order } = req.body;
+  const { label, icon, target, visible, order, parentId } = req.body;
 
   if (!label || !target) {
     return errorHandler(res, 400, false, "Label and target are required", {});
@@ -100,6 +102,7 @@ export const createMenuItem = AsyncHandler(async (req: Request, res: Response, n
     visible: visible || "User Menu",
     order: order || 0,
     isActive: true,
+    parentId: parentId || null,
     createdBy: adminId,
   });
 
@@ -107,6 +110,28 @@ export const createMenuItem = AsyncHandler(async (req: Request, res: Response, n
   emitAdminEntityUpdate({ entityType: "menu", action: "created", data: newItem });
 
   successHandler(res, 201, true, "Menu item created successfully", { data: newItem });
+});
+
+export const getMenuItemById = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const { id } = req.params;
+  const item = await MenuItemModel.findById(id).lean();
+
+  if (!item) {
+    return errorHandler(res, 404, false, "Menu item not found", {});
+  }
+
+  const mapped = {
+    id: item._id.toString(),
+    label: item.label,
+    icon: item.icon,
+    target: item.target,
+    visible: item.visible,
+    order: item.order,
+    isActive: item.isActive,
+    parentId: item.parentId?.toString() || undefined,
+  };
+
+  successHandler(res, 200, true, "Menu item fetched successfully", { data: mapped });
 });
 
 export const updateMenuItem = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
