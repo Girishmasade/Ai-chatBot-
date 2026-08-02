@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build --filter=client",
+  "outputDirectory": "client/dist",
+  "framework": "vite",
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "REDIS_URL": "@redis_url",
+    "HUGGING_FACE_API_KEY": "@hugging_face_key",
+    "GROQ_API_KEY": "@groq_api_key",
+    "PAYUM_KEY": "@payum_key"
+  },
+  "functions": {
+    "server/**": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
