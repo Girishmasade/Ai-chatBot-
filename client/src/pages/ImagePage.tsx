@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Image as ImageIcon, Sparkles, Download, Maximize2, Trash2, Calendar, HardDrive } from "lucide-react";
 import { useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation, useGetModelsQuery } from "../redux/api/apiSlice";
+import { toast } from "react-hot-toast";
 
 export default function ImagePage() {
   const [prompt, setPrompt] = useState("");
@@ -35,12 +36,14 @@ export default function ImagePage() {
 
       const data = await generateImage(formData).unwrap();
       if (data.success) {
+        toast.success("Artwork generated successfully!");
         setPrompt("");
         setImageFile(null);
         setImagePreview(null);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error(e?.data?.message || "Failed to generate image. Please try again.");
     }
   };
 

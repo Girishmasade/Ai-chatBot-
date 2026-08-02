@@ -49,7 +49,6 @@ How can I assist you in optimizing your custom platform development today? Selec
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     setMessages([initialGreet]);
-    textareaRef.current?.focus();
   }, []);
 
   // Auto-scroll to bottom on new messages, unless user has scrolled up
@@ -192,7 +191,7 @@ Here is a structured analysis of your query: **"${prompt}"**
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-1">
+    <div className="flex flex-col h-full p-1">
       {/* Header row: title + clear action (outside scroll area, always visible) */}
       <div className="flex items-center justify-between mb-3 shrink-0">
         <div className="flex items-center gap-2 text-zinc-400">
@@ -388,7 +387,6 @@ Here is a structured analysis of your query: **"${prompt}"**
             </button>
 
             <textarea
-              id="chat-input-field"
               ref={textareaRef}
               rows={1}
               value={input}

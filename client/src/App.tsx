@@ -82,16 +82,11 @@ function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    // Wait for page transition to complete (0.35s) before scrolling
-    const timeout = setTimeout(() => {
-      const mainContainer = document.querySelector("main");
-      if (mainContainer) {
-        mainContainer.scrollTo({ top: 0, behavior: "smooth" });
-      }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 350);
-
-    return () => clearTimeout(timeout);
+    const mainContainer = document.querySelector("main");
+    if (mainContainer) {
+      mainContainer.scrollTo({ top: 0, behavior: "auto" });
+    }
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, [pathname]);
 
   return null;
@@ -218,7 +213,7 @@ function WorkspaceShell({ isAdminSection }: { isAdminSection: boolean }) {
             onRefreshCredits={refreshCredits}
           />
 
-          <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
+          <main className={`flex-1 ${activeScreen === "chat" ? "p-3 md:p-4 overflow-hidden flex flex-col h-full" : "p-6 md:p-8 overflow-y-auto"} custom-scrollbar relative`}>
             <AnimatePresence mode="wait" initial={false}>
               {outlet && (
                 <motion.div
@@ -227,14 +222,14 @@ function WorkspaceShell({ isAdminSection }: { isAdminSection: boolean }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
-                  className="min-h-full flex flex-col justify-between"
+                  className={activeScreen === "chat" ? "h-full flex flex-col" : "min-h-full flex flex-col justify-between"}
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 flex flex-col min-h-0">
                     <Suspense fallback={<PageLoader />}>
                       {outlet}
                     </Suspense>
                   </div>
-                  <AppFooter setActiveScreen={goToScreen} activeScreen={activeScreen} />
+                  {!isAdminSection && activeScreen !== "chat" && <AppFooter setActiveScreen={goToScreen} activeScreen={activeScreen} />}
                 </motion.div>
               )}
             </AnimatePresence>

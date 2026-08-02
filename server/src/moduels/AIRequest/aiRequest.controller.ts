@@ -950,10 +950,30 @@ export const generateImageHandler = AsyncHandler(async (req, res, next) => {
     }
 
     // ── Execute Provider Call ──
-    const serviceConfig = await ServiceConfigModel.findOne({ service: "image_gen", enabled: true }).lean();
-    const providers = serviceConfig?.providers?.filter((p: any) => p.enabled).sort((a: any, b: any) => a.priority - b.priority) || [];
-    const provider = providers[0] || { provider: "huggingface", model: "stabilityai/stable-diffusion-xl-base-1.0" };
-    const modelToUse = modelType || provider.model;
+    let providerName = "huggingface";
+    let modelToUse = modelType || "stabilityai/stable-diffusion-xl-base-1.0";
+
+    const systemModel = await SystemModelModel.findOne({
+      $or: [
+        { version: modelType },
+        { name: modelType },
+        { _id: mongoose.Types.ObjectId.isValid(modelType) ? modelType : null }
+      ],
+      type: "image",
+      status: "active"
+    }).lean();
+
+    if (systemModel) {
+      providerName = (systemModel.provider || "huggingface").toLowerCase();
+      modelToUse = systemModel.version;
+    } else {
+      const serviceConfig = await ServiceConfigModel.findOne({ service: "image_gen", enabled: true }).lean();
+      const providers = serviceConfig?.providers?.filter((p: any) => p.enabled).sort((a: any, b: any) => a.priority - b.priority) || [];
+      if (providers[0]) {
+        providerName = providers[0].provider;
+        modelToUse = modelType || providers[0].model;
+      }
+    }
 
     // Reserve Tokens
     wallet.balance -= estimatedCost;
@@ -971,7 +991,7 @@ export const generateImageHandler = AsyncHandler(async (req, res, next) => {
     }]);
 
     const result = await executeProviderRequest(
-      provider.provider,
+      providerName,
       "",
       { model: modelToUse, prompt: finalPrompt },
       "image_gen"

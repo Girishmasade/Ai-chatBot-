@@ -378,6 +378,36 @@ async function callGemini(
   }
 }
 
+// Internal Pollinations AI fallback helper for zero-key/free image generation
+async function callPollinationsAI(prompt: string, startTime: number): Promise<IProviderResponse> {
+  try {
+    const seed = Math.floor(Math.random() * 1000000);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}&model=flux`;
+    console.log(`[PollinationsAI] Generating image for prompt: "${prompt.substring(0, 50)}..."`);
+    
+    const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) {
+      return errorResponse("PROVIDER_API_ERROR", `Pollinations API returned status ${res.status}`, Date.now() - startTime);
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const mimeType = res.headers.get("content-type") || "image/jpeg";
+    const dataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
+
+    return {
+      success: true,
+      imageUrls: [dataUrl],
+      providerRequestId: `pollinations-${Date.now()}`,
+      usage: emptyUsage(),
+      latencyMs: Date.now() - startTime,
+    };
+  } catch (err: any) {
+    console.error("[PollinationsAI] Error:", err?.message);
+    return errorResponse("PROVIDER_API_ERROR", err?.message || "Image generation failed", Date.now() - startTime);
+  }
+}
+
 // HuggingFace Adapter
 async function callHuggingFace(
   apiKey: string,
@@ -389,50 +419,60 @@ async function callHuggingFace(
     const timeout = getTimeout(service);
     
     // For Chat / Text / Business / Prompt Gen -> Use OpenAI compatibility endpoint if possible
-    if (service === AIService.AI_CHAT || service === AIService.BUSINESS_IDEAS || service === AIService.PROMPT_GEN) {
-        // Many HF text-generation models support the /v1/chat/completions route.
-        // We reuse callOpenAI with the model-specific base URL.
-        return callOpenAI(apiKey, payload, service, `https://api-inference.huggingface.co/models/${payload.model}/v1`);
+    if (service === AIService.AI_CHAT || service === AIService.BUSINESS_IDEAS || service === AIService.PROMPT_GEN || service === "chat") {
+        return callOpenAI(apiKey, payload, service, `https://router.huggingface.co/hf-inference/models/${payload.model}/v1`);
     }
 
-    // For Image / Video Generation -> Use standard HF Inference API returning bytes
-    if (service === AIService.IMAGE_GEN || service === AIService.ASSET_GEN || service === "video_gen") {
-      const url = `https://api-inference.huggingface.co/models/${payload.model}`;
-      
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ inputs: payload.prompt }),
-        signal: AbortSignal.timeout(timeout),
-      });
+    // For Image / Video Generation -> Use standard HF Inference API returning bytes with Pollinations AI fallback
+    if (service === AIService.IMAGE_GEN || service === AIService.ASSET_GEN || service === "video_gen" || service === "image_gen") {
+      if (apiKey) {
+        const urls = [
+          `https://router.huggingface.co/hf-inference/models/${payload.model}`,
+          `https://api-inference.huggingface.co/models/${payload.model}`
+        ];
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        return errorResponse(
-          "PROVIDER_API_ERROR",
-          errorData?.error || "HuggingFace generation failed.",
-          Date.now() - startTime
-        );
+        for (const url of urls) {
+          try {
+            const headers: Record<string, string> = {
+              "Content-Type": "application/json",
+              "x-wait-for-model": "true",
+              "Authorization": `Bearer ${apiKey}`
+            };
+
+            const res = await fetch(url, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({ inputs: payload.prompt }),
+              signal: AbortSignal.timeout(timeout),
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => null);
+              console.warn(`[HuggingFace] ${url} returned ${res.status}: ${errorData?.error || errorData?.message}`);
+              continue;
+            }
+
+            const blob = await res.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const mimeType = blob.type || (service === "video_gen" ? "video/mp4" : "image/jpeg");
+            const dataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
+
+            return {
+              success: true,
+              imageUrls: [dataUrl],
+              providerRequestId: `hf-${Date.now()}`,
+              usage: emptyUsage(),
+              latencyMs: Date.now() - startTime,
+            };
+          } catch (fetchErr: any) {
+            console.warn(`[HuggingFace] Fetch warning for ${url}: ${fetchErr?.message}`);
+          }
+        }
       }
-      
-      // The response is a blob for images/video
-      const blob = await res.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const mimeType = blob.type || (service === "video_gen" ? "video/mp4" : "image/jpeg");
-      const base64 = buffer.toString("base64");
-      const dataUrl = `data:${mimeType};base64,${base64}`;
 
-      return {
-        success: true,
-        imageUrls: [dataUrl],
-        providerRequestId: `hf-${Date.now()}`,
-        usage: emptyUsage(),
-        latencyMs: Date.now() - startTime,
-      };
+      console.log(`[HuggingFace] Falling back to Pollinations AI for prompt: "${payload.prompt.substring(0, 40)}..."`);
+      return callPollinationsAI(payload.prompt, startTime);
     }
     
     return errorResponse("UNSUPPORTED_SERVICE", "Service not supported for HuggingFace", 0);
@@ -459,34 +499,53 @@ async function callHuggingFace(
 // reusing the OpenAI adapter with a different baseUrl is correct and avoids
 // duplicating identical adapter logic.
 
+function getProviderApiKey(providerName: string): string {
+  const name = (providerName || "").toLowerCase();
+  if (name.includes("huggingface")) {
+    return process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN || "";
+  }
+  if (name.includes("openai")) {
+    return process.env.OPENAI_API_KEY || "";
+  }
+  if (name.includes("gemini") || name.includes("google")) {
+    return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+  }
+  if (name.includes("anthropic")) {
+    return process.env.ANTHROPIC_API_KEY || "";
+  }
+  return "";
+}
+
 export async function executeProviderRequest(
   providerName: string,
   apiKey:        string,
   payload:       IProviderRequestPayload,
   service:       string
 ): Promise<IProviderResponse> {
+  const resolvedApiKey = apiKey || getProviderApiKey(providerName);
+
   console.log(
     `[Gateway] Dispatching — provider: ${providerName}, service: ${service}, model: ${payload.model}`
   );
 
   switch (providerName as ProviderName) {
     case ProviderName.OPENAI:
-      return callOpenAI(apiKey, payload, service);
+      return callOpenAI(resolvedApiKey, payload, service);
 
     case ProviderName.ANTHROPIC:
-      return callAnthropic(apiKey, payload, service);
+      return callAnthropic(resolvedApiKey, payload, service);
 
     case ProviderName.GEMINI:
-      return callGemini(apiKey, payload, service);
+      return callGemini(resolvedApiKey, payload, service);
       
     case ProviderName.HUGGINGFACE:
-      return callHuggingFace(apiKey, payload, service);
+      return callHuggingFace(resolvedApiKey, payload, service);
 
     case ProviderName.GROK:
-      return callOpenAI(apiKey, payload, service, PROVIDER_BASE_URLS.GROK);
+      return callOpenAI(resolvedApiKey, payload, service, PROVIDER_BASE_URLS.GROK);
 
     case ProviderName.DEEPSEEK:
-      return callOpenAI(apiKey, payload, service, PROVIDER_BASE_URLS.DEEPSEEK);
+      return callOpenAI(resolvedApiKey, payload, service, PROVIDER_BASE_URLS.DEEPSEEK);
 
     default:
       console.error(`[Gateway] Unknown provider: ${providerName}`);

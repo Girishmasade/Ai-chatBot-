@@ -176,33 +176,51 @@ export default function AppSidebar({
   return (
     <aside className="w-64 bg-[#111111] border-r border-[#242424] flex flex-col h-screen  shrink-0 z-20">
       {/* Brand Header */}
-      <div className="p-6 border-b border-[#1F1F1F] flex items-center justify-between">
+      <div className="p-4 border-b border-[#1F1F1F]">
         <div
           onClick={() => {
             setIsAdminWorkspace(false);
             navigateTo("landing");
           }}
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="cursor-pointer group flex flex-col gap-2"
         >
           {branding?.mainLogo || branding?.logoImage ? (
-            <img 
-              src={branding.mainLogo || branding.logoImage} 
-              alt="Platform Logo" 
-              className="h-8 max-w-[120px] object-contain" 
-            />
+            <div className="flex items-center justify-between gap-2">
+              <img
+                src={branding.mainLogo || branding.logoImage}
+                alt="Platform Logo"
+                className="h-8 max-w-[140px] object-contain object-left"
+              />
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1A1A1A] border border-[#262626] group-hover:border-amber-500/30 transition-colors">
+                <span className={`w-1.5 h-1.5 rounded-full ${isAdminWorkspace ? "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" : "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]"}`} />
+                <span className="text-[8.5px] uppercase tracking-widest text-zinc-400 font-bold whitespace-nowrap">
+                  {isAdminWorkspace ? "Admin Control" : "Platform Elite"}
+                </span>
+              </div>
+            </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/15 group-hover:scale-[1.03] transition duration-300">
-              <span className="text-black font-black text-sm tracking-tighter">GC</span>
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 rounded-xl bg-amber-500/40 blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-300" />
+                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-amber-600 flex items-center justify-center shadow-[0_4px_20px_-2px_rgba(245,158,11,0.45)] ring-1 ring-amber-300/40 group-hover:scale-[1.06] group-hover:-rotate-1 transition-all duration-300">
+                  <span className="text-black font-black text-xs tracking-tighter">GC</span>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <h1 className="text-sm font-bold tracking-tight leading-none truncate">
+                  <span className="text-white">Go</span>
+                  <span className="text-amber-500">Chat</span>
+                  <span className="text-zinc-400 font-semibold"> AI</span>
+                </h1>
+                <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#1A1A1A] border border-[#262626] group-hover:border-amber-500/30 transition-colors">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isAdminWorkspace ? "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]" : "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]"}`} />
+                  <span className="text-[8.5px] uppercase tracking-widest text-zinc-400 font-bold whitespace-nowrap">
+                    {isAdminWorkspace ? "Admin Control" : "Platform Elite"}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
-          <div className="text-left">
-            <h1 className="text-sm font-bold text-white tracking-wider group-hover:text-amber-400 transition">
-              {branding?.appName || branding?.logoName || "GoChat AI"}
-            </h1>
-            <p className="text-[9px] uppercase tracking-widest text-[#71717A] font-semibold">
-              {isAdminWorkspace ? "Admin Control" : "Platform Elite"}
-            </p>
-          </div>
         </div>
       </div>
 
