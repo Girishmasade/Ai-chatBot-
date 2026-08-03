@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, Sparkles, Copy, Check, Trash2, Paperclip, Smile, X, FileText, ArrowDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Picker from "emoji-picker-react";
+import Picker, { Theme } from "emoji-picker-react";
+import theme from "../theme";
 
 interface Message {
   id: string;
@@ -359,7 +360,7 @@ Here is a structured analysis of your query: **"${prompt}"**
           <div ref={pickerRef} className="absolute bottom-16 right-0 z-50 shadow-2xl max-w-[90vw]">
             <Picker
               onEmojiClick={(emojiData) => setInput((prev) => prev + emojiData.emoji)}
-              theme="dark"
+              theme={Theme.DARK}
             />
           </div>
         )}

@@ -225,8 +225,12 @@ export const mockCookieConsents: CookieConsent[] = [
 
 // ─── Branding ────────────────────────────────────────────
 export const mockBranding: BrandingConfig = {
+  appName: "GoChat AI",
   logoName: "GoChat AI",
   logoImage: "",
+  mainLogo: "",
+  favicon: "",
+  mobileLogo: "",
   themeMode: "Black Amber",
   primaryColor: "#F59E0B",
   accentGlow: "rgba(245, 158, 11, 0.15)",

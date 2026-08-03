@@ -22,7 +22,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "User" | "Administrator" | "Developer";
+  role: "User" | "Administrator" | "Developer" | "admin" | "user";
   tier: "free" | "basic" | "pro" | "enterprise";
   credits: number;
   joined: string;
