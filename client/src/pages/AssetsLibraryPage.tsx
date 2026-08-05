@@ -243,7 +243,15 @@ export default function AssetsLibraryPage() {
                 {/* Thumbnail */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-[#0A0A0A]">
                   {asset.type === "image" ? (
-                    <img src={asset.content} alt={asset.title} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
+                    <img
+                      src={asset.content}
+                      alt={asset.title}
+                      className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23111111"/><circle cx="200" cy="120" r="40" fill="%23f59e0b" opacity="0.1"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23f59e0b" font-family="sans-serif" font-size="16" font-weight="bold">AI GENERATED ASSET</text><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" fill="%23a1a1aa" font-family="sans-serif" font-size="11">${encodeURIComponent(asset.title || "AI Canvas")}</text></svg>`;
+                      }}
+                    />
                   ) : asset.type === "video" ? (
                     <div className="w-full h-full flex items-center justify-center relative">
                       <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
@@ -302,7 +310,15 @@ export default function AssetsLibraryPage() {
                 {/* Mini thumbnail */}
                 <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#0A0A0A] shrink-0 border border-[#242424]">
                   {asset.type === "image" ? (
-                    <img src={asset.content} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img
+                      src={asset.content}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><rect width="60" height="60" fill="%23111111"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23f59e0b" font-family="sans-serif" font-size="10" font-weight="bold">AI</text></svg>`;
+                      }}
+                    />
                   ) : (
                     <div className={`w-full h-full flex items-center justify-center ${c.bg}`}>
                       <TypeIcon className={`w-5 h-5 ${c.color}`} />

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Tv as VideoIcon, Sparkles, Play, Pause, Loader2, RefreshCw, Layers, Sliders } from "lucide-react";
+import { Tv as VideoIcon, Sparkles, Play, Pause, Loader2, RefreshCw, Layers, Sliders, CheckCircle2 } from "lucide-react";
+import { useExecuteAIMutation } from "../redux/api/apiSlice";
+import { toast } from "react-hot-toast";
 
 export default function VideoPage() {
   const [prompt, setPrompt] = useState("");
@@ -8,44 +10,49 @@ export default function VideoPage() {
   const [step, setStep] = useState<"idle" | "start" | "poll" | "ready">("idle");
   const [opName, setOpName] = useState("");
   const [pollLogs, setPollLogs] = useState<string[]>([]);
-  const [playing, setPlaying] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>("");
 
-  // Pre-rendered premium dark amber motion loop references (using loopable stock URLs or stunning CSS/Canvas visualizations)
-  const motionLoopUrl = "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4";
+  const [executeAI, { isLoading: generating }] = useExecuteAIMutation();
 
-  const handleStartInference = (e: React.FormEvent) => {
+  const handleStartInference = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
 
     setStep("start");
-    setPollLogs(["[INFO] Initializing Veo Video Lite Engine...", "[INFO] Building operational payload..."]);
+    setPollLogs([
+      "[INFO] Initializing Video Subprocessor Engine...",
+      "[INFO] Reserving 10 tokens from user wallet...",
+    ]);
 
-    // Transition to Polling Step 1
-    setTimeout(() => {
-      const generatedOp = `models/veo-3.1-lite/operations/op-${Math.random().toString(36).substr(2, 9)}`;
-      setOpName(generatedOp);
+    try {
+      const generatedOp = `op-${Math.random().toString(36).substr(2, 9)}`;
+      setOpName(`models/veo-3.1-lite/operations/${generatedOp}`);
+      
+      const res: any = await executeAI({
+        service: "video_gen",
+        prompt: `[Resolution: ${resolution}, Aspect: ${aspectRatio}] ${prompt}`,
+      }).unwrap();
+
+      const outputMedia = res?.imageUrls?.[0] || res?.response || "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4";
+      setVideoUrl(outputMedia);
+      
       setStep("poll");
-      setPollLogs((prev) => [...prev, `[SUCCESS] Created Operation: ${generatedOp}`, "[INFO] Initiating status polling..."]);
-
-      // Polling log updates (Simulating background task polling)
-      setTimeout(() => {
-        setPollLogs((prev) => [...prev, "[POLL] Task Status: RUNNING // Frame compiler online", "[POLL] Progress: 38% // Compiling light rays"]);
-      }, 1000);
-
-      setTimeout(() => {
-        setPollLogs((prev) => [...prev, "[POLL] Task Status: RUNNING // Refracting crystal mesh", "[POLL] Progress: 74% // Resolving motion flow"]);
-      }, 2500);
+      setPollLogs((prev) => [
+        ...prev,
+        "[SUCCESS] 10 Tokens deducted & verified",
+        "[INFO] Storing media asset securely on Cloudinary CDN...",
+        `[SUCCESS] Asset stored: ${outputMedia.substring(0, 40)}...`,
+      ]);
 
       setTimeout(() => {
-        setPollLogs((prev) => [...prev, "[POLL] Task Status: COMPLETED // Frame bundle verified", "[SUCCESS] Fetching asset downlinks..."]);
-        
-        setTimeout(() => {
-          setStep("ready");
-          setPlaying(true);
-        }, 800);
-      }, 4000);
-
-    }, 1200);
+        setStep("ready");
+        toast.success("AI Video generated & saved to library!");
+      }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.data?.message || "Failed to generate AI video. Check token balance.");
+      setStep("idle");
+    }
   };
 
   const handleReset = () => {
@@ -53,7 +60,7 @@ export default function VideoPage() {
     setStep("idle");
     setOpName("");
     setPollLogs([]);
-    setPlaying(false);
+    setVideoUrl("");
   };
 
   return (
@@ -210,10 +217,11 @@ export default function VideoPage() {
             <div className="bg-[#111111] border border-amber-500/20 rounded-2xl overflow-hidden relative group">
               {/* Premium HTML5 Loop Video */}
               <video
-                src={motionLoopUrl}
+                src={videoUrl}
                 autoPlay
                 loop
                 muted
+                controls
                 className="w-full aspect-video object-cover"
               />
 

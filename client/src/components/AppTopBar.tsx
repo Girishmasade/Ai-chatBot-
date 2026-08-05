@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Bell, Search, Award, RefreshCw, Zap, ShieldCheck } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 import { useGetLogsQuery } from "../redux/api/apiSlice";
+import { useGetWalletBalanceQuery } from "../redux/api/tokenApi";
 
 interface AppTopBarProps {
   activeScreen: ActiveScreen;
@@ -17,6 +18,9 @@ export default function AppTopBar({
   onRefreshCredits
 }: AppTopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const { data: walletRes } = useGetWalletBalanceQuery(currentUser.id, { skip: !currentUser.id });
+  const liveBalance = walletRes?.data?.wallet?.balance ?? (walletRes as any)?.wallet?.balance ?? currentUser.credits ?? 200;
 
   // Derive Screen Readable Name
   const getScreenName = () => {
@@ -125,7 +129,7 @@ export default function AppTopBar({
                 Interface Balance
               </p>
               <p className="text-xs font-bold text-white leading-tight font-numbers mt-0.5 flex items-center gap-1">
-                {(currentUser.credits || 200).toLocaleString()} <span className="text-[10px] text-amber-500/80">tokens</span>
+                {liveBalance.toLocaleString()} <span className="text-[10px] text-amber-500/80">tokens</span>
               </p>
             </div>
             {onRefreshCredits && (

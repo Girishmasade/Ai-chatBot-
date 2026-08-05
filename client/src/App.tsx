@@ -165,6 +165,8 @@ function LoginRoute() {
   );
 }
 
+import { initSocket } from "./services/socketService";
+
 // ------------------------------------------------------------------
 //  WORKSPACE SHELL (Layout)
 // ------------------------------------------------------------------
@@ -176,6 +178,12 @@ function WorkspaceShell({ isAdminSection }: { isAdminSection: boolean }) {
   
   const { currentUser, logout, refreshCredits } = useAuth();
   const goToScreen = useScreenNavigate();
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      initSocket(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   const segments = location.pathname.split("/").filter(Boolean);
   const screenParam = segments[1] || (isAdminSection ? "overview" : "dashboard");

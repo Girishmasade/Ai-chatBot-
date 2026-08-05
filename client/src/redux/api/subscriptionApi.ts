@@ -78,6 +78,31 @@ export const subscriptionApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Subscription"],
     }),
+
+    // ── PUT /api/v1/subscription/update-subscription/:subId ─────────────
+    updateSubscriptionPlan: builder.mutation<
+      ApiResponse<{ updatedPlan: SubscriptionPlan }>,
+      { subId: string; [key: string]: any }
+    >({
+      query: ({ subId, ...body }) => ({
+        url: `/subscription/update-subscription/${subId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Subscription"],
+    }),
+
+    // ── DELETE /api/v1/subscription/delete-subscription/:subId ──────────
+    deleteSubscriptionPlan: builder.mutation<
+      ApiResponse<any>,
+      string
+    >({
+      query: (subId) => ({
+        url: `/subscription/delete-subscription/${subId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Subscription"],
+    }),
   }),
 });
 
@@ -89,4 +114,6 @@ export const {
   useLazyGetUserSubscriptionQuery,
   useCancelUserSubscriptionMutation,
   useCreateSubscriptionPlanMutation,
+  useUpdateSubscriptionPlanMutation,
+  useDeleteSubscriptionPlanMutation,
 } = subscriptionApi;

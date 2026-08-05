@@ -161,8 +161,58 @@ export const apiSlice = createApi({
       query: ({ id }) => ({ url: `/admin/assets/${id}`, method: "DELETE" }),
       invalidatesTags: ["Asset"],
     }),
-    generateImage: builder.mutation<{ success: boolean; asset?: AIAsset }, FormData>({
+    generateImage: builder.mutation<any, FormData>({
       query: (body) => ({ url: "/ai-request/generate-image", method: "POST", body }),
+      invalidatesTags: ["Asset", "TokenWallet"],
+    }),
+    executeAI: builder.mutation<
+      { response?: string; content?: string; model?: string; provider?: string; success?: boolean },
+      { service?: string; prompt: string; conversationHistory?: any[]; model?: string }
+    >({
+      query: (body) => ({
+        url: "/ai-request/execute",
+        method: "POST",
+        body: {
+          service: body.service || "ai_chat",
+          prompt: body.prompt,
+          conversationHistory: body.conversationHistory || [],
+          ...(body.model ? { model: body.model } : {}),
+        },
+      }),
+      transformResponse: (res: any) => res.data?.data || res.data || res,
+      invalidatesTags: ["Asset", "TokenWallet"],
+    }),
+    getMyRequests: builder.query<any[], void>({
+      query: () => "/ai-request/my-requests",
+      transformResponse: (res: any) => res.data?.requests || res.data?.items || res.data?.data || res.data || [],
+      providesTags: ["Asset"],
+    }),
+    getChatSessions: builder.query<any[], void>({
+      query: () => "/chat/sessions",
+      transformResponse: (res: any) => res.data?.sessions || res.data || [],
+      providesTags: ["Asset"],
+    }),
+    getChatSessionById: builder.query<any, string>({
+      query: (sessionId) => `/chat/sessions/${sessionId}`,
+      transformResponse: (res: any) => res.data?.session || res.data || res,
+      providesTags: ["Asset"],
+    }),
+    saveChatMessage: builder.mutation<
+      any,
+      { sessionId?: string; title?: string; service?: string; userMessage: string; aiResponse: string; model?: string; provider?: string }
+    >({
+      query: (body) => ({
+        url: "/chat/sessions",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Asset"],
+    }),
+    deleteChatSession: builder.mutation<{ success: boolean }, { sessionId: string }>({
+      query: ({ sessionId }) => ({
+        url: `/chat/sessions/${sessionId}`,
+        method: "DELETE",
+      }),
       invalidatesTags: ["Asset"],
     }),
   }),
@@ -187,4 +237,11 @@ export const {
   useGetAssetsQuery,
   useDeleteAssetMutation,
   useGenerateImageMutation,
+  useExecuteAIMutation,
+  useGetMyRequestsQuery,
+  useGetChatSessionsQuery,
+  useGetChatSessionByIdQuery,
+  useLazyGetChatSessionByIdQuery,
+  useSaveChatMessageMutation,
+  useDeleteChatSessionMutation,
 } = apiSlice;

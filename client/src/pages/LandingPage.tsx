@@ -60,12 +60,12 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             />
           ) : (
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <span className="text-black font-black text-xs">GC</span>
+              {/* <span className="text-black font-black text-xs">GC</span> */}
             </div>
           )}
-          <span className="text-sm font-bold tracking-wider text-white">
-            {branding?.appName || branding?.logoName || "GoChat AI"}
-          </span>
+          {/* <span className="text-sm font-bold tracking-wider text-white">
+            {branding?.appName || branding?.logoName}
+          </span> */}
         </div>
 
         <div className="hidden md:flex items-center gap-8">

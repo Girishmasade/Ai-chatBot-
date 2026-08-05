@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MessageSquare, Send, Sparkles, Copy, Check, Trash2, Paperclip, Smile, X, FileText, ArrowDown } from "lucide-react";
+import { MessageSquare, Send, Sparkles, Copy, Check, Trash2, Paperclip, Smile, X, FileText, ArrowDown, History, Clock, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Picker, { Theme } from "emoji-picker-react";
 import theme from "../theme";
+import {
+  useExecuteAIMutation,
+  useGetMyRequestsQuery,
+  useGetChatSessionsQuery,
+  useLazyGetChatSessionByIdQuery,
+  useSaveChatMessageMutation,
+  useDeleteChatSessionMutation,
+} from "../redux/api/apiSlice";
 
 interface Message {
   id: string;
@@ -17,6 +25,15 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const [executeAI] = useExecuteAIMutation();
+  const { data: requestHistory, isLoading: loadingHistory } = useGetMyRequestsQuery();
+  const { data: chatSessions, isLoading: loadingSessions } = useGetChatSessionsQuery();
+  const [fetchSessionDetails] = useLazyGetChatSessionByIdQuery();
+  const [saveChatMessage] = useSaveChatMessageMutation();
+  const [deleteChatSession] = useDeleteChatSessionMutation();
+
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -114,55 +131,67 @@ How can I assist you in optimizing your custom platform development today? Selec
     setShowPicker(false);
     requestAnimationFrame(() => textareaRef.current?.focus());
 
-    setTimeout(() => {
-      let responseText = `### GoChat AI Intelligence Hub
+    try {
+      const conversationHistory = messages
+        .filter((m) => m.id !== "greet-1")
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text,
+        }));
 
-Thank you for your premium inquiry on GoChat AI.
+      const res = await executeAI({
+        service: "ai_chat",
+        prompt,
+        conversationHistory,
+      }).unwrap();
 
-Here is a structured analysis of your query: **"${prompt}"**
-
-1. **Aesthetic Excellence**: We deliver state-of-the-art text representations designed to match the high-end *Black Amber* philosophy.
-2. **Key Capabilities**:
-   - Advanced semantic reasoning.
-   - Context preservation across nested panels.
-   - High performance sub-100ms response times.
-
-*Note: Running in high-fidelity client-only simulation mode.*`;
-
-      if (prompt.toLowerCase().includes("business") || prompt.toLowerCase().includes("plan")) {
-        responseText = `### Executive Summary: Obsidian Tech Enterprises
-
-**Vision**: To construct high-fidelity premium interfaces combining automated model compilation with a Black Amber executive dashboard.
-
-#### Core Value Pillars
-- **Ultimate Contrast**: 100% true dark-mode compliance using \`#090909\` and \`#F59E0B\` amber overlays.
-- **Micro-interactions**: Fluid transitions via Framer Motion to maximize user dwell times.
-- **Enterprise-Grade CMS**: Self-authoritative model dashboards for live adjustments.
-
-#### Financial Projection (₹ INR)
-- **Year 1 Target**: ₹12.5M
-- **Breakeven Threshold**: Month 4
-- **Operating Margin**: 64%`;
-      } else if (prompt.toLowerCase().includes("layout") || prompt.toLowerCase().includes("design") || prompt.toLowerCase().includes("guideline")) {
-        responseText = `### Luxury UI Design Pillars
-
-1. **Generous White Space**: Luxury is defined by breathing room. Avoid tightly packed, multi-panel arrays. Maintain visual luxury.
-2. **Monochrome Dominance with Warm Highlights**: Stick to near-black backgrounds (#090909) and deep slate containers, using premium Amber Gold (#F59E0B) strictly as a point of focal entry.
-3. **Space Grotesk Typography**: Pair Inter with geometric monospaces or futuristic grots for clean luxury counters and statistics.`;
-      }
+      const aiText = res?.response || res?.content || "No response text received from AI model.";
+      const modelName = res?.model || "AI Model";
 
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: responseText,
-          model: "Gemini 3.5 Flash (Client simulation)",
+          text: aiText,
+          model: modelName,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
+
+      // Save message to MongoDB chat session history
+      try {
+        const savedRes = await saveChatMessage({
+          sessionId: activeSessionId || undefined,
+          service: "ai_chat",
+          userMessage: prompt,
+          aiResponse: aiText,
+          model: modelName,
+          provider: res?.provider || "",
+        }).unwrap();
+
+        if (savedRes?.data?.session?.id) {
+          setActiveSessionId(savedRes.data.session.id);
+        }
+      } catch (saveErr) {
+        console.error("Failed to persist chat to DB:", saveErr);
+      }
+    } catch (err: any) {
+      console.error("AI Request Execution Error:", err);
+      const errMsg = err?.data?.message || err?.message || "Failed to generate AI response. Please check active system models or subscription.";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: `⚠️ **Error**: ${errMsg}`,
+          model: "System Error",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const copyToClipboard = (id: string, text: string) => {
@@ -172,15 +201,37 @@ Here is a structured analysis of your query: **"${prompt}"**
   };
 
   const handleClearChat = () => {
+    setActiveSessionId(null);
     setMessages([
       {
         id: "greet-1",
         sender: "ai",
-        text: `### GoChat AI Platform Central Chat\n\nWorkspace chat cleared successfully. Ready for your next luxurious command.`,
+        text: `### GoChat AI Platform Central Chat\n\nWorkspace chat cleared successfully. Ready for your next command.`,
         model: "Gemini 3.5 Flash",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
+  };
+
+  const handleSelectHistorySession = async (session: any) => {
+    try {
+      setActiveSessionId(session.id);
+      setShowHistoryDrawer(false);
+
+      const detailedSession = await fetchSessionDetails(session.id).unwrap();
+      if (detailedSession && detailedSession.messages) {
+        const loadedMessages: Message[] = detailedSession.messages.map((m: any, idx: number) => ({
+          id: m._id || `msg-${idx}-${Date.now()}`,
+          sender: m.role === "user" ? "user" : "ai",
+          text: m.content,
+          model: m.model || session.lastModel || "AI Model",
+          timestamp: m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
+        }));
+        setMessages(loadedMessages);
+      }
+    } catch (err) {
+      console.error("Failed to load session history:", err);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,15 +250,34 @@ Here is a structured analysis of your query: **"${prompt}"**
           <MessageSquare className="w-4 h-4 text-amber-500" />
           <span className="text-xs font-bold uppercase tracking-widest">GoChat AI</span>
         </div>
-        <button
-          id="chat-btn-clear"
-          onClick={handleClearChat}
-          aria-label="Clear chat log"
-          className="p-1.5 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-rose-500 bg-[#151515] border border-[#242424] hover:border-rose-500/20 transition flex items-center gap-1"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Clear Log
-        </button>
+        <div className="flex items-center gap-2">
+          {activeSessionId && (
+            <button
+              onClick={handleClearChat}
+              className="p-1.5 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition flex items-center gap-1 cursor-pointer"
+            >
+              + New Chat
+            </button>
+          )}
+          <button
+            id="chat-btn-history"
+            onClick={() => setShowHistoryDrawer((v) => !v)}
+            aria-label="Toggle chat history"
+            className="p-1.5 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-zinc-300 hover:text-amber-500 bg-[#151515] border border-[#242424] hover:border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <History className="w-3.5 h-3.5 text-amber-500" />
+            History
+          </button>
+          <button
+            id="chat-btn-clear"
+            onClick={handleClearChat}
+            aria-label="Clear chat log"
+            className="p-1.5 px-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-rose-500 bg-[#151515] border border-[#242424] hover:border-rose-500/20 transition flex items-center gap-1 cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Clear Log
+          </button>
+        </div>
       </div>
 
       {/* Suggestions strip */}
@@ -415,6 +485,87 @@ Here is a structured analysis of your query: **"${prompt}"**
           </button>
         </div>
       </form>
+
+      {/* Chat History Slide-Out Drawer */}
+      {showHistoryDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity">
+          <div className="w-full max-w-md bg-[#111111] border-l border-[#242424] h-full flex flex-col p-5 shadow-2xl animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-[#242424]">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-amber-500" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-200">AI Request History</h3>
+              </div>
+              <button
+                onClick={() => setShowHistoryDrawer(false)}
+                aria-label="Close history drawer"
+                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-[#1C1C1E] transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-4 space-y-3 custom-scrollbar">
+              {loadingSessions ? (
+                <div className="text-center py-10 text-xs text-zinc-500 flex items-center justify-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500 animate-spin" />
+                  Loading persistent chat history...
+                </div>
+              ) : !chatSessions || chatSessions.length === 0 ? (
+                <div className="text-center py-12 text-xs text-zinc-500">
+                  No saved chat threads found in database.
+                </div>
+              ) : (
+                chatSessions.map((session: any) => {
+                  const dateStr = session.updatedAt ? new Date(session.updatedAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "";
+                  const isActive = session.id === activeSessionId;
+
+                  return (
+                    <div
+                      key={session.id}
+                      className={`p-3.5 bg-[#151515] border rounded-xl cursor-pointer transition group relative ${
+                        isActive ? "border-amber-500 bg-amber-500/5" : "border-[#242424] hover:border-amber-500/40"
+                      }`}
+                      onClick={() => handleSelectHistorySession(session)}
+                    >
+                      <div className="flex items-center justify-between mb-1.5 pr-6">
+                        <span className="text-[10px] font-mono text-amber-500 font-bold uppercase flex items-center gap-1">
+                          <Bot className="w-3 h-3 text-amber-500" />
+                          {session.lastModel || "AI Model"}
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-500">{dateStr}</span>
+                      </div>
+                      <h4 className="text-xs font-semibold text-zinc-200 group-hover:text-white truncate">
+                        {session.title || "Conversation Thread"}
+                      </h4>
+                      {session.lastSnippet && (
+                        <p className="text-[10px] text-zinc-400 line-clamp-1 mt-1">
+                          {session.lastSnippet}
+                        </p>
+                      )}
+                      <div className="mt-2 flex items-center justify-between text-[9px] font-mono text-zinc-500">
+                        <span className="uppercase text-zinc-400">{session.service || "ai_chat"}</span>
+                        <span className="text-amber-500 font-semibold">{session.messageCount || 0} msgs</span>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteChatSession({ sessionId: session.id });
+                          if (activeSessionId === session.id) setActiveSessionId(null);
+                        }}
+                        aria-label="Delete thread"
+                        className="absolute top-3 right-3 text-zinc-600 hover:text-rose-500 opacity-60 hover:opacity-100 transition p-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

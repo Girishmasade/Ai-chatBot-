@@ -220,6 +220,9 @@ export default function ImagePage() {
                       alt={asset.title}
                       className="object-cover w-full h-full transition duration-500 group-hover:scale-105"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23111111"/><circle cx="200" cy="160" r="50" fill="%23f59e0b" opacity="0.1"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23f59e0b" font-family="sans-serif" font-size="18" font-weight="bold">AI GENERATED ASSET</text><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" fill="%23a1a1aa" font-family="sans-serif" font-size="12">${encodeURIComponent(asset.title || "AI Canvas")}</text></svg>`;
+                      }}
                     />
 
                     {/* Overlay Actions */}

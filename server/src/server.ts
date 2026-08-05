@@ -1,5 +1,4 @@
 import { app, server } from "./socket/socket.js";
-import { PORT } from "./env/env.import.js";
 import redisClient from "./config/redis.config.js";
 import { errorHandler } from "./middlewares/globslError.middleware.js";
 import { connectDb } from "./config/db.config.js";
@@ -13,10 +12,14 @@ import cookieParser from "cookie-parser";
 import { allowedCorsType } from "./config/cors.config.js";
 import { startWorkers, shutdownWorkers } from "./redis/worker/index.js";
 import { registerRepeatableJobs, closeAllQueues } from "./redis/scheduler/index.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-app.use(express.json()) // for parsing application/json
-app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
-app.use(cookieParser()); // for parsing cookies (refresh token)
+const PORT = Number(process.env.PORT) || 5500;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 const corsOptions = {
   origin: (origin: any, callback: any) => {
@@ -33,11 +36,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// FIX: session() was previously registered twice — once here with the real
-// secret/cookie flags, and a second time further down with a hardcoded
-// secret and no cookie options. Express applies middleware in registration
-// order, so the second call was silently overwriting the first's
-// `secure`/`sameSite`/`httpOnly` config on every request. Kept this one only.
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-secret-key",
@@ -51,54 +49,48 @@ app.use(
   })
 );
 
-app.use(passport.initialize()); // initialize passport
-// app.use(passport.session()); // initialize session
+app.use(passport.initialize());
 
-app.use("/api/v1", RouterFile)
+app.use("/api/v1", RouterFile);
 
 app.get("/", (req, res) => {
-    res.send("Hello World!")
-})
+  res.send("Hello World!");
+});
 
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.status(200).json({
-      "workspace": {
-        "root": "/"
-      }
-    });
-})
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.status(200).json({
+    workspace: {
+      root: "/",
+    },
+  });
+});
 
-// FIX: errorHandler is Express error-handling middleware (arity 4:
-// (err, req, res, next)). Express only routes an error into a 4-arg
-// middleware that comes AFTER the route where it was thrown/passed to
-// next(err). It was previously registered before `app.use("/api/v1", ...)`,
-// so it could never actually catch any error your routes produced — it must
-// be the LAST `app.use()` call.
-app.use(errorHandler)
+app.use(errorHandler);
 
-server.listen(PORT, async () => {
-  console.log(`Server is running on port http://localhost:${PORT}`)
+server.listen(PORT, "0.0.0.0", async () => {
+  console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
 
-  // BullMQ workers start consuming as soon as their modules are imported;
-  // startWorkers() is just the explicit, visible boot signal for that.
-  startWorkers();
-  await registerRepeatableJobs();
-})
+  try {
+    startWorkers();
+    await registerRepeatableJobs();
+  } catch (err) {
+    console.error("[BullMQ] Initialization error:", err);
+  }
+});
 
-redisClient.connect()
+redisClient.connect().catch((err) => {
+  console.error("[Redis] Connection error:", err);
+});
 
-// database config
-connectDb()
+connectDb();
 
-// cloudinary config
-configCloud();
+try {
+  configCloud();
+} catch (err) {
+  console.error("[Cloudinary] Config error:", err);
+}
 
-/**
- * Graceful shutdown: stop accepting new work and let in-flight BullMQ jobs
- * finish (or return to the queue) instead of being killed mid-run, then
- * close queue connections and the HTTP server.
- */
 async function gracefulShutdown(signal: string): Promise<void> {
   console.log(`[server] ${signal} received — shutting down gracefully`);
   try {

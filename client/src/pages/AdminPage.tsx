@@ -48,7 +48,12 @@ import {
   useGetConfigQuery,
   useUpdateBrandingMutation
 } from "../redux/api/apiSlice";
-import { useCreateSubscriptionPlanMutation, useGetSubscriptionPlansQuery } from "../redux/api/subscriptionApi";
+import {
+  useCreateSubscriptionPlanMutation,
+  useUpdateSubscriptionPlanMutation,
+  useDeleteSubscriptionPlanMutation,
+  useGetSubscriptionPlansQuery
+} from "../redux/api/subscriptionApi";
 import {
   useGetAdminMenuItemsQuery,
   useCreateMenuItemMutation,
@@ -191,7 +196,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [menuFilter, setMenuFilter] = useState<"All" | "User Menu" | "Admin Menu">("All");
 
   // Subscription Plan Form
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+  const [updateSubscriptionPlan, { isLoading: isUpdatingPlan }] = useUpdateSubscriptionPlanMutation();
+  const [deleteSubscriptionPlan, { isLoading: isDeletingPlan }] = useDeleteSubscriptionPlanMutation();
+
   const [planForm, setPlanForm] = useState({
+    id: "",
     name: "",
     plan: "free",
     price: 0,
@@ -452,7 +462,22 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     }
   };
 
-  // SUBSCRIPTION PLAN CREATE
+  // SUBSCRIPTION PLAN OPERATIONS
+  const handleEditPlanClick = (plan: any) => {
+    setPlanForm({
+      id: plan._id || plan.id,
+      name: plan.name || "",
+      plan: plan.plan || "free",
+      price: plan.price || 0,
+      description: plan.description || "",
+      tokens: plan.tokens || 100,
+      durationInDays: plan.durationInDays || 30,
+      isActive: plan.isActive !== undefined ? plan.isActive : true
+    });
+    setPlanServices(plan.services || []);
+    setIsPlanCreateOpen(true);
+  };
+
   const handleCreatePlan = async () => {
     try {
       const payload = {
@@ -466,16 +491,42 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         isActive: planForm.isActive,
         createdBy: authUser?.id || ""
       };
-      const result = await createSubscriptionPlan(payload).unwrap();
-      if (result.success) {
-        toast.success("Subscription plan created successfully");
-        setIsPlanCreateOpen(false);
-        setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
-        setPlanServices([]);
-        setServiceInput("");
+
+      if (planForm.id) {
+        const result = await updateSubscriptionPlan({ subId: planForm.id, ...payload }).unwrap();
+        if (result.success) {
+          toast.success("Subscription plan updated successfully");
+          setIsPlanCreateOpen(false);
+          setPlanForm({ id: "", name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+          setPlanServices([]);
+          setServiceInput("");
+        }
+      } else {
+        const result = await createSubscriptionPlan(payload).unwrap();
+        if (result.success) {
+          toast.success("Subscription plan created successfully");
+          setIsPlanCreateOpen(false);
+          setPlanForm({ id: "", name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+          setPlanServices([]);
+          setServiceInput("");
+        }
       }
     } catch (e: any) {
-      toast.error(e?.data?.message || "Failed to create plan");
+      toast.error(e?.data?.message || "Failed to save plan");
+      console.error(e);
+    }
+  };
+
+  const handleDeletePlanConfirm = async () => {
+    if (!deletePlanId) return;
+    try {
+      const result = await deleteSubscriptionPlan(deletePlanId).unwrap();
+      if (result.success) {
+        toast.success("Subscription plan deleted successfully");
+        setDeletePlanId(null);
+      }
+    } catch (e: any) {
+      toast.error(e?.data?.message || "Failed to delete plan");
       console.error(e);
     }
   };
@@ -811,7 +862,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
               <button
                 id="admin-btn-create-plan"
                 onClick={() => {
-                  setPlanForm({ name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
+                  setPlanForm({ id: "", name: "", plan: "free", price: 0, description: "", tokens: 100, durationInDays: 30, isActive: true });
                   setPlanServices([]);
                   setServiceInput("");
                   setIsPlanCreateOpen(true);
@@ -830,15 +881,31 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {dbPlans.map((plan: any) => (
                   <div
-                    key={plan._id}
+                    key={plan._id || plan.id}
                     className="p-4 bg-[#161616] border border-[#242424] rounded-xl flex flex-col justify-between space-y-3 text-left hover:border-amber-500/30 transition"
                   >
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <h5 className="text-xs font-bold text-white">{plan.name}</h5>
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${plan.isActive ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-zinc-800 text-zinc-500"}`}>
-                          {plan.isActive ? "Active" : "Disabled"}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${plan.isActive ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-zinc-800 text-zinc-500"}`}>
+                            {plan.isActive ? "Active" : "Disabled"}
+                          </span>
+                          <button
+                            onClick={() => handleEditPlanClick(plan)}
+                            className="p-1.5 text-zinc-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition"
+                            title="Edit Plan"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletePlanId(plan._id || plan.id)}
+                            className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition"
+                            title="Delete Plan"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-[10px] text-zinc-500 line-clamp-2">{plan.description}</p>
                     </div>
@@ -1811,12 +1878,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         </div>
       </CommonModal>
 
-      {/* MODAL: CREATE SUBSCRIPTION PLAN */}
+      {/* MODAL: CREATE / EDIT SUBSCRIPTION PLAN */}
       <CommonModal
         isOpen={isPlanCreateOpen}
         onClose={() => setIsPlanCreateOpen(false)}
-        title="Create Subscription Plan"
-        confirmText={isCreatingPlan ? "Creating..." : "Create Plan"}
+        title={planForm.id ? "Edit Subscription Plan" : "Create Subscription Plan"}
+        confirmText={planForm.id ? (isUpdatingPlan ? "Updating..." : "Update Plan") : (isCreatingPlan ? "Creating..." : "Create Plan")}
         onConfirm={handleCreatePlan}
       >
         <div className="space-y-4 text-left">
@@ -1995,6 +2062,17 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
           </div>
         </div>
       </CommonModal>
+
+      {/* CONFIRM MODAL: DELETE SUBSCRIPTION PLAN */}
+      <ConfirmModal
+        isOpen={Boolean(deletePlanId)}
+        onClose={() => setDeletePlanId(null)}
+        title="Delete Subscription Plan"
+        message="Are you sure you want to delete this subscription plan? Plans with active subscribers will be protected from deletion."
+        confirmText={isDeletingPlan ? "Deleting..." : "Delete Plan"}
+        variant="danger"
+        onConfirm={handleDeletePlanConfirm}
+      />
     </div>
   );
 }
