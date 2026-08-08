@@ -2,15 +2,16 @@ import { io, Socket } from "socket.io-client";
 import { toast } from "react-hot-toast";
 import { store } from "../redux/store";
 import { tokenApi } from "../redux/api/tokenApi";
+import { env } from "@/src/config/envImport";
 
 let socket: Socket | null = null;
 
 export const initSocket = (userId?: string, token?: string) => {
   if (socket && socket.connected) return socket;
 
-  const serverUrl = window.location.hostname === "localhost" 
+  const serverUrl = env.API_URL || (window.location.hostname === "localhost" 
     ? "http://localhost:5500" 
-    : window.location.origin;
+    : "https://ai-chatbot-backend-vwsr.onrender.com");
 
   socket = io(serverUrl, {
     auth: {
