@@ -1,11 +1,12 @@
-import React from "react";
-import { motion } from "motion/react";
+import React, { useState, useEffect } from "react";
+import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "motion/react";
 import {
   Sparkles,
   Zap,
   Cpu,
   Lock,
   ArrowRight,
+  ArrowUp,
   TrendingUp,
   MessageSquare,
   Image as ImageIcon,
@@ -36,6 +37,34 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
   const { data: configData } = useGetConfigQuery();
   const branding = configData?.branding || (configData as any)?.data?.branding;
 
+  // Scroll Progress and Scroll State Tracking
+  const { scrollYProgress, scrollY } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = scrollY.on("change", (latest) => {
+      setIsScrolled(latest > 40);
+      setShowScrollTop(latest > 350);
+    });
+    return () => unsubscribe();
+  }, [scrollY]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Parallax Scroll Transformations
+  const heroOrbY = useTransform(scrollYProgress, [0, 0.4], [0, 90]);
+  const heroOrbOpacity = useTransform(scrollYProgress, [0, 0.35], [1, 0.35]);
+  const bgGradientY = useTransform(scrollYProgress, [0, 1], [0, 250]);
+
   // Stagger animation helpers
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -48,37 +77,54 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
   } as const;
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } }
   } as const;
 
   return (
-    <div className="min-h-screen bg-[#090909] text-white flex flex-col selection:bg-amber-500 selection:text-black overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#090909] text-white flex flex-col selection:bg-amber-500 selection:text-black overflow-x-hidden relative scroll-smooth">
+      {/* Scroll Progress Bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300 z-50 origin-left shadow-[0_0_12px_rgba(245,158,11,0.8)]"
+        style={{ scaleX }}
+      />
+
       {/* 3D Background Canvas */}
       <Background3D />
 
-      {/* Background vector gradient accents */}
-      <div className="absolute top-0 left-0 right-0 h-[700px] bg-gradient-to-b from-amber-500/[0.06] via-transparent to-transparent pointer-events-none z-0" />
+      {/* Background vector gradient accents with parallax shift */}
+      <motion.div
+        style={{ y: bgGradientY }}
+        className="absolute top-0 left-0 right-0 h-[700px] bg-gradient-to-b from-amber-500/[0.06] via-transparent to-transparent pointer-events-none z-0"
+      />
       <div className="absolute top-[15%] left-[-10%] w-[600px] h-[600px] bg-amber-500/[0.02] rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="absolute bottom-[20%] right-[-10%] w-[650px] h-[650px] bg-amber-500/[0.025] rounded-full blur-[160px] pointer-events-none z-0" />
 
-      {/* Landing Navbar */}
-      <nav className="border-b border-[#1F1F1F]/70 backdrop-blur-xl sticky top-0 z-40 bg-[#090909]/85 h-16 flex items-center justify-between px-6 md:px-12">
+      {/* Dynamic Landing Navbar */}
+      <nav
+        className={`border-b sticky top-0 z-40 h-16 flex items-center justify-between px-6 md:px-12 transition-all duration-300 ${
+          isScrolled
+            ? "bg-[#090909]/90 backdrop-blur-2xl border-amber-500/20 shadow-xl shadow-amber-500/5"
+            : "bg-[#090909]/60 backdrop-blur-md border-[#1F1F1F]/70"
+        }`}
+      >
         <div className="flex items-center gap-3">
           {branding?.mainLogo || branding?.logoImage ? (
             <img 
               src={branding.mainLogo || branding.logoImage} 
-              alt="Brand Logo" 
-              className="h-8 max-w-[130px] object-contain" 
+              alt={branding?.appName || "Brand Logo"} 
+              className="h-8 max-w-[160px] object-contain" 
             />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              <Sparkles className="w-4 h-4 text-black" />
-            </div>
+            <>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Sparkles className="w-4 h-4 text-black" />
+              </div>
+              <span className="text-sm font-extrabold tracking-wider text-white hidden sm:inline-block">
+                {branding?.appName || branding?.logoName || "GoChat AI"}
+              </span>
+            </>
           )}
-          <span className="text-sm font-extrabold tracking-wider text-white hidden sm:inline-block">
-            {branding?.appName || branding?.logoName || "GoChat AI"}
-          </span>
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-xs font-semibold">
@@ -96,7 +142,7 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
         <button
           id="landing-nav-btn-enter"
           onClick={onEnterApp}
-          className="px-4 py-2 text-xs font-extrabold text-black bg-amber-500 hover:bg-amber-400 rounded-xl transition duration-250 flex items-center gap-2 shadow-lg shadow-amber-500/20"
+          className="px-4 py-2 text-xs font-extrabold text-black bg-amber-500 hover:bg-amber-400 rounded-xl transition duration-250 flex items-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95"
         >
           Enter Workspace
           <ArrowRight className="w-3.5 h-3.5" />
@@ -154,7 +200,7 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             </a>
           </motion.div>
 
-          {/* Key Performance Stats (NO PRICING) */}
+          {/* Key Performance Stats */}
           <motion.div
             variants={itemVariants}
             className="grid grid-cols-3 gap-6 pt-8 border-t border-[#1F1F1F]"
@@ -174,8 +220,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
           </motion.div>
         </motion.div>
 
-        {/* 3D Orb Interactive Simulator Stage */}
+        {/* 3D Orb Interactive Simulator Stage with Scroll Parallax */}
         <motion.div
+          style={{ y: heroOrbY, opacity: heroOrbOpacity }}
           initial={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, ease: "easeOut" }}
@@ -221,21 +268,49 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
         </motion.div>
       </section>
 
-      {/* 3D Workbench Interactive Sandbox */}
-      <div id="workbench">
+      {/* 3D Workbench Interactive Sandbox - Scroll Reveal */}
+      <motion.div
+        id="workbench"
+        initial={{ opacity: 0, y: 60 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.15 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
         <Interactive3DShowcase />
-      </div>
+      </motion.div>
 
-      {/* Branching Services Tree UI */}
-      <div id="features" className="bg-[#0C0C0C]/80 border-y border-[#1F1F1F]/80 backdrop-blur-md">
+      {/* Branching Services Tree UI - Scroll Reveal */}
+      <motion.div
+        id="features"
+        initial={{ opacity: 0, y: 60 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.15 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="bg-[#0C0C0C]/80 border-y border-[#1F1F1F]/80 backdrop-blur-md"
+      >
         <BranchingServicesTree />
-      </div>
+      </motion.div>
 
-      {/* Luxury Design Philosophy & Telemetry Section */}
-      <section id="luxury-design" className="py-24 max-w-7xl mx-auto px-6 md:px-12 z-10 relative">
+      {/* Luxury Design Philosophy & Telemetry Section - Scroll Reveal */}
+      <motion.section
+        id="luxury-design"
+        initial={{ opacity: 0, y: 60 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.15 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="py-24 max-w-7xl mx-auto px-6 md:px-12 z-10 relative"
+      >
         <div className="flex flex-col lg:flex-row items-center gap-14">
           <div className="flex-1 space-y-6 text-left">
-            <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Luxury Design & Architecture</h2>
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: false }}
+              transition={{ duration: 0.5 }}
+              className="text-xs font-bold text-amber-500 uppercase tracking-widest"
+            >
+              Luxury Design & Architecture
+            </motion.h2>
             <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug">
               Obsidian Grayscale With Signature Warm Amber Highlights
             </h3>
@@ -244,29 +319,49 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-              <Tilt3DCard maxTilt={10}>
-                <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
-                  <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
-                    <Shield className="w-4 h-4" />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <Tilt3DCard maxTilt={10}>
+                  <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
+                    <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white">Privacy & Security Compliance</h4>
+                    <p className="text-[11px] text-zinc-500">Robust admin controls and zero third-party data tracking.</p>
                   </div>
-                  <h4 className="text-xs font-bold text-white">Privacy & Security Compliance</h4>
-                  <p className="text-[11px] text-zinc-500">Robust admin controls and zero third-party data tracking.</p>
-                </div>
-              </Tilt3DCard>
+                </Tilt3DCard>
+              </motion.div>
 
-              <Tilt3DCard maxTilt={10}>
-                <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
-                  <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
-                    <Cpu className="w-4 h-4" />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Tilt3DCard maxTilt={10}>
+                  <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
+                    <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
+                      <Cpu className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white">Edge Accelerated Telemetry</h4>
+                    <p className="text-[11px] text-zinc-500">Server-side proxy routes shield secret parameters.</p>
                   </div>
-                  <h4 className="text-xs font-bold text-white">Edge Accelerated Telemetry</h4>
-                  <p className="text-[11px] text-zinc-500">Server-side proxy routes shield secret parameters.</p>
-                </div>
-              </Tilt3DCard>
+                </Tilt3DCard>
+              </motion.div>
             </div>
           </div>
 
-          <div className="flex-1 w-full">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: false, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+            className="flex-1 w-full"
+          >
             <Tilt3DCard maxTilt={8}>
               <div className="bg-[#111111] border border-[#1F1F1F] rounded-2xl p-7 relative shadow-2xl">
                 <div className="flex items-center justify-between mb-6 border-b border-[#1F1F1F] pb-4">
@@ -304,12 +399,18 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
                 </div>
               </div>
             </Tilt3DCard>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* 3D Launch Banner Section */}
-      <section className="py-16 max-w-7xl mx-auto px-6 md:px-12 w-full z-10 relative">
+      {/* 3D Launch Banner Section - Scroll Reveal */}
+      <motion.section
+        initial={{ opacity: 0, scale: 0.95, y: 50 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.25 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="py-16 max-w-7xl mx-auto px-6 md:px-12 w-full z-10 relative"
+      >
         <Tilt3DCard maxTilt={6}>
           <div className="relative rounded-3xl bg-gradient-to-r from-[#141414] via-[#1A1812] to-[#141414] border border-amber-500/30 p-8 sm:p-14 overflow-hidden text-center space-y-6 shadow-2xl shadow-amber-500/10">
             <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -339,7 +440,7 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             </div>
           </div>
         </Tilt3DCard>
-      </section>
+      </motion.section>
 
       {/* Footer CMS Section */}
       <footer className="border-t border-[#1F1F1F] bg-[#0C0C0C] py-12 px-6 md:px-12 mt-auto z-10 relative">
@@ -366,6 +467,25 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
           </div>
         </div>
       </footer>
+
+      {/* Floating Back-To-Top Scroll Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            id="scroll-to-top-btn"
+            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.5, y: 20 }}
+            whileHover={{ scale: 1.1, boxShadow: "0 0 20px rgba(245, 158, 11, 0.4)" }}
+            whileTap={{ scale: 0.9 }}
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 z-50 p-3.5 rounded-full bg-[#111111]/90 border border-amber-500/40 text-amber-400 backdrop-blur-md shadow-2xl transition duration-300 flex items-center justify-center group"
+            title="Scroll to top"
+          >
+            <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
