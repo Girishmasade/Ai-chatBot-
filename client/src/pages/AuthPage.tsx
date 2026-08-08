@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-hot-toast";
 import {
   Mail,
   Lock,
@@ -101,7 +102,9 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || (isSignup && !name.trim())) {
-      setErrorMessage("Please complete all required fields.");
+      const msg = "Please complete all required fields.";
+      setErrorMessage(msg);
+      toast.error(msg, { id: "single-app-error-toast" });
       return;
     }
 
@@ -114,26 +117,32 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
         const result = await registerMutation({ username: name, email }).unwrap();
         if (result.success) {
           const devOtp = (result.data as any)?.otp;
-          setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "Account created. OTP sent to your email."));
+          const msg = devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "Account created. OTP sent to your email.");
+          setSuccessMessage(msg);
+          toast.success(msg);
           setOtpSent(true);
           setTimer(60);
         } else {
-          setErrorMessage(result.message || "Registration failed.");
+          const msg = result.message || "Registration failed.";
+          setErrorMessage(msg);
         }
       } else {
         // Login → backend sends OTP email
         const result = await loginMutation({ email }).unwrap();
         if (result.success) {
           const devOtp = (result.data as any)?.otp;
-          setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "OTP sent to your email."));
+          const msg = devOtp ? `OTP: ${devOtp} (Dev Mode)` : (result.message || "OTP sent to your email.");
+          setSuccessMessage(msg);
+          toast.success(msg);
           setOtpSent(true);
           setTimer(60);
         } else {
-          setErrorMessage(result.message || "Login failed.");
+          const msg = result.message || "Login failed.";
+          setErrorMessage(msg);
         }
       }
     } catch (err: any) {
-      const apiError = err?.data?.message || err?.message || "Something went wrong.";
+      const apiError = err?.data?.message || err?.error || err?.message || "Something went wrong.";
       setErrorMessage(apiError);
     }
   };
@@ -142,7 +151,9 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (userInputOtp.length !== 6) {
-      setErrorMessage("Please enter the complete 6-digit code.");
+      const msg = "Please enter the complete 6-digit code.";
+      setErrorMessage(msg);
+      toast.error(msg, { id: "single-app-error-toast" });
       return;
     }
 
@@ -152,15 +163,17 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
       const result = await verifyOtpMutation({ email, otp: userInputOtp }).unwrap();
       if (result.success && result.data) {
         setSuccessMessage("Verifying cryptographic signature... Access Granted!");
+        toast.success("Login successful! Redirecting...");
         // Auth state is auto-set via extraReducers in authSlice
         setTimeout(() => {
           onLoginSuccess(result.data.user.email, result.data.user.username);
         }, 800);
       } else {
-        setErrorMessage(result.message || "OTP verification failed.");
+        const msg = result.message || "OTP verification failed.";
+        setErrorMessage(msg);
       }
     } catch (err: any) {
-      const apiError = err?.data?.message || err?.message || "Invalid OTP code.";
+      const apiError = err?.data?.message || err?.error || err?.message || "Invalid OTP code.";
       setErrorMessage(apiError);
     }
   };
@@ -175,13 +188,16 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
       if (result.success) {
         setTimer(60);
         const devOtp = (result.data as any)?.otp;
-        setSuccessMessage(devOtp ? `OTP: ${devOtp} (Dev Mode)` : "OTP resent successfully.");
+        const msg = devOtp ? `OTP: ${devOtp} (Dev Mode)` : "OTP resent successfully.";
+        setSuccessMessage(msg);
+        toast.success(msg);
         setUserInputOtp("");
       } else {
-        setErrorMessage(result.message || "Failed to resend OTP.");
+        const msg = result.message || "Failed to resend OTP.";
+        setErrorMessage(msg);
       }
     } catch (err: any) {
-      const apiError = err?.data?.message || err?.message || "Failed to resend OTP.";
+      const apiError = err?.data?.message || err?.error || err?.message || "Failed to resend OTP.";
       setErrorMessage(apiError);
     }
   };

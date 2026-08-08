@@ -10,7 +10,7 @@ import {
   useOutlet
 } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 
 // Types & Hooks
 import { ActiveScreen } from "./types";
@@ -101,21 +101,29 @@ function LandingRoute() {
   const location = useLocation();
   const { isAuthenticated, setAuth } = useAuth();
   const goToScreen = useScreenNavigate();
+  const processedTokenRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
-    if (token) {
+    if (token && processedTokenRef.current !== token) {
+      processedTokenRef.current = token;
+      // Strip token from browser address bar immediately to prevent infinite error loops
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       try {
-        const base64Url = token.split('.')[1];
+        const parts = token.split('.');
+        if (parts.length < 2) {
+          throw new Error("Invalid JWT string structure");
+        }
+        const base64Url = parts[1];
         let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        // Pad with '=' to make the length a multiple of 4
         const pad = base64.length % 4;
         if (pad) {
           if (pad === 1) {
             throw new Error('InvalidLengthError: Input base64url string is the wrong length to determine padding');
           }
-          base64 += new Array(5 - pad).join('=');
+          base64 += '='.repeat(4 - pad);
         }
         
         const jsonPayload = decodeURIComponent(
@@ -136,10 +144,11 @@ function LandingRoute() {
 
         setAuth(token, user);
         
-        // Remove token from URL and go to dashboard
+        // Go to dashboard
         navigate("/app/dashboard", { replace: true });
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to parse token", e);
+        toast.error("Failed to authenticate session token.", { id: "single-app-error-toast" });
       }
     }
   }, [location.search, navigate, setAuth]);
@@ -308,6 +317,25 @@ function BrandingSync() {
 // ------------------------------------------------------------------
 
 export default function App() {
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      let message = "An unexpected background error occurred.";
+      if (typeof reason === "string") {
+        message = reason;
+      } else if (reason?.message && typeof reason.message === "string") {
+        message = reason.message;
+      }
+      if (!message.includes("ResizeObserver") && !message.includes("canceled") && !message.includes("Aborted")) {
+        toast.error(message, { id: `unhandled-${message}` });
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, []);
   return (
     <BrowserRouter>
       <BrandingSync />

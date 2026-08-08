@@ -66,6 +66,15 @@ export const initSocket = (userId?: string, token?: string) => {
     }
   });
 
+  socket.on("connect_error", (err) => {
+    console.warn("⚡ Socket connection error:", err.message);
+  });
+
+  socket.on("error", (err: any) => {
+    const errorMsg = typeof err === "string" ? err : err?.message || "Real-time connection error";
+    toast.error(`Socket Error: ${errorMsg}`, { id: "single-app-error-toast" });
+  });
+
   socket.on("disconnect", () => {
     console.log("⚡ Socket disconnected");
   });

@@ -68,9 +68,8 @@ app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
 
 app.use(errorHandler);
 
-// ✅ CORRECT - uses the Socket.io-wrapped server
-server.listen(PORT, "0.0.0.0", async () => {
-  console.log(`✅ Server listening on 0.0.0.0:${PORT}`);
+server.listen(PORT, async () => {
+  console.log(`✅ Server listening on port ${PORT}`);
 
   try {
     startWorkers();
@@ -84,10 +83,8 @@ redisClient.connect().catch((err) => {
   console.error("[Redis] Connection error:", err);
 });
 
-// database config
 connectDb();
 
-// cloudinary config
 try {
   configCloud();
 } catch (err) {

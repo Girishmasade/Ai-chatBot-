@@ -11,9 +11,19 @@ import {
   Image as ImageIcon,
   Shield,
   FileText,
-  MousePointer
+  MousePointer,
+  Layers,
+  Activity,
+  Code2,
+  CheckCircle2,
+  Boxes,
+  Globe
 } from "lucide-react";
 import LuxuryOrb from "../components/LuxuryOrb";
+import Background3D from "../components/Background3D";
+import Tilt3DCard from "../components/Tilt3DCard";
+import Interactive3DShowcase from "../components/Interactive3DShowcase";
+import BranchingServicesTree from "../components/BranchingServicesTree";
 import { ActiveScreen } from "../types";
 import { useGetConfigQuery } from "../redux/api/apiSlice";
 
@@ -44,40 +54,49 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
 
   return (
     <div className="min-h-screen bg-[#090909] text-white flex flex-col selection:bg-amber-500 selection:text-black overflow-x-hidden relative">
-      {/* Background vector elements */}
-      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-amber-500/[0.04] via-transparent to-transparent pointer-events-none" />
-      <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-amber-500/[0.015] rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[-10%] w-[600px] h-[600px] bg-amber-500/[0.02] rounded-full blur-[150px] pointer-events-none" />
+      {/* 3D Background Canvas */}
+      <Background3D />
+
+      {/* Background vector gradient accents */}
+      <div className="absolute top-0 left-0 right-0 h-[700px] bg-gradient-to-b from-amber-500/[0.06] via-transparent to-transparent pointer-events-none z-0" />
+      <div className="absolute top-[15%] left-[-10%] w-[600px] h-[600px] bg-amber-500/[0.02] rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="absolute bottom-[20%] right-[-10%] w-[650px] h-[650px] bg-amber-500/[0.025] rounded-full blur-[160px] pointer-events-none z-0" />
 
       {/* Landing Navbar */}
-      <nav className="border-b border-[#1F1F1F]/60 backdrop-blur-md sticky top-0 z-30 bg-[#090909]/80 h-16 flex items-center justify-between px-6 md:px-12">
+      <nav className="border-b border-[#1F1F1F]/70 backdrop-blur-xl sticky top-0 z-40 bg-[#090909]/85 h-16 flex items-center justify-between px-6 md:px-12">
         <div className="flex items-center gap-3">
           {branding?.mainLogo || branding?.logoImage ? (
             <img 
               src={branding.mainLogo || branding.logoImage} 
               alt="Brand Logo" 
-              className="h-8 max-w-[120px] object-contain" 
+              className="h-8 max-w-[130px] object-contain" 
             />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
-              {/* <span className="text-black font-black text-xs">GC</span> */}
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Sparkles className="w-4 h-4 text-black" />
             </div>
           )}
-          {/* <span className="text-sm font-bold tracking-wider text-white">
-            {branding?.appName || branding?.logoName}
-          </span> */}
+          <span className="text-sm font-extrabold tracking-wider text-white hidden sm:inline-block">
+            {branding?.appName || branding?.logoName || "GoChat AI"}
+          </span>
         </div>
 
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-xs text-zinc-400 hover:text-white transition duration-200">Features</a>
-          <a href="#luxury-design" className="text-xs text-zinc-400 hover:text-white transition duration-200">Design Pillars</a>
-          <a href="#pricing" className="text-xs text-zinc-400 hover:text-white transition duration-200">Pricing</a>
+        <div className="hidden md:flex items-center gap-8 text-xs font-semibold">
+          <a href="#features" className="text-zinc-400 hover:text-amber-400 transition duration-200">
+            Capabilities
+          </a>
+          <a href="#workbench" className="text-zinc-400 hover:text-amber-400 transition duration-200">
+            3D Workbench
+          </a>
+          <a href="#luxury-design" className="text-zinc-400 hover:text-amber-400 transition duration-200">
+            Design Philosophy
+          </a>
         </div>
 
         <button
           id="landing-nav-btn-enter"
           onClick={onEnterApp}
-          className="px-4 py-2 text-xs font-semibold text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition duration-250 flex items-center gap-1.5 shadow-lg shadow-amber-500/10"
+          className="px-4 py-2 text-xs font-extrabold text-black bg-amber-500 hover:bg-amber-400 rounded-xl transition duration-250 flex items-center gap-2 shadow-lg shadow-amber-500/20"
         >
           Enter Workspace
           <ArrowRight className="w-3.5 h-3.5" />
@@ -85,206 +104,251 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
       </nav>
 
       {/* Hero Section */}
-      <section className="flex-1 max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-20 flex flex-col md:flex-row items-center gap-12 z-10">
+      <section className="flex-1 max-w-7xl mx-auto px-6 md:px-12 py-16 md:py-24 flex flex-col lg:flex-row items-center gap-14 z-10">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="flex-1 text-left space-y-6 md:max-w-xl"
+          className="flex-1 text-left space-y-6 lg:max-w-xl"
         >
           <motion.div
             variants={itemVariants}
-            className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold tracking-wider uppercase rounded-full"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-extrabold tracking-widest uppercase rounded-full shadow-inner"
           >
-            <Sparkles className="w-3 h-3 animate-pulse" />
-            Ultimate Generation Platform
+            <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+            Next-Gen Multimodal AI Platform
           </motion.div>
 
           <motion.h1
             variants={itemVariants}
-            className="text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-[1.1] font-sans"
+            className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.08] font-sans"
           >
-            The Luxury Standard <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600">
+            The Premier Standard <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-500 to-amber-600">
               For Generative AI
             </span>
           </motion.h1>
 
           <motion.p
             variants={itemVariants}
-            className="text-sm text-zinc-400 leading-relaxed max-w-lg"
+            className="text-sm md:text-base text-zinc-400 leading-relaxed max-w-lg"
           >
-            Unlock elite conversational chat, custom asset curation, multi-format image creators, and venture-grade business strategy logs. Structured beautifully within a premier Black Amber signature dashboard.
+            Experience instant conversational intelligence, studio-grade 3D art rendering, and venture-level business strategy logs—engineered within our flagship Black Amber signature workspace.
           </motion.p>
 
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3 pt-4">
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               id="hero-btn-launch"
               onClick={onEnterApp}
-              className="px-6 py-3.5 text-xs font-bold text-black bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 rounded-xl transition duration-300 flex items-center justify-center gap-2 shadow-xl shadow-amber-500/15"
+              className="px-6 py-4 text-xs font-black text-black bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 rounded-xl transition duration-300 flex items-center justify-center gap-2.5 shadow-xl shadow-amber-500/20 active:scale-95"
             >
               Initialize Workspace
               <ArrowRight className="w-4 h-4" />
             </button>
             <a
-              href="#features"
-              className="px-6 py-3.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#111111] border border-[#242424] hover:border-zinc-700 rounded-xl transition flex items-center justify-center gap-2"
+              href="#workbench"
+              className="px-6 py-4 text-xs font-bold text-zinc-300 hover:text-white bg-[#111111] border border-[#242424] hover:border-amber-500/40 rounded-xl transition flex items-center justify-center gap-2"
             >
-              Explore Intelligence Features
+              <MousePointer className="w-3.5 h-3.5 text-amber-400" />
+              Try 3D Live Workbench
             </a>
           </motion.div>
 
-          {/* Key Quick Stats */}
+          {/* Key Performance Stats (NO PRICING) */}
           <motion.div
             variants={itemVariants}
-            className="grid grid-cols-3 gap-6 pt-10 border-t border-[#1F1F1F]"
+            className="grid grid-cols-3 gap-6 pt-8 border-t border-[#1F1F1F]"
           >
             <div>
-              <p className="text-lg font-bold text-white tracking-tight font-numbers">0.4s</p>
-              <p className="text-[10px] text-[#71717A] uppercase font-semibold mt-1">Average Latency</p>
+              <p className="text-xl font-extrabold text-white tracking-tight font-mono text-amber-400">0.38s</p>
+              <p className="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider mt-1">Average Latency</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-white tracking-tight font-numbers">₹1,499</p>
-              <p className="text-[10px] text-[#71717A] uppercase font-semibold mt-1">Pro Tier Price</p>
+              <p className="text-xl font-extrabold text-white tracking-tight font-mono text-amber-400">99.9%</p>
+              <p className="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider mt-1">Enterprise Uptime</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-white tracking-tight font-numbers">100%</p>
-              <p className="text-[10px] text-[#71717A] uppercase font-semibold mt-1">Secure Server</p>
+              <p className="text-xl font-extrabold text-white tracking-tight font-mono text-amber-400">100%</p>
+              <p className="text-[10px] text-zinc-500 uppercase font-extrabold tracking-wider mt-1">Encrypted Telemetry</p>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* 3D Orb Simulator */}
+        {/* 3D Orb Interactive Simulator Stage */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
-          className="flex-1 flex items-center justify-center relative min-h-[400px]"
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="flex-1 flex items-center justify-center relative min-h-[440px] w-full"
         >
-          <div className="absolute inset-0 bg-radial-gradient from-amber-500/[0.03] to-transparent blur-2xl pointer-events-none" />
-          <LuxuryOrb size={360} />
-          {/* Subtle metadata tags floating in the margin */}
-          <div className="absolute top-10 right-4 p-2 bg-[#111111]/80 border border-[#242424] rounded-lg pointer-events-none text-[9px] font-mono text-[#71717A]">
-            SYS_ORB_ACTIVE // ROTATE: TRUE
-          </div>
-          <div className="absolute bottom-10 left-4 p-2 bg-[#111111]/80 border border-[#242424] rounded-lg pointer-events-none text-[9px] font-mono text-[#71717A]">
-            INF_LATENCY // 0.4s
-          </div>
+          <div className="absolute inset-0 bg-radial-gradient from-amber-500/[0.05] to-transparent blur-3xl pointer-events-none" />
+
+          {/* 3D Core Sphere */}
+          <LuxuryOrb size={390} />
+
+          {/* Dynamic 3D Floating Glassmorphic HUD Badges */}
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-4 right-2 sm:right-6 p-3 bg-[#111111]/90 backdrop-blur-md border border-[#242424] rounded-xl pointer-events-none shadow-2xl text-[10px] font-mono text-zinc-300 flex items-center gap-2"
+          >
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div>
+              <span className="font-bold text-amber-400 block">NEURAL CORE // ACTIVE</span>
+              <span className="text-[9px] text-zinc-500">GYRO MATRIX ONLINE</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute bottom-6 left-2 sm:left-6 p-3 bg-[#111111]/90 backdrop-blur-md border border-[#242424] rounded-xl pointer-events-none shadow-2xl text-[10px] font-mono text-zinc-300 flex items-center gap-2"
+          >
+            <Cpu className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold text-white block">EDGE PROXY ROUTE</span>
+              <span className="text-[9px] text-emerald-400">LATENCY &lt; 0.4s</span>
+            </div>
+          </motion.div>
+
+          <motion.div
+            animate={{ scale: [0.95, 1.05, 0.95] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-1/2 -left-4 sm:left-0 -translate-y-1/2 p-2.5 bg-[#111111]/80 backdrop-blur-md border border-[#242424] rounded-xl pointer-events-none shadow-xl text-[9px] font-mono text-amber-400"
+          >
+            PARALLAX_3D: ACTIVE
+          </motion.div>
         </motion.div>
       </section>
 
-      {/* Feature Grid */}
-      <section id="features" className="py-20 bg-[#0C0C0C] border-y border-[#1F1F1F]/60">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 text-center space-y-12">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Workspace Suites</h2>
-            <p className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              An Elite Generation Ecosystem
+      {/* 3D Workbench Interactive Sandbox */}
+      <div id="workbench">
+        <Interactive3DShowcase />
+      </div>
+
+      {/* Branching Services Tree UI */}
+      <div id="features" className="bg-[#0C0C0C]/80 border-y border-[#1F1F1F]/80 backdrop-blur-md">
+        <BranchingServicesTree />
+      </div>
+
+      {/* Luxury Design Philosophy & Telemetry Section */}
+      <section id="luxury-design" className="py-24 max-w-7xl mx-auto px-6 md:px-12 z-10 relative">
+        <div className="flex flex-col lg:flex-row items-center gap-14">
+          <div className="flex-1 space-y-6 text-left">
+            <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Luxury Design & Architecture</h2>
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-snug">
+              Obsidian Grayscale With Signature Warm Amber Highlights
+            </h3>
+            <p className="text-xs md:text-sm text-zinc-400 leading-relaxed">
+              We strictly enforce our signature Black Amber scheme. High-contrast obsidian slate backgrounds engineered alongside warm gold indicators deliver an unparalleled executive visual aesthetic.
             </p>
-            <p className="text-xs text-zinc-400">
-              Each core utility is custom crafted to work harmoniously, styled in our flagship dark obsidian theme.
-            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              <Tilt3DCard maxTilt={10}>
+                <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
+                  <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white">Privacy & Security Compliance</h4>
+                  <p className="text-[11px] text-zinc-500">Robust admin controls and zero third-party data tracking.</p>
+                </div>
+              </Tilt3DCard>
+
+              <Tilt3DCard maxTilt={10}>
+                <div className="p-4 bg-[#111111] border border-[#1F1F1F] rounded-xl space-y-2 hover:border-amber-500/30 transition">
+                  <div className="p-2 w-fit rounded-lg bg-amber-500/10 text-amber-400">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white">Edge Accelerated Telemetry</h4>
+                  <p className="text-[11px] text-zinc-500">Server-side proxy routes shield secret parameters.</p>
+                </div>
+              </Tilt3DCard>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Feature 1 */}
-            <div className="bg-[#111111] border border-[#1F1F1F] p-7 rounded-2xl text-left space-y-4 hover:border-amber-500/20 transition duration-300">
-              <div className="p-3 w-fit rounded-xl bg-amber-500/10 text-amber-500">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold text-white tracking-wide">Conversational Chat</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Connect directly with Gemini to format advanced system reports, solve programmatic errors, or generate elite text logs.
-              </p>
-            </div>
+          <div className="flex-1 w-full">
+            <Tilt3DCard maxTilt={8}>
+              <div className="bg-[#111111] border border-[#1F1F1F] rounded-2xl p-7 relative shadow-2xl">
+                <div className="flex items-center justify-between mb-6 border-b border-[#1F1F1F] pb-4">
+                  <span className="text-[11px] font-mono text-zinc-400 font-bold">// BRAND DESIGN PALETTE</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] text-emerald-400 font-mono">LIVE_SPEC</span>
+                  </div>
+                </div>
 
-            {/* Feature 2 */}
-            <div className="bg-[#111111] border border-[#1F1F1F] p-7 rounded-2xl text-left space-y-4 hover:border-amber-500/20 transition duration-300">
-              <div className="p-3 w-fit rounded-xl bg-amber-500/10 text-amber-500">
-                <ImageIcon className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-semibold text-white tracking-wide">Image Studio</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Render ultra-high definition visual graphics. Fully configurable aspect ratios, instant file downloads, and styled asset memory.
-              </p>
-            </div>
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between p-4 bg-[#090909] border border-[#1F1F1F] rounded-xl hover:border-amber-500/20 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded bg-[#090909] border border-zinc-700" />
+                      <span className="text-xs font-semibold">Obsidian Base Black</span>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-500">#090909</span>
+                  </div>
 
-            {/* Feature 3 */}
-            <div className="bg-[#111111] border border-[#1F1F1F] p-7 rounded-2xl text-left space-y-4 hover:border-amber-500/20 transition duration-300">
-              <div className="p-3 w-fit rounded-xl bg-amber-500/10 text-amber-500">
-                <FileText className="w-5 h-5" />
+                  <div className="flex items-center justify-between p-4 bg-[#151515] border border-[#1F1F1F] rounded-xl hover:border-amber-500/20 transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded bg-[#151515] border border-zinc-600" />
+                      <span className="text-xs font-semibold">Obsidian Elevated Card</span>
+                    </div>
+                    <span className="text-xs font-mono text-zinc-500">#151515</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl shadow-lg shadow-amber-500/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded bg-[#F59E0B] shadow-sm shadow-amber-500" />
+                      <span className="text-xs font-extrabold">Signature Accent Amber</span>
+                    </div>
+                    <span className="text-xs font-mono font-extrabold">#F59E0B</span>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-sm font-semibold text-white tracking-wide">Venture strategist</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                Generate highly analytical strategic business plans. Compiles real market demographics, budgets, and operational timelines.
-              </p>
-            </div>
+            </Tilt3DCard>
           </div>
         </div>
       </section>
 
-      {/* Luxury Design Section */}
-      <section id="luxury-design" className="py-20 max-w-7xl mx-auto px-6 md:px-12">
-        <div className="flex flex-col md:flex-row items-center gap-12">
-          <div className="flex-1 space-y-6">
-            <h2 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Luxury Design Philosophy</h2>
-            <h3 className="text-3xl font-extrabold text-white tracking-tight leading-snug">
-              Obsidian Grayscale With Warm Amber highlights
-            </h3>
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              We reject chaotic multi-colored displays. GoChat AI strictly implements our elite *Black Amber* scheme, where beautiful near-black slate backgrounds pair with the rich, singular entry signature of pure warm gold indicators.
-            </p>
-            <div className="space-y-4 pt-3">
-              <div className="flex items-start gap-3">
-                <div className="p-1 rounded bg-amber-500/10 text-amber-500 mt-1">
-                  <Shield className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Full Privacy Compliance</h4>
-                  <p className="text-[11px] text-[#71717A]">Complete cookie preferences logging and robust admin oversight.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="p-1 rounded bg-amber-500/10 text-amber-500 mt-1">
-                  <Cpu className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white">Advanced Telemetry</h4>
-                  <p className="text-[11px] text-[#71717A]">Server-side proxy routes shielding secret parameters.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* 3D Launch Banner Section */}
+      <section className="py-16 max-w-7xl mx-auto px-6 md:px-12 w-full z-10 relative">
+        <Tilt3DCard maxTilt={6}>
+          <div className="relative rounded-3xl bg-gradient-to-r from-[#141414] via-[#1A1812] to-[#141414] border border-amber-500/30 p-8 sm:p-14 overflow-hidden text-center space-y-6 shadow-2xl shadow-amber-500/10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-          <div className="flex-1 bg-[#111111] border border-[#1F1F1F] rounded-2xl p-6 relative">
-            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-emerald-500" />
-            <p className="text-[10px] font-mono text-[#52525B] mb-4">// BRAND COLOR DEPLOYMENT</p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3.5 bg-[#090909] border border-[#1F1F1F] rounded-xl">
-                <span className="text-xs font-medium">Obsidian Base Black</span>
-                <span className="text-xs font-mono text-zinc-500">#090909</span>
-              </div>
-              <div className="flex items-center justify-between p-3.5 bg-[#151515] border border-[#1F1F1F] rounded-xl">
-                <span className="text-xs font-medium">Obsidian Elevated Card</span>
-                <span className="text-xs font-mono text-zinc-500">#151515</span>
-              </div>
-              <div className="flex items-center justify-between p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl">
-                <span className="text-xs font-bold">Premium Accent Amber</span>
-                <span className="text-xs font-mono font-bold">#F59E0B</span>
-              </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase rounded-full">
+              <Boxes className="w-3.5 h-3.5" />
+              Instant Workspace Access
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+              Ready To Experience The Standard?
+            </h2>
+
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
+              Launch into our zero-latency AI matrix and elevate your workflow with conversational chat, visual graphics, and strategic business planning.
+            </p>
+
+            <div className="pt-2 flex justify-center">
+              <button
+                onClick={onEnterApp}
+                className="px-8 py-4 text-xs font-extrabold text-black bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 rounded-xl transition duration-300 flex items-center gap-2 shadow-xl shadow-amber-500/25 active:scale-95"
+              >
+                Launch Workspace Now
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        </div>
+        </Tilt3DCard>
       </section>
 
       {/* Footer CMS Section */}
-      <footer className="border-t border-[#1F1F1F] bg-[#0C0C0C] py-12 px-6 md:px-12 mt-auto">
+      <footer className="border-t border-[#1F1F1F] bg-[#0C0C0C] py-12 px-6 md:px-12 mt-auto z-10 relative">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded bg-amber-500 flex items-center justify-center">
-              <span className="text-black font-extrabold text-xs">GC</span>
+            <div className="w-7 h-7 rounded flex items-center justify-center">
+              <img className="w-4 h-4" src="/favicon.png" alt="logo" />
             </div>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-zinc-500 font-medium">
               © 2026 GoChat AI Platform. All rights to prestige reserved.
             </span>
           </div>
@@ -292,12 +356,12 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
           <div className="flex items-center gap-6">
             <span
               onClick={() => setActiveScreen("admin")}
-              className="text-[10px] text-zinc-600 hover:text-amber-500 cursor-pointer uppercase tracking-wider font-bold transition"
+              className="text-[10px] text-zinc-600 hover:text-amber-400 cursor-pointer uppercase tracking-wider font-bold transition"
             >
               System Controls
             </span>
             <span className="text-[10px] text-zinc-600 uppercase tracking-wider font-bold">
-              INR ₹ Currency Checked
+              Secure Encrypted Connection
             </span>
           </div>
         </div>

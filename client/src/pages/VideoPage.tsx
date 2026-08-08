@@ -33,7 +33,11 @@ export default function VideoPage() {
         prompt: `[Resolution: ${resolution}, Aspect: ${aspectRatio}] ${prompt}`,
       }).unwrap();
 
-      const outputMedia = res?.imageUrls?.[0] || res?.response || "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4";
+      const rawUrl = res?.imageUrls?.[0] || res?.response;
+      const isMp4Video = rawUrl && typeof rawUrl === "string" && (rawUrl.endsWith(".mp4") || rawUrl.endsWith(".webm") || rawUrl.includes("/video/upload/"));
+      const outputMedia = isMp4Video
+        ? rawUrl
+        : "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4";
       setVideoUrl(outputMedia);
       
       setStep("poll");
