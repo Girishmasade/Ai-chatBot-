@@ -182,6 +182,84 @@ export const authMiddleware = async (
     next(error);
   }
 };
+
+export const optionalAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+    if (!token) {
+      const result = await silentRefresh(req, res);
+      if (result) {
+        req.user = {
+          id: result.payload.userId,
+          role: result.payload.role,
+          email: result.payload.email,
+          username: result.payload.username,
+          avatar: result.payload.avatar,
+          isVerified: result.payload.isVerified,
+        };
+      }
+      return next();
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtAccessSecret) as jwtPayload;
+      const storedToken = await redisClient.get(keys.accessToken(decoded.userId));
+
+      if (storedToken && storedToken === token) {
+        const userCacheKey = `cache:user:${decoded.userId}`;
+        let user: any = null;
+
+        try {
+          const cachedUser = await redisClient.get(userCacheKey);
+          if (cachedUser) {
+            user = JSON.parse(cachedUser);
+          }
+        } catch (err) {
+          console.error("Redis user cache read error:", err);
+        }
+
+        if (!user) {
+          user = await AuthModel.findById(decoded.userId)
+            .select("_id role email username avatar isVerified isBlocked status")
+            .lean();
+
+          if (user) {
+            try {
+              await redisClient.setEx(userCacheKey, 300, JSON.stringify(user));
+            } catch (err) {
+              console.error("Redis user cache write error:", err);
+            }
+          }
+        }
+
+        if (user && !user.isBlocked && user.status !== "blocked" && user.status !== "disabled") {
+          req.user = {
+            id: user._id.toString(),
+            role: user.role,
+            email: user.email,
+            username: user.username,
+            avatar: user.avatar,
+            isVerified: user.isVerified,
+          };
+        }
+      }
+    } catch {
+      // Ignore token verification errors in optionalAuth
+    }
+
+    return next();
+  } catch (error) {
+    next(error);
+  }
+};
 // only for admin
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {

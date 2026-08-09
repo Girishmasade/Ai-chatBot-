@@ -1,4 +1,4 @@
-import { authMiddleware, isAdmin } from "@/middlewares/auth.middleware.js";
+import { authMiddleware, optionalAuth, isAdmin } from "@/middlewares/auth.middleware.js";
 import { Router } from "express";
 import { 
   adminDashboard, getAdminProfile, updateAdminProfile,
@@ -13,10 +13,15 @@ import { upload } from "@/middlewares/multer.middleware.js";
 
 export const adminRouter = Router();
 
+// Public / optional-auth endpoints (accessible by visitors & logged-in users)
+adminRouter.get("/config", optionalAuth, getConfig);
+adminRouter.post("/cookie-consent", optionalAuth, logCookieConsent);
+adminRouter.get("/models", optionalAuth, getModels);
+
+// Protected routes (require authenticated user session)
 adminRouter.use(authMiddleware);
 
-// User-facing endpoints for assets & consents
-adminRouter.post("/cookie-consent", logCookieConsent);
+// User-facing protected endpoints
 adminRouter.get("/assets", getUserAssets);
 adminRouter.delete("/assets/:id", deleteAsset);
 
@@ -31,8 +36,7 @@ adminRouter.post("/users", isAdmin, createUser);
 adminRouter.put("/users/:id", isAdmin, updateUser);
 adminRouter.delete("/users/:id", isAdmin, deleteUser);
 
-// ai models
-adminRouter.get("/models", getModels);
+// ai models management
 adminRouter.post("/models", isAdmin, createModel);
 adminRouter.put("/models/:id/toggle", isAdmin, toggleModel);
 adminRouter.delete("/models/:id", isAdmin, deleteModel);
@@ -43,8 +47,7 @@ adminRouter.get("/subscriptions", isAdmin, getSubscriptions);
 // audit logs
 adminRouter.get("/logs", isAdmin, getLogs);
 
-// branding config
-adminRouter.get("/config", getConfig);
+// branding config update
 adminRouter.put(
   "/config/branding",
   isAdmin,
@@ -55,3 +58,4 @@ adminRouter.put(
   ]),
   updateBranding
 );
+
