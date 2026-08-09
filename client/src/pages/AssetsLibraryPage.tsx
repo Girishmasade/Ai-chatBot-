@@ -253,10 +253,22 @@ export default function AssetsLibraryPage() {
                       }}
                     />
                   ) : asset.type === "video" ? (
-                    <div className="w-full h-full flex items-center justify-center relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
-                      <div className="w-14 h-14 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                        <Play className="w-6 h-6 text-violet-400 ml-0.5" />
+                    <div className="w-full h-full relative overflow-hidden bg-[#0A0A0A]">
+                      <video
+                        src={asset.content && (asset.content.endsWith(".mp4") || asset.content.endsWith(".webm") || asset.content.includes("/video/upload/"))
+                          ? asset.content
+                          : "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4"
+                        }
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                        <div className="w-12 h-12 rounded-full bg-violet-500/30 backdrop-blur-sm border border-violet-500/50 flex items-center justify-center group-hover:scale-110 transition duration-300">
+                          <Play className="w-5 h-5 text-white ml-0.5 fill-current" />
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -365,11 +377,18 @@ export default function AssetsLibraryPage() {
                 {a.type === "image" ? (
                   <img src={a.content} alt={a.title} className="max-w-full max-h-[70vh] object-contain" referrerPolicy="no-referrer" />
                 ) : a.type === "video" ? (
-                  <div className="flex flex-col items-center gap-4 p-8">
-                    <div className="w-20 h-20 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
-                      <Play className="w-8 h-8 text-violet-400 ml-1" />
-                    </div>
-                    <p className="text-xs text-zinc-500">Video asset</p>
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <video
+                      src={a.content && (a.content.endsWith(".mp4") || a.content.endsWith(".webm") || a.content.includes("/video/upload/"))
+                        ? a.content
+                        : "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4"
+                      }
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="max-w-full max-h-[70vh] rounded-xl shadow-2xl border border-zinc-800 object-contain"
+                    />
                   </div>
                 ) : (
                   <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar w-full">
@@ -432,7 +451,7 @@ export default function AssetsLibraryPage() {
 
                 {/* Actions */}
                 <div className="mt-auto pt-3 border-t border-[#1F1F1F] grid grid-cols-2 gap-2">
-                  {a.type === "image" ? (
+                  {a.type === "image" || a.type === "video" ? (
                     <a
                       href={a.content}
                       target="_blank"
