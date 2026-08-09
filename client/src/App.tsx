@@ -319,6 +319,11 @@ function BrandingSync() {
 export default function App() {
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Do not show error toasts on landing page
+      if (window.location.pathname === "/" || window.location.pathname === "") {
+        return;
+      }
+
       const reason = event.reason;
       let message = "An unexpected background error occurred.";
       if (typeof reason === "string") {

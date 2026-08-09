@@ -246,9 +246,9 @@ export default function AuthPage({ onLoginSuccess, onBackToLanding }: AuthPagePr
                 <span className="text-black font-black text-sm tracking-tighter">GC</span>
               </div>
             )}
-            <span className="text-sm font-bold tracking-wider text-white uppercase">
-              {branding?.appName || branding?.logoName || "GoChat AI Workspace"}
-            </span>
+            {/* <span className="text-sm font-bold tracking-wider text-white uppercase">
+              {branding?.appName || branding?.logoName}
+            </span> */}
           </div>
 
           {/* Central Cosmic Interactive Animations */}

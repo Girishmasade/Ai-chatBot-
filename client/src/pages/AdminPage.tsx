@@ -2066,11 +2066,11 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       {/* CONFIRM MODAL: DELETE SUBSCRIPTION PLAN */}
       <ConfirmModal
         isOpen={Boolean(deletePlanId)}
-        onClose={() => setDeletePlanId(null)}
+        onCancel={() => setDeletePlanId(null)}
         title="Delete Subscription Plan"
         message="Are you sure you want to delete this subscription plan? Plans with active subscribers will be protected from deletion."
         confirmText={isDeletingPlan ? "Deleting..." : "Delete Plan"}
-        variant="danger"
+        isDestructive={true}
         onConfirm={handleDeletePlanConfirm}
       />
     </div>

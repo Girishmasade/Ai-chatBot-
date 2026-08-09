@@ -78,8 +78,12 @@ export const rtkQueryErrorLogger: Middleware = () => (next) => (action: any) => 
     const status = action.payload?.status;
     const endpointName = action.meta?.arg?.endpointName;
 
-    // Do not show intrusive error toast for background branding query on unauthenticated home page
-    if (endpointName === "getConfig" && status === 401) {
+    // Do not show error toast on landing page or for background branding/config query
+    if (
+      window.location.pathname === "/" ||
+      window.location.pathname === "" ||
+      endpointName === "getConfig"
+    ) {
       return next(action);
     }
 

@@ -56,9 +56,9 @@ export default function ImagePage() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6  p-1">
-      {/* Left Configuration Panel */}
-      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 space-y-6 text-left lg:col-span-1 h-fit">
+    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 p-1">
+      {/* Left Configuration Panel (70% Screen Width) */}
+      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-5 space-y-6 text-left lg:col-span-7 h-fit">
         <div className="space-y-1 pb-3 border-b border-[#1F1F1F]">
           <h4 className="text-xs font-bold text-white uppercase tracking-wider">Configure Canvas</h4>
           <p className="text-[10px] text-zinc-500">Fine-tune generative AI parameters</p>
@@ -141,22 +141,31 @@ export default function ImagePage() {
           {/* Core Model Select */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">AI Vision Engine</label>
-            <select
-              id="image-model-select"
-              value={activeModelType}
-              onChange={(e) => setModelType(e.target.value)}
-              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-2.5 text-xs text-zinc-300 cursor-pointer transition"
-            >
-              {imageModels.length === 0 ? (
-                <option value="">No models available</option>
-              ) : (
-                imageModels.map((m: any) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.provider})
-                  </option>
-                ))
-              )}
-            </select>
+            {imageModels.length === 1 ? (
+              <div className="w-full p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-white">{imageModels[0].name}</p>
+                  <p className="text-[9px] text-zinc-500 font-mono">{(imageModels[0] as any).provider || imageModels[0].version}</p>
+                </div>
+              </div>
+            ) : (
+              <select
+                id="image-model-select"
+                value={activeModelType}
+                onChange={(e) => setModelType(e.target.value)}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-2.5 text-xs text-zinc-300 cursor-pointer transition font-medium"
+              >
+                {imageModels.length === 0 ? (
+                  <option value="">No models available</option>
+                ) : (
+                  imageModels.map((m: any) => (
+                    <option key={m.id} value={m.id} className="bg-[#111111] text-white">
+                      {m.name} ({m.provider})
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
           </div>
 
           <button
@@ -171,7 +180,7 @@ export default function ImagePage() {
         </form>
       </div>
 
-      {/* Right Canvas Output & Gallery */}
+      {/* Right Canvas Output & Gallery (30% Screen Width) */}
       <div className="lg:col-span-3 space-y-6">
         {/* Render/Loading Space */}
         {generating && (

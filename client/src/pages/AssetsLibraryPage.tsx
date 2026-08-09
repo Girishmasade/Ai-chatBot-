@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { AIAsset } from "../types";
 import { useGetAssetsQuery, useDeleteAssetMutation } from "../redux/api/apiSlice";
+import ConfirmModal from "../components/ConfirmModal";
 
 type FilterTab = "All" | "image" | "video" | "chat" | "plan";
 type ViewMode = "grid" | "list";
@@ -32,6 +33,13 @@ function timeAgo(dateString: string) {
   return new Date(dateString).toLocaleDateString();
 }
 
+const getSafeVideoUrl = (url: string) => {
+  if (!url || url.includes("mixkit.co") || url.includes("gtv-videos-bucket")) {
+    return "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+  }
+  return url;
+};
+
 export default function AssetsLibraryPage() {
   const { data: assets = [], isLoading } = useGetAssetsQuery();
   const [deleteAsset] = useDeleteAssetMutation();
@@ -41,6 +49,7 @@ export default function AssetsLibraryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [lightboxAsset, setLightboxAsset] = useState<AIAsset | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Stats
@@ -61,18 +70,22 @@ export default function AssetsLibraryPage() {
     });
     result = [...result].sort((a, b) => {
       if (sortMode === "newest") return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      if (sortMode === "oldest") return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      if (sortMode === "oldest") return new Date(a.timestamp).getTime() - new Date(a.timestamp).getTime();
       return a.title.localeCompare(b.title);
     });
     return result;
   }, [assets, activeTab, searchQuery, sortMode]);
 
-  const handleDelete = useCallback(async (id: string) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await deleteAsset({ id }).unwrap();
-      if (lightboxAsset?.id === id) setLightboxAsset(null);
-    } catch (e) { console.error(e); }
-  }, [deleteAsset, lightboxAsset]);
+      await deleteAsset({ id: deleteTargetId }).unwrap();
+      if (lightboxAsset?.id === deleteTargetId) setLightboxAsset(null);
+      setDeleteTargetId(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleCopy = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -255,10 +268,7 @@ export default function AssetsLibraryPage() {
                   ) : asset.type === "video" ? (
                     <div className="w-full h-full relative overflow-hidden bg-[#0A0A0A]">
                       <video
-                        src={asset.content && (asset.content.endsWith(".mp4") || asset.content.endsWith(".webm") || asset.content.includes("/video/upload/"))
-                          ? asset.content
-                          : "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4"
-                        }
+                        src={getSafeVideoUrl(asset.content)}
                         muted
                         loop
                         autoPlay
@@ -351,7 +361,7 @@ export default function AssetsLibraryPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
                   <button
-                    onClick={e => { e.stopPropagation(); handleDelete(asset.id); }}
+                    onClick={e => { e.stopPropagation(); setDeleteTargetId(asset.id); }}
                     className="p-1.5 rounded-lg hover:bg-rose-950/20 text-zinc-600 hover:text-rose-500 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -379,10 +389,7 @@ export default function AssetsLibraryPage() {
                 ) : a.type === "video" ? (
                   <div className="w-full h-full flex items-center justify-center p-4">
                     <video
-                      src={a.content && (a.content.endsWith(".mp4") || a.content.endsWith(".webm") || a.content.includes("/video/upload/"))
-                        ? a.content
-                        : "https://assets.mixkit.co/videos/preview/mixkit-background-of-a-glowing-digital-tunnel-42938-large.mp4"
-                      }
+                      src={getSafeVideoUrl(a.content)}
                       controls
                       autoPlay
                       loop
@@ -469,7 +476,7 @@ export default function AssetsLibraryPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleDelete(a.id)}
+                    onClick={() => setDeleteTargetId(a.id)}
                     className="py-2.5 rounded-xl bg-[#1A1A1A] hover:bg-rose-950/20 border border-[#242424] hover:border-rose-500/30 text-rose-500 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -480,6 +487,18 @@ export default function AssetsLibraryPage() {
           </div>
         );
       })()}
+
+      {/* ─── Delete Permission Confirmation Modal ─── */}
+      <ConfirmModal
+        isOpen={!!deleteTargetId}
+        title="Delete Asset Permission"
+        message="Are you sure you want to delete this asset from your creative vault? This action cannot be undone."
+        confirmText="Purge Asset"
+        cancelText="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

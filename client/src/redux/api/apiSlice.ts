@@ -69,7 +69,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User", "Asset", "Model", "Subscription", "Log", "Config"],
+  tagTypes: ["User", "Asset", "Model", "Subscription", "Log", "Config", "TokenWallet"],
   endpoints: (builder) => ({
     // ── Dashboard ─────────────────────────────────────────
     getDashboardStats: builder.query<any, void>({
