@@ -25,9 +25,10 @@ export interface IAssignPlanResult {
 export async function assignPlanToUser(
   userId: string,
   planId: string,
-  session: mongoose.ClientSession,
+  session?: mongoose.ClientSession | null,
 ): Promise<IAssignPlanResult> {
-  const plan = await SubscriptionPlanModel.findById(planId).session(session);
+  const planQuery = SubscriptionPlanModel.findById(planId);
+  const plan = session ? await planQuery.session(session) : await planQuery;
   if (!plan) {
     throw new Error(`Subscription plan not found: ${planId}`);
   }
@@ -38,10 +39,11 @@ export async function assignPlanToUser(
   // One active subscription per user, not per plan — mirrors the existing
   // guard in createUserSubscription. Re-checked here so this function is
   // safe to call standalone, not just from a context that already checked.
-  const existingActive = await UserSubscriptionModel.findOne({
+  const activeQuery = UserSubscriptionModel.findOne({
     user: userId,
     status: UserSubscriptionStatus.ACTIVE,
-  }).session(session);
+  });
+  const existingActive = session ? await activeQuery.session(session) : await activeQuery;
 
   if (existingActive) {
     return {
@@ -65,7 +67,7 @@ export async function assignPlanToUser(
         activatedAt: startDate,
       },
     ],
-    { session },
+    session ? { session } : {},
   );
 
   // ── Credit wallet with this plan's token allotment ──────────────────────────
@@ -74,7 +76,8 @@ export async function assignPlanToUser(
   // — nesting sessions would break atomicity with the UserSubscription write
   // above. This block intentionally duplicates credit()'s logic using the
   // CALLER'S session instead.
-  const wallet = await TokenWalletModel.findOne({ userId }).session(session);
+  const walletQuery = TokenWalletModel.findOne({ userId });
+  const wallet = session ? await walletQuery.session(session) : await walletQuery;
   if (!wallet) {
     throw new Error(
       `Wallet not found for user ${userId}. initWallet() must run before plan assignment.`,
@@ -99,7 +102,7 @@ export async function assignPlanToUser(
         description: `Plan credit — ${plan.name}`,
       },
     ],
-    { session },
+    session ? { session } : {},
   );
 
   await TokenWalletModel.findOneAndUpdate(
@@ -108,7 +111,7 @@ export async function assignPlanToUser(
       $set: { balance: balanceAfter, lastTransactionAt: new Date() },
       $inc: { totalPlanCredit: tokensToCredit },
     },
-    { session, returnDocument: "after" }, //  replaces `new: true`
+    session ? { session, returnDocument: "after" } : { returnDocument: "after" },
   );
 
   return { userSubscription, tokensCredited: tokensToCredit };

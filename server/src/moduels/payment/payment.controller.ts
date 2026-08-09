@@ -14,6 +14,7 @@ import { TransactionType, TransactionSource } from "../token/tokenTransaction/to
 import type { AuthUser } from "../auth/auth.payload.js";
 import { AuthModel } from "../auth/auth.models.js";
 import { sendEmail } from "@/services/mailer.utils.js";
+import { UserSubscriptionStatus } from "@/shared/shared.types.enum.js";
 import { createOrderSchema, verifyPaymentSchema } from "./payment.validation.js";
 
 const RAZORPAY_API_SECRET_KEY = process.env.RAZORPAY_API_SECRET_KEY as string;
@@ -31,8 +32,8 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
       try {
         await session.withTransaction(async () => {
           await UserSubscriptionModel.updateMany(
-            { user: userId, status: "active" },
-            { $set: { status: "cancelled", cancelledAt: new Date() } },
+            { user: userId, status: UserSubscriptionStatus.ACTIVE },
+            { $set: { status: UserSubscriptionStatus.CANCELLED, cancelledAt: new Date() } },
             { session },
           );
 
@@ -44,8 +45,8 @@ async function fulfillOrder(transaction: IPaymentTransaction) {
     } catch (txnErr) {
       console.warn("MongoDB Session Transaction fallback (standalone MongoDB cluster):", txnErr);
       await UserSubscriptionModel.updateMany(
-        { user: userId, status: "active" },
-        { $set: { status: "cancelled", cancelledAt: new Date() } }
+        { user: userId, status: UserSubscriptionStatus.ACTIVE },
+        { $set: { status: UserSubscriptionStatus.CANCELLED, cancelledAt: new Date() } }
       );
       await assignPlanToUser(userId, transaction.itemId.toString());
     }

@@ -10,6 +10,7 @@ export interface IUserSubscription extends Document {
   paymentRef: mongoose.Types.ObjectId | null;
   activatedAt: Date | null;
   cancelledAt: Date | null;
+  session: string;
 }
 
 const userSubscriptionSchema = new Schema<IUserSubscription>(
@@ -50,6 +51,10 @@ const userSubscriptionSchema = new Schema<IUserSubscription>(
       type: Date,
       default: null,
     },
+    session: {
+      type: String,
+      default: null,
+    }
   },
   { timestamps: true },
 );
