@@ -7,7 +7,8 @@ import {
   useNavigate,
   useLocation,
   useParams,
-  useOutlet
+  useOutlet,
+  Link
 } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Toaster, toast } from "react-hot-toast";
@@ -184,6 +185,57 @@ function LoginRoute() {
         onBackToLanding={() => navigate("/")}
       />
     </PublicRoute>
+  );
+}
+
+function PublicLegalLayout({ children, active }: { children: React.ReactNode; active: "privacy" | "terms" }) {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { data: configData } = useGetConfigQuery();
+  const branding = configData?.branding || (configData as any)?.data?.branding;
+
+  return (
+    <div className="min-h-screen bg-[#090909] text-white flex flex-col justify-between overflow-x-hidden relative">
+      <header className="border-b border-[#1F1F1F] bg-[#0C0C0C]/90 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/15 to-amber-950/40 border border-amber-500/30 flex items-center justify-center p-1">
+            <img src={branding?.favicon || "/faviconGochat.png"} alt="Logo" className="w-full h-full object-contain" />
+          </div>
+          <span className="text-sm sm:text-base font-bold text-white tracking-tight group-hover:text-amber-400 transition">
+            {branding?.appName || "GoChat AI"}
+          </span>
+        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="px-3 py-1.5 rounded-lg border border-[#242424] hover:bg-zinc-800 text-xs text-zinc-300 transition cursor-pointer"
+          >
+            ← Back
+          </button>
+          <button
+            onClick={() => navigate(isAuthenticated ? "/app/dashboard" : "/login")}
+            className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition cursor-pointer shadow-sm shadow-amber-500/20"
+          >
+            {isAuthenticated ? "Launch Workspace" : "Sign In"}
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-6xl mx-auto w-full">
+        {children}
+      </main>
+
+      <AppFooter
+        setActiveScreen={(s) => {
+          if (s === "landing") navigate("/");
+          else if (s === "auth") navigate("/login");
+          else if (s === "privacy") navigate("/privacy");
+          else if (s === "terms") navigate("/terms");
+          else navigate(`/app/${s}`);
+        }}
+        activeScreen={active as ActiveScreen}
+      />
+    </div>
   );
 }
 
@@ -429,6 +481,8 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingRoute />} />
           <Route path="/login" element={<LoginRoute />} />
+          <Route path="/privacy" element={<PublicLegalLayout active="privacy"><PrivacyPolicyPage /></PublicLegalLayout>} />
+          <Route path="/terms" element={<PublicLegalLayout active="terms"><TermsOfServicePage /></PublicLegalLayout>} />
 
           {/* User Workspace Routes */}
           <Route path="/app" element={<PrivateRoute><WorkspaceShell isAdminSection={false} /></PrivateRoute>}>

@@ -90,6 +90,13 @@ export interface BrandingConfig {
   primaryColor: string;
   accentGlow: string;
   footerText: string;
+  phone?: string;
+  email?: string;
+  description?: string;
+  twitterUrl?: string;
+  linkedinUrl?: string;
+  privacyPolicyUrl?: string;
+  termsUrl?: string;
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ActiveScreen } from "../types";
 import {
   Mail,
@@ -100,21 +101,22 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
             </h5>
             <div className="flex flex-col space-y-3">
               {[
-                { id: "about", label: "About" },
-                { id: "privacy", label: "Privacy Policy" },
-                { id: "terms", label: "Terms of Service" },
-                { id: "contact", label: "Contact" }
+                { id: "about", label: "About", to: "/app/about" },
+                { id: "privacy", label: "Privacy Policy", to: branding?.privacyPolicyUrl || "/privacy" },
+                { id: "terms", label: "Terms of Service", to: branding?.termsUrl || "/terms" },
+                { id: "contact", label: "Contact", to: "/app/contact" }
               ].map((link) => (
-                <button
+                <Link
                   id={`footer-link-${link.id}`}
                   key={link.id}
+                  to={link.to}
                   onClick={() => setActiveScreen(link.id as ActiveScreen)}
                   className={`text-sm text-zinc-400 hover:text-white transition text-left w-fit ${
                     activeScreen === link.id ? "text-[#F59E0B] font-medium" : ""
                   }`}
                 >
                   {link.label}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
@@ -182,9 +184,29 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
         {/* Bottom copyright bar */}
         <div className="pt-8 border-t border-[#1a1a1f] flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs text-zinc-500 text-center sm:text-left">
           <span>© {new Date().getFullYear()} {branding?.appName || "GoChat AI"}. All rights reserved.</span>
-          <span className="text-zinc-500 hover:text-zinc-400 transition cursor-pointer">
-            Powered by GoChat AI
-          </span>
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center sm:justify-end">
+            <Link
+              id="footer-legal-privacy"
+              to={branding?.privacyPolicyUrl || "/privacy"}
+              onClick={() => setActiveScreen("privacy")}
+              className="text-zinc-500 hover:text-amber-400 transition"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-zinc-700">·</span>
+            <Link
+              id="footer-legal-terms"
+              to={branding?.termsUrl || "/terms"}
+              onClick={() => setActiveScreen("terms")}
+              className="text-zinc-500 hover:text-amber-400 transition"
+            >
+              Terms & Conditions
+            </Link>
+            <span className="text-zinc-700">·</span>
+            <span className="text-zinc-500 hover:text-zinc-400 transition cursor-pointer">
+              Powered by GoChat AI
+            </span>
+          </div>
         </div>
 
         {/* Dev credit */}

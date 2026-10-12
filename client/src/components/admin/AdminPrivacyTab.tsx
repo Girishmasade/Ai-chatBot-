@@ -238,7 +238,7 @@ export default function AdminPrivacyTab() {
   const activePolicy = policies.find((p) => p.isCurrent);
 
   return (
-    <div className="space-y-6 max-w-6xl text-left">
+    <div className="space-y-6 text-left">
       {/* Tab Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#242424] pb-5">
         <div>

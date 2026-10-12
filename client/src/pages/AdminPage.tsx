@@ -28,8 +28,13 @@ import {
   Image as ImageIcon2,
   Video,
   Box,
-  Zap
+  Zap,
+  Shield,
+  Scale,
+  Globe,
+  ExternalLink
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { User, SystemModel, SubscriptionRecord, AuditLog, CookieConsent, BrandingConfig } from "../types";
 import CommonModal from "../components/CommonModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -199,7 +204,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     { id: "2", label: "Conversational Chat", icon: "MessageSquareText", target: "chat", visible: "User Menu" },
     { id: "3", label: "Image Studio", icon: "ImageIcon", target: "image", visible: "User Menu" },
     { id: "4", label: "User Pool", icon: "Users", target: "users", visible: "Admin Menu" },
-    { id: "5", label: "AI Model Manager", icon: "Cpu", target: "models", visible: "Admin Menu" }
+    { id: "5", label: "AI Model Manager", icon: "Cpu", target: "models", visible: "Admin Menu" },
+    { id: "6", label: "Privacy Policy", icon: "Shield", target: "privacy", visible: "Admin Menu" },
+    { id: "7", label: "Terms & Conditions", icon: "Scale", target: "terms", visible: "Admin Menu" },
+    { id: "8", label: "Footer CMS", icon: "FileText", target: "footer", visible: "Admin Menu" }
   ]);
 
   const [menuForm, setMenuForm] = useState<{
@@ -257,6 +265,8 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     email: "support@gochat.ai",
     newsletterPlaceholder: "Enter work email...",
     description: "The luxury standard for multi-modal intelligence workspace solutions.",
+    privacyPolicyUrl: "/privacy",
+    termsUrl: "/terms",
     twitterUrl: "https://twitter.com/gochatai",
     linkedinUrl: "https://linkedin.com/company/gochatai"
   });
@@ -314,6 +324,16 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         seoDescription: configData.branding.seoDescription || "The luxury standard for multi-modal intelligence workspace solutions.",
         seoKeywords: configData.branding.seoKeywords || "AI, Chat, Video Generation, Image Studio, GoChat"
       });
+      setFooterForm((prev) => ({
+        ...prev,
+        phone: configData.branding.phone || prev.phone,
+        email: configData.branding.email || prev.email,
+        description: configData.branding.description || prev.description,
+        privacyPolicyUrl: configData.branding.privacyPolicyUrl || prev.privacyPolicyUrl,
+        termsUrl: configData.branding.termsUrl || prev.termsUrl,
+        twitterUrl: configData.branding.twitterUrl || prev.twitterUrl,
+        linkedinUrl: configData.branding.linkedinUrl || prev.linkedinUrl,
+      }));
       setCookieConsents(configData.cookieConsents);
       const totalAcc = configData.cookieConsents.filter((c: any) => c.consented !== false).length;
       const essOnly = configData.cookieConsents.filter((c: any) => c.categories?.length === 1 && c.categories[0] === "Essential").length;
@@ -452,6 +472,29 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     } catch (e: any) {
       console.error(e);
       toast.error(e?.data?.message || "Failed to save branding");
+    }
+  };
+
+  // FOOTER CMS SAVE (Including Privacy Policy and Terms & Conditions Frontend URLs)
+  const handleSaveFooter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append("phone", footerForm.phone);
+      formData.append("email", footerForm.email);
+      formData.append("description", footerForm.description);
+      formData.append("privacyPolicyUrl", footerForm.privacyPolicyUrl);
+      formData.append("termsUrl", footerForm.termsUrl);
+      formData.append("twitterUrl", footerForm.twitterUrl);
+      formData.append("linkedinUrl", footerForm.linkedinUrl);
+
+      const res = await updateBranding(formData).unwrap();
+      if (res.success) {
+        toast.success("Footer configuration & legal URLs saved successfully!");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.data?.message || "Failed to save footer parameters");
     }
   };
 
@@ -718,11 +761,119 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const totalRevenueEst = calculateRevenue(subscriptions);
 
   return (
-    <div className="space-y-6  p-1 text-left relative">
+    <div className="space-y-6 p-1 text-left relative">
 
+      {/* =============================================================
+          ADMIN NAVIGATION MENU & CONSOLE HEADER
+         ============================================================= */}
+      <div className="bg-[#111111] border border-[#242424] rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden space-y-4">
+        {/* Subtle decorative glow */}
+        <div className="absolute top-0 right-0 w-80 h-32 bg-amber-500/[0.03] blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[#1F1F1F]">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                Admin Command Suite
+              </h2>
+              <span className="px-2 py-0.5 rounded-full bg-[#1C1C1E] border border-[#2C2C2E] text-[10px] font-mono text-zinc-400">
+                Active Tab: <span className="text-amber-400 font-semibold">{activeTab}</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              Unified administration console for intelligence models, users, navigation, footer, and privacy & legal policies
+            </p>
+          </div>
+
+          {/* Quick Legal Policies Access Pills */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              id="admin-header-tab-privacy"
+              onClick={() => setActiveTab("privacy")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                activeTab === "privacy"
+                  ? "bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
+                  : "bg-[#18181B] text-zinc-300 hover:text-white hover:bg-zinc-800 border-[#27272A]"
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Privacy Policy</span>
+            </button>
+            <button
+              id="admin-header-tab-terms"
+              onClick={() => setActiveTab("terms")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                activeTab === "terms"
+                  ? "bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
+                  : "bg-[#18181B] text-zinc-300 hover:text-white hover:bg-zinc-800 border-[#27272A]"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              <span>Terms & Conditions</span>
+            </button>
+            <button
+              id="admin-header-tab-footer"
+              onClick={() => setActiveTab("footer")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border ${
+                activeTab === "footer"
+                  ? "bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
+                  : "bg-[#18181B] text-zinc-300 hover:text-white hover:bg-zinc-800 border-[#27272A]"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Footer CMS</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Horizontal Navigation Menu for All Sections */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-zinc-800">
+          {[
+            { id: "overview", label: "Overview", icon: Activity },
+            { id: "users", label: "User Pool", icon: Users },
+            { id: "billing", label: "Subscriptions", icon: CreditCard },
+            { id: "models", label: "AI Models", icon: Cpu },
+            { id: "menu", label: "Menu Control", icon: Sliders },
+            { id: "footer", label: "Footer CMS", icon: FileText },
+            { id: "privacy", label: "Privacy Policy", icon: Shield, badge: "Legal" },
+            { id: "terms", label: "Terms & Conditions", icon: Scale, badge: "Legal" },
+            { id: "branding", label: "Branding CMS", icon: Palette },
+            { id: "seo", label: "SEO Config", icon: Globe },
+            { id: "cookies", label: "Cookie Ledger", icon: Fingerprint },
+            { id: "audits", label: "Audit Logs", icon: History },
+            { id: "settings", label: "Settings", icon: Settings },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                id={`admin-nav-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-2 whitespace-nowrap transition cursor-pointer shrink-0 border ${
+                  isActive
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm shadow-amber-500/10 font-semibold"
+                    : "bg-[#141416] text-zinc-400 hover:text-white hover:bg-zinc-900 border-[#222226]"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-amber-400" : "text-zinc-500"}`} />
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-bold ${
+                    isActive ? "bg-amber-500 text-black" : "bg-zinc-800 text-zinc-400"
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* -------------------------------------------------------------
-          TABS VIEWPORTS DETAILED MATCHING 10 SCREENS
+          TABS VIEWPORTS DETAILED MATCHING SCREENS
          ------------------------------------------------------------- */}
 
       {/* 1. OVERVIEW TAB */}
@@ -1413,7 +1564,7 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
             <p className="text-[10px] text-zinc-500">Modify regional company support hotline and social anchors</p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); toast.success("Footer parameters stored successfully!"); }} className="space-y-4">
+          <form onSubmit={handleSaveFooter} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Support Contact Hotline</label>
@@ -1433,6 +1584,93 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                   onChange={(e) => setFooterForm({ ...footerForm, email: e.target.value })}
                   className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white"
                 />
+              </div>
+            </div>
+
+            {/* Legal Policies & Frontend URLs Console */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#141416] border border-[#26262B] space-y-4 shadow-inner">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#202025]">
+                <div>
+                  <h5 className="text-xs font-bold text-white flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-amber-500" />
+                    Legal Policies & Frontend URLs
+                  </h5>
+                  <p className="text-[10px] text-zinc-500">
+                    Configure the live frontend route URLs for Privacy Policy and Terms & Conditions displayed across all platform footers
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("privacy")}
+                    className="px-2.5 py-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Shield className="w-3 h-3" /> Edit Privacy Content
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("terms")}
+                    className="px-2.5 py-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Scale className="w-3 h-3" /> Edit Terms Content
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                      <Shield className="w-3 h-3 text-amber-500" />
+                      Privacy Policy Frontend URL
+                    </label>
+                    <Link
+                      to={footerForm.privacyPolicyUrl || "/privacy"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Test URL
+                    </Link>
+                  </div>
+                  <input
+                    type="text"
+                    value={footerForm.privacyPolicyUrl}
+                    onChange={(e) => setFooterForm({ ...footerForm, privacyPolicyUrl: e.target.value })}
+                    placeholder="/privacy or /app/privacy"
+                    className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white font-mono"
+                  />
+                  <p className="text-[9.5px] text-zinc-500">
+                    Live frontend destination route for users clicking "Privacy Policy" in platform footers.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-1.5">
+                      <Scale className="w-3 h-3 text-amber-500" />
+                      Terms & Conditions Frontend URL
+                    </label>
+                    <Link
+                      to={footerForm.termsUrl || "/terms"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Test URL
+                    </Link>
+                  </div>
+                  <input
+                    type="text"
+                    value={footerForm.termsUrl}
+                    onChange={(e) => setFooterForm({ ...footerForm, termsUrl: e.target.value })}
+                    placeholder="/terms or /app/terms"
+                    className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-xl p-3 text-xs text-white font-mono"
+                  />
+                  <p className="text-[9.5px] text-zinc-500">
+                    Live frontend destination route for users clicking "Terms & Conditions" / "Terms of Service" in platform footers.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -2135,13 +2373,61 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         onConfirm={handleCreateMenuItem}
       >
         <div className="space-y-4 text-left">
+          {/* Quick Presets */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+              Quick Policy & System Presets
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setMenuForm({
+                  ...menuForm,
+                  label: "Privacy Policy",
+                  target: "privacy",
+                  icon: "Shield",
+                  visible: "Admin Menu"
+                })}
+                className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Shield className="w-3 h-3" /> Privacy Policy
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuForm({
+                  ...menuForm,
+                  label: "Terms & Conditions",
+                  target: "terms",
+                  icon: "Scale",
+                  visible: "Admin Menu"
+                })}
+                className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Scale className="w-3 h-3" /> Terms & Conditions
+              </button>
+              <button
+                type="button"
+                onClick={() => setMenuForm({
+                  ...menuForm,
+                  label: "Footer CMS",
+                  target: "footer",
+                  icon: "FileText",
+                  visible: "Admin Menu"
+                })}
+                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <FileText className="w-3 h-3" /> Footer CMS
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Menu Label</label>
             <input
               type="text"
               value={menuForm.label}
               onChange={(e) => setMenuForm({ ...menuForm, label: e.target.value })}
-              placeholder="e.g. Prompt Studio"
+              placeholder="e.g. Privacy Policy"
               className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2.5 text-xs text-white"
             />
           </div>
@@ -2152,22 +2438,44 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                 type="text"
                 value={menuForm.target}
                 onChange={(e) => setMenuForm({ ...menuForm, target: e.target.value })}
-                placeholder="e.g. prompt-studio"
+                placeholder="e.g. privacy or terms"
                 className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-white"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Assigned View</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Icon Key</label>
               <select
-                value={menuForm.visible}
-                onChange={(e) => setMenuForm({ ...menuForm, visible: e.target.value, parentId: "" })}
+                value={menuForm.icon}
+                onChange={(e) => setMenuForm({ ...menuForm, icon: e.target.value })}
                 className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
               >
-                <option value="User Menu">User Menu</option>
-                <option value="Admin Menu">Admin Menu</option>
-                <option value="All">All (Both Workspaces)</option>
+                <option value="Shield">Shield (Privacy)</option>
+                <option value="Scale">Scale (Terms & Legal)</option>
+                <option value="FileText">FileText (Documents & Footer)</option>
+                <option value="LayoutDashboard">LayoutDashboard</option>
+                <option value="Users">Users</option>
+                <option value="Cpu">Cpu</option>
+                <option value="CreditCard">CreditCard</option>
+                <option value="Sliders">Sliders</option>
+                <option value="Palette">Palette</option>
+                <option value="Globe">Globe</option>
+                <option value="Fingerprint">Fingerprint</option>
+                <option value="History">History</option>
+                <option value="Settings">Settings</option>
               </select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Assigned View</label>
+            <select
+              value={menuForm.visible}
+              onChange={(e) => setMenuForm({ ...menuForm, visible: e.target.value, parentId: "" })}
+              className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2 text-xs text-zinc-300"
+            >
+              <option value="Admin Menu">Admin Menu</option>
+              <option value="User Menu">User Menu</option>
+              <option value="All">All (Both Workspaces)</option>
+            </select>
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Parent Menu (Optional)</label>

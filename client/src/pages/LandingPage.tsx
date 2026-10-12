@@ -22,6 +22,7 @@ import {
   Globe
 } from "lucide-react";
 import Tilt3DCard from "../components/Tilt3DCard";
+import { Link } from "react-router-dom";
 import { ActiveScreen } from "../types";
 import { useGetConfigQuery } from "../redux/api/apiSlice";
 
@@ -698,7 +699,7 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-xs">
+          <div className="flex items-center gap-5 sm:gap-6 text-xs flex-wrap justify-center md:justify-end">
             <a href="#ecosystem" className="text-zinc-500 hover:text-amber-400 font-medium transition">
               Ecosystem
             </a>
@@ -708,6 +709,20 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             <a href="#live-demo" className="text-zinc-500 hover:text-amber-400 font-medium transition">
               Interactive Studio
             </a>
+            <Link
+              id="landing-footer-privacy"
+              to={branding?.privacyPolicyUrl || "/privacy"}
+              className="text-zinc-500 hover:text-amber-400 font-medium transition"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              id="landing-footer-terms"
+              to={branding?.termsUrl || "/terms"}
+              className="text-zinc-500 hover:text-amber-400 font-medium transition"
+            >
+              Terms & Conditions
+            </Link>
             <span
               onClick={() => setActiveScreen("admin")}
               className="text-[10px] text-zinc-600 hover:text-amber-400 cursor-pointer uppercase tracking-wider font-bold transition"

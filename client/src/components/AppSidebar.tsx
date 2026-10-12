@@ -42,6 +42,13 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   Shield,
   Scale,
+  Users,
+  FileText,
+  Palette,
+  Globe,
+  Fingerprint,
+  History,
+  ShieldAlert,
   User: UserIcon,
   UserIcon,
 };
@@ -173,7 +180,7 @@ export default function AppSidebar({
     (item: any) => item.visible === "Admin Menu" || item.visible === "All" || item.visible === "Both"
   );
 
-  const adminNavItems = adminMenuData && adminMenuData.length > 0
+  const dynamicAdminItems = adminMenuData && adminMenuData.length > 0
     ? adminMenuData.map((item: any) => ({
         _id: item.id,
         id: item.target,
@@ -181,6 +188,13 @@ export default function AppSidebar({
         icon: iconMap[item.icon] || LayoutDashboard,
         parentId: item.parentId,
       }))
+    : null;
+
+  const adminNavItems = dynamicAdminItems
+    ? [
+        ...dynamicAdminItems,
+        ...defaultAdminNavItems.filter((defItem) => !dynamicAdminItems.some((dyn: any) => dyn.id === defItem.id)),
+      ]
     : defaultAdminNavItems;
 
   const adminRoots = adminNavItems.filter((item: any) => !item.parentId);
