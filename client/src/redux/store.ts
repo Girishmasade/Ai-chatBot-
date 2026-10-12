@@ -3,6 +3,7 @@ import authReducer from "./slice/authSlice";
 import { apiSlice as mockApiSlice } from "./api/apiSlice";
 import { apiSlice as backendApiSlice } from "./backendApi/apiBackendConnectivity";
 import toast from "react-hot-toast";
+import uiReducer, { incrementLoading, decrementLoading } from "./slice/uiSlice";
 
 /**
  * Helper to extract the single, specific reason why an operation or validation failed.
@@ -70,10 +71,50 @@ export function extractDetailedErrorMessage(payload: any, status?: number | stri
 }
 
 /**
- * Global RTK Query error middleware.
- * Automatically displays a single, detailed error toast notification when any API call fails.
+ * Global RTK Query middleware.
+ * Automatically displays error toast on failures and manages global loading state.
  */
-export const rtkQueryErrorLogger: Middleware = () => (next) => (action: any) => {
+const loadingRequestIds = new Set<string>();
+
+export const rtkQueryGlobalMiddleware: Middleware = ({ dispatch, getState }) => (next) => (action: any) => {
+  // Track loading state for RTK Query endpoints
+  if (action.type && typeof action.type === "string") {
+    if (action.type.endsWith("/pending")) {
+      let shouldShowLoader = true;
+
+      // If it's a query and data is already present, don't show the global loader (avoids flashes on refetches)
+      if (action.meta?.arg?.type === "query") {
+        const { queryCacheKey, endpointName } = action.meta.arg;
+        
+        if (endpointName === "getConfig") {
+          shouldShowLoader = false;
+        } else {
+          const reducerPath = action.type.split('/')[0];
+          const apiState = (getState() as any)[reducerPath];
+          const existingQuery = apiState?.queries?.[queryCacheKey];
+          
+          if (existingQuery?.data !== undefined || existingQuery?.status === "fulfilled") {
+            shouldShowLoader = false;
+          }
+        }
+      }
+
+      if (shouldShowLoader) {
+        if (action.meta?.requestId) {
+          loadingRequestIds.add(action.meta.requestId);
+        }
+        dispatch(incrementLoading());
+      }
+    } else if (action.type.endsWith("/fulfilled") || action.type.endsWith("/rejected")) {
+      if (action.meta?.requestId) {
+        if (loadingRequestIds.has(action.meta.requestId)) {
+          loadingRequestIds.delete(action.meta.requestId);
+          dispatch(decrementLoading());
+        }
+      }
+    }
+  }
+
   if (isRejectedWithValue(action)) {
     const status = action.payload?.status;
     const endpointName = action.meta?.arg?.endpointName;
@@ -99,6 +140,7 @@ export const rtkQueryErrorLogger: Middleware = () => (next) => (action: any) => 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    ui: uiReducer,
     [mockApiSlice.reducerPath]: mockApiSlice.reducer,
     [backendApiSlice.reducerPath]: backendApiSlice.reducer,
   },
@@ -106,7 +148,7 @@ export const store = configureStore({
     getDefaultMiddleware()
       .concat(mockApiSlice.middleware)
       .concat(backendApiSlice.middleware)
-      .concat(rtkQueryErrorLogger),
+      .concat(rtkQueryGlobalMiddleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

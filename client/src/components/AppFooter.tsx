@@ -4,18 +4,13 @@ import {
   Mail,
   Phone,
   MapPin,
-  Linkedin,
-  Twitter,
-  Github,
-  Facebook,
-  Instagram,
-  Youtube,
   Globe,
   ArrowRight,
   Check,
   Code2
 } from "lucide-react";
 import { getStoredSocialLinks, PLATFORM_ICONS, SocialLinkItem } from "../helpers/socialLinks";
+import { useGetConfigQuery } from "../redux/api/apiSlice";
 
 interface AppFooterProps {
   setActiveScreen: (screen: ActiveScreen) => void;
@@ -26,6 +21,9 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>(getStoredSocialLinks());
+  
+  const { data: config } = useGetConfigQuery();
+  const branding = config?.branding;
 
   useEffect(() => {
     const handleUpdate = (e: any) => {
@@ -63,14 +61,20 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
           {/* Column 1: Brand details */}
           <div className="sm:col-span-2 lg:col-span-4 space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#F59E0B] flex items-center justify-center font-bold text-black text-lg shadow-lg shadow-amber-500/10 shrink-0">
-                G
-              </div>
-              <span className="text-xl font-bold text-white tracking-tight">GoChat AI</span>
+              {branding?.mainLogo ? (
+                <img src={branding.mainLogo} alt={branding.appName || "Logo"} className="h-10 w-auto object-contain" crossOrigin="anonymous" />
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/15 to-amber-950/40 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10 p-1.5 shrink-0 overflow-hidden">
+                    <img src={branding?.favicon || "/faviconGochat.png"} alt={branding?.appName || "GoChat AI"} className="w-full h-full object-contain" />
+                  </div>
+                  <span className="text-xl font-bold text-white tracking-tight">{branding?.appName || "GoChat AI"}</span>
+                </>
+              )}
             </div>
 
             <p className="text-sm text-zinc-400 leading-relaxed max-w-sm">
-              Next-generation AI platform for chat, image, video, and asset generation. Built for creators and enterprises.
+              {branding?.footerText || "Next-generation AI platform for chat, image, video, and asset generation. Built for creators and enterprises."}
             </p>
 
             <div className="space-y-3.5 pt-2">
@@ -160,16 +164,14 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
               {socialLinks.map((social) => {
                 const IconComp = PLATFORM_ICONS[social.platform] || Globe;
                 return (
-                  <a
+                  <button
                     key={social.id}
-                    href={social.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-10 h-10 rounded-lg bg-[#121214] border border-[#242429] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#F59E0B]/30 hover:bg-zinc-900 transition shrink-0"
+                    onClick={() => setActiveScreen("socials")}
+                    className="w-10 h-10 rounded-lg bg-[#121214] border border-[#242429] flex items-center justify-center text-zinc-400 hover:text-white hover:border-[#F59E0B]/30 hover:bg-zinc-900 transition shrink-0 cursor-pointer"
                     title={social.label}
                   >
                     <IconComp className="w-4 h-4" />
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -179,7 +181,7 @@ export default function AppFooter({ setActiveScreen, activeScreen }: AppFooterPr
 
         {/* Bottom copyright bar */}
         <div className="pt-8 border-t border-[#1a1a1f] flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-xs text-zinc-500 text-center sm:text-left">
-          <span>© 2026 GoChat AI. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} {branding?.appName || "GoChat AI"}. All rights reserved.</span>
           <span className="text-zinc-500 hover:text-zinc-400 transition cursor-pointer">
             Powered by GoChat AI
           </span>

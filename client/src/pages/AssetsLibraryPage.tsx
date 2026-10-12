@@ -259,6 +259,8 @@ export default function AssetsLibraryPage() {
                     <img
                       src={asset.content}
                       alt={asset.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
@@ -335,6 +337,8 @@ export default function AssetsLibraryPage() {
                     <img
                       src={asset.content}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                       onError={(e) => {

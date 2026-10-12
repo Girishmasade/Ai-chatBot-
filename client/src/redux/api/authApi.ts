@@ -89,6 +89,16 @@ export const authApi = apiSlice.injectEndpoints({
         "UserSubscription",
       ],
     }),
+    // ── POST /api/v1/auth/refresh-token ─────────────────────────────
+    refreshToken: builder.mutation<
+      ApiResponse<{ accessToken: string; user: AuthUser }>,
+      void
+    >({
+      query: () => ({
+        url: "/auth/refresh-token",
+        method: "POST",
+      }),
+    }),
   }),
 });
 
@@ -98,6 +108,7 @@ export const {
   useSendOtpMutation,
   useVerifyOtpMutation,
   useResendOtpMutation,
+  useRefreshTokenMutation,
   useLogoutMutation,
   useLogoutAllDevicesMutation,
 } = authApi;

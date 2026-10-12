@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, Search, Award, RefreshCw, Zap, ShieldCheck } from "lucide-react";
+import { Bell, Search, Award, RefreshCw, Zap, ShieldCheck, Menu } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 import { useGetLogsQuery } from "../redux/api/apiSlice";
 import { useGetWalletBalanceQuery } from "../redux/api/tokenApi";
@@ -9,13 +9,15 @@ interface AppTopBarProps {
   setActiveScreen: (screen: ActiveScreen) => void;
   currentUser: User;
   onRefreshCredits?: () => void;
+  onToggleSidebar?: () => void;
 }
 
 export default function AppTopBar({
   activeScreen,
   setActiveScreen,
   currentUser,
-  onRefreshCredits
+  onRefreshCredits,
+  onToggleSidebar
 }: AppTopBarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -57,6 +59,8 @@ export default function AppTopBar({
         return "About GoChat AI";
       case "contact":
         return "VIP Relations Concierge";
+      case "socials":
+        return "Social Network Matrix";
       default:
         return "Workspace";
     }
@@ -84,14 +88,22 @@ export default function AppTopBar({
   }, [currentUser.role, logsData]);
 
   return (
-    <header className="h-16 border-b border-[#242424] bg-[#090909]/80 backdrop-blur-md px-6 flex items-center justify-between  z-10 sticky top-0">
+    <header className="h-16 border-b border-[#242424] bg-[#090909]/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between z-10 sticky top-0">
       {/* Left Title and Status */}
       <div className="flex items-center gap-3">
+        {/* Mobile Hamburger Menu */}
+        <button 
+          onClick={onToggleSidebar}
+          className="md:hidden p-1.5 text-zinc-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         <div>
           <h2 className="text-xs font-semibold text-white tracking-wider flex items-center gap-1.5 uppercase">
             {getScreenName()}
           </h2>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="hidden sm:flex items-center gap-1.5 mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[9px] text-[#71717A] tracking-widest uppercase font-semibold">
               Live server link established
@@ -104,10 +116,11 @@ export default function AppTopBar({
           <button
             id="topbar-btn-user-mode"
             onClick={() => setActiveScreen("dashboard")}
-            className="ml-4 px-2.5 py-1 text-[10px] font-bold text-amber-500 hover:text-black bg-amber-500/10 hover:bg-amber-500 border border-amber-500/20 rounded-md flex items-center gap-1 transition"
+            className="ml-2 md:ml-4 px-2 py-1 md:px-2.5 md:py-1 text-[10px] font-bold text-amber-500 hover:text-black bg-amber-500/10 hover:bg-amber-500 border border-amber-500/20 rounded-md flex items-center gap-1 transition"
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Switch to User View
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Switch to User View</span>
+            <span className="sm:hidden">User View</span>
           </button>
         )}
       </div>

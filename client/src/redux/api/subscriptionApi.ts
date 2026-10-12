@@ -1,14 +1,25 @@
 import { apiSlice } from "../backendApi/apiBackendConnectivity";
 import type {
   ApiResponse,
+  MySubscriptionResponse,
   SubscriptionPlan,
   UserSubscription,
 } from "../../types";
 
 export const subscriptionApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // ── GET /api/v1/subscription/get-subscription ─────────────────────
-    // Admin endpoint — fetches all active subscription plans
+    // ── GET /api/v1/subscription/my-subscription ──────────────────────
+    // User endpoint — fetches current user's active subscription & plan
+    getMySubscription: builder.query<
+      ApiResponse<MySubscriptionResponse>,
+      void
+    >({
+      query: () => "/subscription/my-subscription",
+      providesTags: ["UserSubscription"],
+    }),
+
+    // ── GET /api/v1/subscription/get-plans ────────────────────────────
+    // Fetches all active subscription plans
     getSubscriptionPlans: builder.query<
       ApiResponse<{ subscriptionPlan: SubscriptionPlan[] }>,
       void
@@ -107,6 +118,8 @@ export const subscriptionApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useGetMySubscriptionQuery,
+  useLazyGetMySubscriptionQuery,
   useGetSubscriptionPlansQuery,
   useLazyGetSubscriptionPlansQuery,
   useCreateUserSubscriptionMutation,

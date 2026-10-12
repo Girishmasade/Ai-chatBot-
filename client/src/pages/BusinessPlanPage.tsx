@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Award,
   Users,
-  Target
+  Target,
+  Eye
 } from "lucide-react";
 
 export default function BusinessPlanPage() {
@@ -25,7 +26,7 @@ export default function BusinessPlanPage() {
   const [fundingNeeded, setFundingNeeded] = useState("");
   const [generating, setGenerating] = useState(false);
   const [planText, setPlanText] = useState("");
-  const [activeTab, setActiveTab] = useState<"summary" | "market" | "financials" | "marketing" | "operations">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "market" | "financials" | "marketing" | "operations" | "full">("summary");
   const [copied, setCopied] = useState(false);
 
   // File Upload State
@@ -412,6 +413,19 @@ ${companyName} will leverage direct relations, premium design showcases, and com
 
                 <div className="flex gap-2">
                   <button
+                    id="bp-btn-view-detail"
+                    onClick={() => setActiveTab("full")}
+                    className={`p-2 border rounded-lg text-[10px] font-bold uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer ${
+                      activeTab === "full"
+                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        : "bg-[#151515] hover:bg-zinc-900 border-[#242424] text-zinc-400 hover:text-white"
+                    }`}
+                    title="View full detail plan"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    View In Detail
+                  </button>
+                  <button
                     id="bp-btn-copy"
                     onClick={copyToClipboard}
                     className="p-2 bg-[#151515] hover:bg-zinc-900 border border-[#242424] text-zinc-400 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition flex items-center gap-1.5 cursor-pointer"
@@ -466,6 +480,7 @@ ${companyName} will leverage direct relations, premium design showcases, and com
 
               {/* Active Tab Viewport */}
               <div className="flex-1 p-6 md:p-8 text-xs text-zinc-300 leading-relaxed overflow-y-auto custom-scrollbar whitespace-pre-line font-sans">
+                {activeTab === "full" && planText}
                 {activeTab === "summary" && parseSection("summary")}
                 {activeTab === "market" && parseSection("market")}
                 {activeTab === "financials" && parseSection("financials")}

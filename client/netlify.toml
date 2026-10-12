@@ -2,6 +2,18 @@
   publish = "dist"
   command = "npm run build"
 
+# Prevent browsers from permanently caching the index.html file so new deployments load immediately
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Cache hashed assets immutably
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

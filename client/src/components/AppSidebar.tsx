@@ -19,7 +19,9 @@ import {
   Palette,
   Fingerprint,
   History,
-  Settings
+  Settings,
+  Shield,
+  Scale
 } from "lucide-react";
 import { ActiveScreen, User } from "../types";
 
@@ -38,6 +40,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BriefcaseBusiness,
   CreditCard,
   Settings,
+  Shield,
+  Scale,
   User: UserIcon,
   UserIcon,
 };
@@ -51,6 +55,8 @@ interface AppSidebarProps {
   setAdminActiveTab: (tab: any) => void;
   isAdminWorkspace: boolean;
   setIsAdminWorkspace: (val: boolean) => void;
+  isMobileMenuOpen?: boolean;
+  setIsMobileMenuOpen?: (val: boolean) => void;
 }
 
 export default function AppSidebar({
@@ -62,6 +68,8 @@ export default function AppSidebar({
   setAdminActiveTab,
   isAdminWorkspace,
   setIsAdminWorkspace,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen,
 }: AppSidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
@@ -97,13 +105,21 @@ export default function AppSidebar({
 
   const navigateTo = (screen: ActiveScreen) => {
     setActiveScreen(screen);
-    scrollContentToTop();
+    if (setIsMobileMenuOpen) setIsMobileMenuOpen(false);
+    
+    setTimeout(() => {
+      scrollContentToTop();
+    }, 100);
   };
 
   const navigateToAdminTab = (tabId: string) => {
     setActiveScreen("admin");
     setAdminActiveTab(tabId);
-    scrollContentToTop();
+    if (setIsMobileMenuOpen) setIsMobileMenuOpen(false);
+
+    setTimeout(() => {
+      scrollContentToTop();
+    }, 100);
   };
 
   // Default Fallback Navigation Items
@@ -144,7 +160,10 @@ export default function AppSidebar({
     { id: "models", label: "AI Model Manager", icon: Cpu },
     { id: "menu", label: "Menu Control", icon: Sliders },
     { id: "footer", label: "Footer CMS", icon: FileText },
+    { id: "privacy", label: "Privacy Policy", icon: Shield },
+    { id: "terms", label: "Terms & Conditions", icon: Scale },
     { id: "branding", label: "Branding CMS", icon: Palette },
+    { id: "seo", label: "SEO Config", icon: Globe },
     { id: "cookies", label: "Cookie Ledger", icon: Fingerprint },
     { id: "audits", label: "Audit Records", icon: History },
     { id: "settings", label: "System Settings", icon: Settings }
@@ -174,7 +193,7 @@ export default function AppSidebar({
   const branding = configData?.branding || (configData as any)?.data?.branding;
 
   return (
-    <aside className="w-64 bg-[#111111] border-r border-[#242424] flex flex-col h-screen  shrink-0 z-20">
+    <aside className={`w-64 bg-[#111111] border-r border-[#242424] flex flex-col h-screen shrink-0 z-40 fixed md:relative top-0 left-0 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
       {/* Brand Header */}
       <div className="p-4 border-b border-[#1F1F1F]">
         <div
@@ -201,9 +220,13 @@ export default function AppSidebar({
           ) : (
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <div className="absolute inset-0 rounded-xl bg-amber-500/40 blur-lg opacity-0 group-hover:opacity-70 transition-opacity duration-300" />
-                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-amber-600 flex items-center justify-center shadow-[0_4px_20px_-2px_rgba(245,158,11,0.45)] ring-1 ring-amber-300/40 group-hover:scale-[1.06] group-hover:-rotate-1 transition-all duration-300">
-                  <span className="text-black font-black text-xs tracking-tighter">GC</span>
+                <div className="absolute inset-0 rounded-xl bg-amber-500/30 blur-md opacity-40 group-hover:opacity-80 transition-opacity duration-300" />
+                <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/15 to-amber-950/40 border border-amber-500/30 flex items-center justify-center shadow-[0_4px_16px_-2px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/20 group-hover:scale-[1.06] group-hover:-rotate-1 transition-all duration-300 p-1 overflow-hidden">
+                  <img
+                    src={branding?.favicon || "/faviconGochat.png"}
+                    alt={branding?.appName || "GoChat AI"}
+                    className="w-full h-full object-contain drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]"
+                  />
                 </div>
               </div>
               <div className="flex-1 min-w-0 text-left">
@@ -403,7 +426,7 @@ export default function AppSidebar({
 
         <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl">
           <div className="relative">
-            <div className="w-8.5 h-8.5 rounded-lg bg-[#1D1D1D] border border-amber-500/20 flex items-center justify-center overflow-hidden">
+            <div className={`w-8.5 h-8.5 rounded-lg bg-[#1D1D1D] border ${currentUser.isPaid ? "border-amber-500 shadow-md shadow-amber-500/20" : "border-amber-500/20"} flex items-center justify-center overflow-hidden`}>
               <span className="text-xs font-bold text-amber-500 uppercase">
                 {currentUser.name[0]}
               </span>
@@ -412,9 +435,22 @@ export default function AppSidebar({
           </div>
           <div className="flex-1 min-w-0 text-left">
             <h4 className="text-xs font-semibold text-white truncate">{currentUser.name}</h4>
-            <p className="text-[9px] text-[#71717A] truncate uppercase font-semibold tracking-wider">
-              {currentUser.tier} tier
-            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p
+                className={`text-[9px] truncate uppercase font-semibold tracking-wider ${
+                  currentUser.isPaid
+                    ? "text-amber-400 font-bold"
+                    : "text-[#71717A]"
+                }`}
+              >
+                {currentUser.isPaid ? "PAID TIER" : "FREE TIER"}
+              </p>
+              {currentUser.isPaid && currentUser.planName && !currentUser.planName.toLowerCase().includes("free") && (
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[8px] font-bold text-amber-400 uppercase tracking-tight">
+                  {currentUser.planName}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

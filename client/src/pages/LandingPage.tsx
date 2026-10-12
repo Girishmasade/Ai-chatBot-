@@ -21,15 +21,17 @@ import {
   Code2,
   Globe
 } from "lucide-react";
-import LuxuryOrb from "../components/LuxuryOrb";
-import EcosystemDiagram from "../components/EcosystemDiagram";
-import InteractivePlayground from "../components/InteractivePlayground";
-import Background3D from "../components/Background3D";
 import Tilt3DCard from "../components/Tilt3DCard";
-import Interactive3DShowcase from "../components/Interactive3DShowcase";
-import BranchingServicesTree from "../components/BranchingServicesTree";
 import { ActiveScreen } from "../types";
 import { useGetConfigQuery } from "../redux/api/apiSlice";
+
+// Lazy-load heavy 3D and interactive playground sections
+const LuxuryOrb = React.lazy(() => import("../components/LuxuryOrb"));
+const EcosystemDiagram = React.lazy(() => import("../components/EcosystemDiagram"));
+const InteractivePlayground = React.lazy(() => import("../components/InteractivePlayground"));
+const Background3D = React.lazy(() => import("../components/Background3D"));
+const Interactive3DShowcase = React.lazy(() => import("../components/Interactive3DShowcase"));
+const BranchingServicesTree = React.lazy(() => import("../components/BranchingServicesTree"));
 
 interface LandingPageProps {
   onEnterApp: () => void;
@@ -93,7 +95,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
       />
 
       {/* 3D Background Canvas */}
-      <Background3D />
+      <React.Suspense fallback={null}>
+        <Background3D />
+      </React.Suspense>
 
       {/* Background Vector Glow & Ambient Grid Lines */}
       <motion.div
@@ -125,8 +129,8 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
             />
           ) : (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
-                <Sparkles className="w-4 h-4 text-black" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/15 to-amber-950/40 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/25 p-1 overflow-hidden">
+                <img src={branding?.favicon || "/faviconGochat.png"} alt="GoChat Logo" className="w-full h-full object-contain" />
               </div>
               <span className="text-sm font-bold tracking-wider text-white font-mono">
                 {branding?.appName || "GoChat AI"}
@@ -270,7 +274,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
         >
           <div className="absolute inset-0 bg-radial-gradient from-amber-500/[0.08] via-amber-500/[0.02] to-transparent blur-3xl pointer-events-none" />
           
-          <LuxuryOrb size={390} />
+          <React.Suspense fallback={<div className="w-[390px] h-[390px] rounded-full bg-amber-500/[0.03] animate-pulse" />}>
+            <LuxuryOrb size={390} />
+          </React.Suspense>
 
           {/* Floating Status Badges */}
           <motion.div
@@ -301,7 +307,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
 
       {/* SECTION 2: Dynamic Ecosystem Curved Branch Diagram */}
       <section id="ecosystem" className="py-16 bg-[#0B0B0D] border-y border-[#1F1F1F]/70 relative">
-        <EcosystemDiagram onSelectFeature={() => onEnterApp()} />
+        <React.Suspense fallback={<div className="h-64 flex items-center justify-center text-xs text-zinc-600 font-mono">Loading Ecosystem...</div>}>
+          <EcosystemDiagram onSelectFeature={() => onEnterApp()} />
+        </React.Suspense>
       </section>
 
       {/* SECTION 3: Live Interactive Playground / Studio */}
@@ -319,7 +327,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
           </p>
         </div>
 
-        <InteractivePlayground />
+        <React.Suspense fallback={<div className="h-96 flex items-center justify-center text-xs text-zinc-600 font-mono">Loading Playground...</div>}>
+          <InteractivePlayground />
+        </React.Suspense>
       </section>
 
       {/* SECTION 4: 3D Workbench Sandbox */}
@@ -330,7 +340,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
         viewport={{ once: false, amount: 0.15 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <Interactive3DShowcase />
+        <React.Suspense fallback={<div className="h-96 flex items-center justify-center text-xs text-zinc-600 font-mono">Loading 3D Sandbox...</div>}>
+          <Interactive3DShowcase />
+        </React.Suspense>
       </motion.div>
 
       {/* SECTION 5: Branching Services Tree UI */}
@@ -342,7 +354,9 @@ export default function LandingPage({ onEnterApp, setActiveScreen }: LandingPage
         transition={{ duration: 0.7, ease: "easeOut" }}
         className="bg-[#0C0C0C]/80 border-y border-[#1F1F1F]/80 backdrop-blur-md"
       >
-        <BranchingServicesTree />
+        <React.Suspense fallback={<div className="h-96 flex items-center justify-center text-xs text-zinc-600 font-mono">Loading Architecture Tree...</div>}>
+          <BranchingServicesTree />
+        </React.Suspense>
       </motion.div>
 
       {/* SECTION 6: Comprehensive Core Services Offered */}

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send, Sparkles, Copy, Check, Trash2, Paperclip, Smile, X, FileText, ArrowDown, History, Clock, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Picker, { Theme } from "emoji-picker-react";
-import theme from "../theme";
+
+// Lazy-load heavy Emoji Picker only when opened
+const EmojiPicker = React.lazy(() => import("emoji-picker-react"));
 import {
   useExecuteAIMutation,
   useGetMyRequestsQuery,
@@ -428,10 +429,18 @@ How can I assist you in optimizing your custom platform development today? Selec
 
         {showPicker && (
           <div ref={pickerRef} className="absolute bottom-16 right-0 z-50 shadow-2xl max-w-[90vw]">
-            <Picker
-              onEmojiClick={(emojiData) => setInput((prev) => prev + emojiData.emoji)}
-              theme={Theme.DARK}
-            />
+            <React.Suspense
+              fallback={
+                <div className="w-[300px] h-[350px] bg-[#161616] border border-[#242424] rounded-2xl flex items-center justify-center text-xs text-zinc-500">
+                  Loading emojis...
+                </div>
+              }
+            >
+              <EmojiPicker
+                onEmojiClick={(emojiData) => setInput((prev) => prev + emojiData.emoji)}
+                theme={"dark" as any}
+              />
+            </React.Suspense>
           </div>
         )}
 

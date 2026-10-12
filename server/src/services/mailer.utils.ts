@@ -3,15 +3,26 @@
 import nodemailer from "nodemailer";
 import { SMTP_EMAIL, SMTP_PASSWORD } from "../env/env.import.js";
 
-// ── Transporter ────────────────────────────────────────────
+const isProd = process.env.NODE_ENV === "production";
+
+// ── Transporter (Gmail SMTP) ─────────────overload matches this call.
+  // The last overload gave the following error.
+  //   Object literal may only specify known properties, and 'host' does not exist in type 'TransportOptions | Transport<unknown, TransportOptions>'.────────
 
 export const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Use SSL/TLS to avoid Render port blocking
+  family: 4, // Force IPv4 to avoid ENETUNREACH for IPv6
   auth: {
     user: SMTP_EMAIL,
-    pass: SMTP_PASSWORD,
+    pass: SMTP_PASSWORD, // Make sure to use an App Password if using Gmail
   },
-});
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+} as any);
+
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -95,7 +106,7 @@ const templates: Record<
   otp: (payload) => {
     const { otp, username } = payload as OTPEmailOptions["payload"];
     return {
-      subject: "Verify your email - OTP",
+      subject: `Your Verification Code: ${otp}`,
       html: baseLayout(`
         <h2 style="color: #333;">Hello, ${username} 👋</h2>
         <p style="color: #555;">
@@ -263,14 +274,28 @@ const templates: Record<
 };
 
 // ── Main sendEmail ─────────────────────────────────────────
+// KEY CHANGE from original: this NEVER throws. It logs and resolves
+// to true/false, so a failed email can never break register/login/
+// reset-password/payment flows.
 
-export const sendEmail = async (options: EmailOptions): Promise<void> => {
+export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
   const { subject, html } = templates[options.type](options.payload);
 
-  await transporter.sendMail({
-    from: `"AI ChatBot" <${process.env.SMTP_EMAIL}>`,
-    to: options.to,
-    subject,
-    html,
-  });
-}
+  try {
+    const info = await transporter.sendMail({
+      from: `"AI ChatBot" <${SMTP_EMAIL}>`,
+      to: options.to,
+      subject,
+      html,
+    });
+
+    console.log(`[Mailer] Sent "${options.type}" to ${options.to} (${info.messageId})`);
+    return true;
+  } catch (err) {
+    console.error(
+      `[Mailer] Failed to send "${options.type}" email to ${options.to}:`,
+      (err as Error).message
+    );
+    return false; // swallow — caller decides what to do, but auth flow never breaks
+  }
+};

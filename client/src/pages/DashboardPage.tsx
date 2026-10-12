@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
+// Lazy-loaded chart component to isolate heavy recharts library
+const UsageAreaChart = React.lazy(() => import("../components/UsageAreaChart"));
 import {
   Zap,
   TrendingUp,
@@ -124,8 +126,9 @@ export default function DashboardPage({
     };
   }, [assets]);
 
-  const PLAN_MAX_CREDITS = {
+  const PLAN_MAX_CREDITS: Record<string, number> = {
     free: 100,
+    paid: 5000,
     basic: 1000,
     pro: 5000,
     enterprise: 100000
@@ -136,7 +139,11 @@ export default function DashboardPage({
   const totalCredits = PLAN_MAX_CREDITS[currentUser.tier] || 5000;
   const usedCredits = Math.max(0, totalCredits - displayCredits);
   const percentageUsed = Math.min(100, Math.round((usedCredits / totalCredits) * 100));
-  const planName = currentUser.tier ? currentUser.tier.charAt(0).toUpperCase() + currentUser.tier.slice(1) + " Plan" : "Free Plan";
+  const planName = currentUser.isPaid
+    ? (currentUser.planName ? `${currentUser.planName} Plan` : "Paid Plan")
+    : currentUser.tier
+    ? currentUser.tier.charAt(0).toUpperCase() + currentUser.tier.slice(1) + " Plan"
+    : "Free Plan";
 
   return (
     <div className="space-y-6 p-1 text-left">
@@ -280,28 +287,15 @@ export default function DashboardPage({
           </div>
           
           <div className="flex-1 min-h-[250px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.dynamicChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorChats" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorImages" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717A' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717A' }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#161616', borderColor: '#242424', borderRadius: '8px', fontSize: '12px' }}
-                  itemStyle={{ color: '#fff' }}
-                />
-                <Area type="monotone" dataKey="chats" stroke="#F59E0B" strokeWidth={2} fillOpacity={1} fill="url(#colorChats)" />
-                <Area type="monotone" dataKey="images" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorImages)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <React.Suspense
+              fallback={
+                <div className="h-[250px] flex items-center justify-center text-xs text-zinc-600 font-mono">
+                  Loading analytics chart...
+                </div>
+              }
+            >
+              <UsageAreaChart data={stats.dynamicChartData} />
+            </React.Suspense>
           </div>
         </div>
 

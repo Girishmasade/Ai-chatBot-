@@ -16,14 +16,18 @@ export type ActiveScreen =
   | "terms"
   | "privacy"
   | "about"
-  | "contact";
+  | "contact"
+  | "socials";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: "User" | "Administrator" | "Developer" | "admin" | "user";
-  tier: "free" | "basic" | "pro" | "enterprise";
+  tier: "free" | "basic" | "pro" | "enterprise" | "paid";
+  isPaid?: boolean;
+  activePlanId?: string;
+  planName?: string;
   credits: number;
   joined: string;
   status: "active" | "suspended";
@@ -86,6 +90,9 @@ export interface BrandingConfig {
   primaryColor: string;
   accentGlow: string;
   footerText: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 // ─── Backend API Response Types ──────────────────────────────────────────────
@@ -111,6 +118,7 @@ export interface AuthUser {
 /** Returned by verifyOtp on success */
 export interface VerifyOtpResponse {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
 }
 
@@ -170,13 +178,110 @@ export interface UserSubscription {
   updatedAt: string;
 }
 
-/** Token package (purchasable credit bundles) */
+/** Token package (purchasable credit bundles, e.g. Starter Pack) */
 export interface TokenPackage {
   _id: string;
+  id?: string;
   name: string;
-  tokens: number;
+  tokens?: number;
+  tokenAmount: number;
   price: number;
-  currency: string;
-  isActive: boolean;
+  currency?: string;
+  status?: "active" | "inactive" | string;
+  isActive?: boolean;
+  isPopular?: boolean;
+  sortOrder?: number;
   description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+/** Active subscription response for current user */
+export interface MySubscriptionResponse {
+  hasActiveSubscription: boolean;
+  isPaid: boolean;
+  tier: "free" | "paid" | "basic" | "pro" | "enterprise";
+  plan: SubscriptionPlan | null;
+  subscription: UserSubscription | null;
+}
+
+export interface PolicyImage {
+  url: string;
+  publicId?: string;
+  caption?: string;
+}
+
+export interface PrivacySection {
+  _id?: string;
+  title: string;
+  content: string;
+  order: number;
+  icon?: string;
+  image?: PolicyImage;
+}
+
+export interface ThirdPartyProcessor {
+  name: string;
+  purpose: string;
+  privacyPolicyUrl?: string;
+}
+
+export interface PrivacyPolicy {
+  _id: string;
+  title: string;
+  slug: string;
+  version: string;
+  summary: string;
+  content?: string;
+  status: "draft" | "published" | "archived";
+  isCurrent: boolean;
+  effectiveDate: string;
+  lastUpdated: string;
+  bannerImage?: PolicyImage;
+  sections: PrivacySection[];
+  thirdPartyProcessors?: ThirdPartyProcessor[];
+  userRights?: string[];
+  securityMeasures?: string[];
+  contactEmail: string;
+  retentionPeriod?: string;
+  cookiePolicySummary?: string;
+  changelog?: string;
+  createdBy?: any;
+  updatedBy?: any;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TermsSection {
+  _id?: string;
+  title: string;
+  content: string;
+  order: number;
+  icon?: string;
+  image?: PolicyImage;
+}
+
+export interface TermsAndCondition {
+  _id: string;
+  title: string;
+  slug: string;
+  version: string;
+  summary: string;
+  content?: string;
+  status: "draft" | "published" | "archived";
+  isCurrent: boolean;
+  effectiveDate: string;
+  lastUpdated: string;
+  bannerImage?: PolicyImage;
+  sections: TermsSection[];
+  keyHighlights?: string[];
+  prohibitedActivities?: string[];
+  governingLaw?: string;
+  contactEmail: string;
+  changelog?: string;
+  createdBy?: any;
+  updatedBy?: any;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

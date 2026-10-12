@@ -67,6 +67,14 @@ export const initSocket = (userId?: string, token?: string) => {
     }
   });
 
+  socket.on("ai:job_progress", (data: { jobId: string; status: string; progress?: number; message?: string }) => {
+    console.log("⚡ Real-time AI queue progress:", data);
+  });
+
+  socket.on("ai:job_completed", (data: { jobId: string; success: boolean; service: string }) => {
+    console.log("⚡ Real-time AI job completed:", data);
+  });
+
   socket.on("connect_error", (err) => {
     console.warn("⚡ Socket connection error:", err.message);
   });

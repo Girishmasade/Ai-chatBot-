@@ -15,6 +15,7 @@ import {
 } from "../redux/api/authApi";
 import { useUpdateUserProfileMutation } from "../redux/api/userApi";
 import { useLazyGetWalletBalanceQuery } from "../redux/api/tokenApi";
+import { useGetMySubscriptionQuery } from "../redux/api/subscriptionApi";
 import type { AuthUser } from "../types";
 
 /**
@@ -31,7 +32,7 @@ export function useAuth() {
     (state: RootState) => state.auth
   );
 
-  // ── Backend API mutations ───────────────────────────────────────────
+  // ── Backend API mutations & queries ──────────────────────────────────
   const [registerMutation, registerState] = useRegisterMutation();
   const [loginMutation, loginState] = useLoginMutation();
   const [verifyOtpMutation, verifyOtpState] = useVerifyOtpMutation();
@@ -39,6 +40,16 @@ export function useAuth() {
   const [logoutMutation] = useLogoutMutation();
   const [updateProfileMutation] = useUpdateUserProfileMutation();
   const [triggerGetWallet] = useLazyGetWalletBalanceQuery();
+
+  const { data: mySubData, refetch: refetchSubscription } = useGetMySubscriptionQuery(
+    undefined,
+    { skip: !isAuthenticated }
+  );
+
+  const subInfo = mySubData?.data;
+  const isPaid = Boolean(subInfo?.isPaid);
+  const activePlanId = subInfo?.plan?._id;
+  const planName = subInfo?.plan?.name;
 
   // ── Auth actions ────────────────────────────────────────────────────
 
@@ -118,8 +129,8 @@ export function useAuth() {
 
   /** Manually set credentials (e.g. from OAuth callback) */
   const setAuth = useCallback(
-    (accessToken: string, user: AuthUser) => {
-      dispatch(setCredentials({ accessToken, user }));
+    (accessToken: string, user: AuthUser, refreshToken?: string) => {
+      dispatch(setCredentials({ accessToken, user, refreshToken }));
     },
     [dispatch]
   );
@@ -137,7 +148,10 @@ export function useAuth() {
             role: (currentUser.role === "admin"
               ? "Administrator"
               : "User") as "User" | "Administrator" | "Developer",
-            tier: "free" as const,
+            tier: (isPaid ? "paid" : "free") as "free" | "basic" | "pro" | "enterprise" | "paid",
+            isPaid,
+            activePlanId,
+            planName,
             credits: currentUser.role === "admin" ? 0 : 200,
             joined: new Date().toISOString().split("T")[0],
             status: "active" as const,
@@ -148,11 +162,12 @@ export function useAuth() {
             email: "",
             role: "User" as const,
             tier: "free" as const,
+            isPaid: false,
             credits: 200,
             joined: "",
             status: "active" as const,
           },
-    [currentUser]
+    [currentUser, isPaid, activePlanId, planName]
   );
 
   return {
@@ -161,6 +176,14 @@ export function useAuth() {
     currentUser: compatUser,
     authUser: currentUser, // raw backend user
     accessToken,
+
+    // Subscription status
+    activeSubscription: subInfo?.subscription,
+    activePlan: subInfo?.plan,
+    isPaid,
+    activePlanId,
+    planName,
+    refetchSubscription,
 
     // Auth actions
     register,
@@ -181,7 +204,7 @@ export function useAuth() {
     resendOtpState,
 
     // Legacy compatibility — upgrade just dispatches locally for now
-    upgrade: async (tier: "free" | "basic" | "pro" | "enterprise", creditsToAdd: number) => {
+    upgrade: async (tier: "free" | "basic" | "pro" | "enterprise" | "paid", creditsToAdd: number) => {
       // This will be wired to createUserSubscription when backend plans are seeded
       console.log("Upgrade requested:", tier, creditsToAdd);
     },

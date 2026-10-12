@@ -27,11 +27,14 @@ import {
   MessageSquare,
   Image as ImageIcon2,
   Video,
-  Box
+  Box,
+  Zap
 } from "lucide-react";
 import { User, SystemModel, SubscriptionRecord, AuditLog, CookieConsent, BrandingConfig } from "../types";
 import CommonModal from "../components/CommonModal";
 import ConfirmModal from "../components/ConfirmModal";
+import AdminPrivacyTab from "../components/admin/AdminPrivacyTab";
+import AdminTermsTab from "../components/admin/AdminTermsTab";
 import { getStoredSocialLinks, saveSocialLinks, PLATFORM_ICONS, SocialLinkItem } from "../helpers/socialLinks";
 import {
   useGetDashboardStatsQuery,
@@ -54,6 +57,13 @@ import {
   useDeleteSubscriptionPlanMutation,
   useGetSubscriptionPlansQuery
 } from "../redux/api/subscriptionApi";
+import {
+  useGetAllTokenPackagesQuery,
+  useCreateTokenPackageMutation,
+  useUpdateTokenPackageMutation,
+  useToggleTokenPackageStatusMutation,
+  useDeleteTokenPackageMutation
+} from "../redux/api/tokenApi";
 import {
   useGetAdminMenuItemsQuery,
   useCreateMenuItemMutation,
@@ -79,6 +89,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const { data: subscriptionsData } = useGetSubscriptionsQuery();
   const { data: dbPlansResponse } = useGetSubscriptionPlansQuery();
   const dbPlans = dbPlansResponse?.data?.subscriptionPlan || [];
+  const { data: dbPackagesResponse } = useGetAllTokenPackagesQuery();
+  const dbPackages =
+    (dbPackagesResponse?.data as any)?.result?.data ||
+    (dbPackagesResponse?.data as any)?.cached?.data ||
+    (dbPackagesResponse?.data as any)?.packages ||
+    [];
   const { data: logsData } = useGetLogsQuery();
   const { data: configData } = useGetConfigQuery();
 
@@ -89,6 +105,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   const [toggleModel] = useToggleModelMutation();
   const [updateBranding] = useUpdateBrandingMutation();
   const [createSubscriptionPlan, { isLoading: isCreatingPlan }] = useCreateSubscriptionPlanMutation();
+  const [createTokenPackage, { isLoading: isCreatingPackage }] = useCreateTokenPackageMutation();
+  const [updateTokenPackage, { isLoading: isUpdatingPackage }] = useUpdateTokenPackageMutation();
+  const [toggleTokenPackageStatus] = useToggleTokenPackageStatusMutation();
+  const [deleteTokenPackage, { isLoading: isDeletingPackage }] = useDeleteTokenPackageMutation();
   const { data: adminMenuData } = useGetAdminMenuItemsQuery();
   console.log("adminMenuData",adminMenuData);
   const [createMenuItem] = useCreateMenuItemMutation();
@@ -158,7 +178,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
     appName: "GoChat AI",
     logoName: "GoChat AI",
     primaryColor: "#F59E0B",
-    footerText: ""
+    footerText: "",
+    seoTitle: "GoChat AI - Next-Gen Intelligence Workspace",
+    seoDescription: "The luxury standard for multi-modal intelligence workspace solutions.",
+    seoKeywords: "AI, Chat, Video Generation, Image Studio, GoChat"
   });
   
   const [brandingFiles, setBrandingFiles] = useState<{
@@ -212,6 +235,21 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
   });
   const [planServices, setPlanServices] = useState<string[]>([]);
   const [serviceInput, setServiceInput] = useState("");
+
+  // Token Package Form
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+  const [deletePackageId, setDeletePackageId] = useState<string | null>(null);
+  const [packageForm, setPackageForm] = useState({
+    id: "",
+    name: "",
+    description: "",
+    tokenAmount: 1000,
+    price: 99,
+    currency: "inr",
+    status: "active" as "active" | "inactive",
+    isPopular: false,
+    sortOrder: 1,
+  });
 
   // Footer configuration
   const [footerForm, setFooterForm] = useState({
@@ -271,7 +309,10 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         appName: configData.branding.appName || "GoChat AI",
         logoName: configData.branding.logoName || "GoChat AI",
         primaryColor: configData.branding.primaryColor || "#F59E0B",
-        footerText: configData.branding.footerText || ""
+        footerText: configData.branding.footerText || "",
+        seoTitle: configData.branding.seoTitle || "GoChat AI - Next-Gen Intelligence Workspace",
+        seoDescription: configData.branding.seoDescription || "The luxury standard for multi-modal intelligence workspace solutions.",
+        seoKeywords: configData.branding.seoKeywords || "AI, Chat, Video Generation, Image Studio, GoChat"
       });
       setCookieConsents(configData.cookieConsents);
       const totalAcc = configData.cookieConsents.filter((c: any) => c.consented !== false).length;
@@ -396,6 +437,9 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
       formData.append("logoName", brandingForm.logoName);
       formData.append("primaryColor", brandingForm.primaryColor);
       formData.append("footerText", brandingForm.footerText);
+      formData.append("seoTitle", brandingForm.seoTitle);
+      formData.append("seoDescription", brandingForm.seoDescription);
+      formData.append("seoKeywords", brandingForm.seoKeywords);
 
       if (brandingFiles.mainLogo) formData.append("mainLogo", brandingFiles.mainLogo);
       if (brandingFiles.favicon) formData.append("favicon", brandingFiles.favicon);
@@ -541,6 +585,106 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
 
   const handleRemoveService = (svc: string) => {
     setPlanServices(planServices.filter(s => s !== svc));
+  };
+
+  // TOKEN PACKAGE OPERATIONS
+  const handleEditPackageClick = (pkg: any) => {
+    setPackageForm({
+      id: pkg._id || pkg.id,
+      name: pkg.name || "",
+      description: pkg.description || "",
+      tokenAmount: pkg.tokenAmount || 1000,
+      price: pkg.price || 99,
+      currency: pkg.currency || "inr",
+      status: (pkg.status as "active" | "inactive") || "active",
+      isPopular: Boolean(pkg.isPopular),
+      sortOrder: pkg.sortOrder ?? 1,
+    });
+    setIsPackageModalOpen(true);
+  };
+
+  const handleSavePackage = async () => {
+    if (!packageForm.name.trim()) {
+      toast.error("Package name is required");
+      return;
+    }
+    try {
+      const payload = {
+        name: packageForm.name,
+        description: packageForm.description,
+        tokenAmount: packageForm.tokenAmount,
+        price: packageForm.price,
+        currency: packageForm.currency,
+        status: packageForm.status,
+        isPopular: packageForm.isPopular,
+        sortOrder: packageForm.sortOrder,
+      };
+
+      if (packageForm.id) {
+        const result = await updateTokenPackage({ tokenId: packageForm.id, ...payload }).unwrap();
+        if (result.success) {
+          toast.success("Token package updated successfully");
+          setIsPackageModalOpen(false);
+          setPackageForm({
+            id: "",
+            name: "",
+            description: "",
+            tokenAmount: 1000,
+            price: 99,
+            currency: "inr",
+            status: "active",
+            isPopular: false,
+            sortOrder: 1,
+          });
+        }
+      } else {
+        const result = await createTokenPackage(payload).unwrap();
+        if (result.success) {
+          toast.success("Token package created successfully");
+          setIsPackageModalOpen(false);
+          setPackageForm({
+            id: "",
+            name: "",
+            description: "",
+            tokenAmount: 1000,
+            price: 99,
+            currency: "inr",
+            status: "active",
+            isPopular: false,
+            sortOrder: 1,
+          });
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.data?.message || "Failed to save token package");
+      console.error(e);
+    }
+  };
+
+  const handleTogglePackageStatus = async (pkg: any) => {
+    const newStatus = pkg.status === "active" ? "inactive" : "active";
+    try {
+      const result = await toggleTokenPackageStatus({ tokenId: pkg._id || pkg.id, status: newStatus }).unwrap();
+      if (result.success) {
+        toast.success(`Package status changed to ${newStatus}`);
+      }
+    } catch (e: any) {
+      toast.error(e?.data?.message || "Failed to toggle package status");
+    }
+  };
+
+  const handleDeletePackageConfirm = async () => {
+    if (!deletePackageId) return;
+    try {
+      const result = await deleteTokenPackage(deletePackageId).unwrap();
+      if (result.success) {
+        toast.success("Token package deleted successfully");
+        setDeletePackageId(null);
+      }
+    } catch (e: any) {
+      toast.error(e?.data?.message || "Failed to delete token package");
+      console.error(e);
+    }
   };
 
   // SOCIAL LINKS OPERATIONS
@@ -940,6 +1084,114 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
             )}
           </div>
 
+          {/* Section: MongoDB Created Token Packages & Starter Packs */}
+          <div className="bg-[#111111] border border-[#242424] rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F1F1F]">
+              <div className="text-left">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Token Packages & Starter Packs (`tokenpackages` DB)
+                </h4>
+                <p className="text-[10px] text-zinc-500">
+                  Manage credit top-up packages, starter bundles, and pricing configurations stored in MongoDB
+                </p>
+              </div>
+              <button
+                id="admin-btn-create-package"
+                onClick={() => {
+                  setPackageForm({
+                    id: "",
+                    name: "",
+                    description: "",
+                    tokenAmount: 1000,
+                    price: 99,
+                    currency: "inr",
+                    status: "active",
+                    isPopular: false,
+                    sortOrder: dbPackages.length + 1,
+                  });
+                  setIsPackageModalOpen(true);
+                }}
+                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Create Package
+              </button>
+            </div>
+
+            {dbPackages.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500 text-xs font-mono">
+                No token packages found in MongoDB. Click "Create Package" to define one.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {dbPackages.map((pkg: any) => (
+                  <div
+                    key={pkg._id || pkg.id}
+                    className="p-4 bg-[#161616] border border-[#242424] rounded-xl flex flex-col justify-between space-y-3 text-left hover:border-amber-500/30 transition relative"
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <h5 className="text-xs font-bold text-white">{pkg.name}</h5>
+                          {pkg.isPopular && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] font-bold text-amber-400 uppercase tracking-wider">
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleTogglePackageStatus(pkg)}
+                            className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider cursor-pointer transition ${
+                              pkg.status === "active"
+                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
+                                : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+                            }`}
+                            title="Click to toggle status"
+                          >
+                            {pkg.status === "active" ? "Active" : "Inactive"}
+                          </button>
+                          <button
+                            onClick={() => handleEditPackageClick(pkg)}
+                            className="p-1.5 text-zinc-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition"
+                            title="Edit Package"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletePackageId(pkg._id || pkg.id)}
+                            className="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition"
+                            title="Delete Package"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 line-clamp-2">{pkg.description || "No description provided."}</p>
+                    </div>
+
+                    <div className="py-2 border-y border-[#222] flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Price</span>
+                        <span className="font-bold text-amber-500 font-mono">₹{pkg.price}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Tokens</span>
+                        <span className="font-bold text-white font-mono flex items-center gap-1">
+                          <Zap className="w-3 h-3 text-amber-500" />
+                          {(pkg.tokenAmount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-bold">Order</span>
+                        <span className="font-bold text-zinc-300 font-mono">#{pkg.sortOrder ?? 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Section: VIP Membership Transaction Ledger */}
           <div className="bg-[#111111] border border-[#242424] rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 bg-[#0C0C0C] border-b border-[#1F1F1F] text-left">
@@ -1272,6 +1524,12 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         </div>
       )}
 
+      {/* PRIVACY POLICY CMS TAB */}
+      {activeTab === "privacy" && <AdminPrivacyTab />}
+
+      {/* TERMS & CONDITIONS CMS TAB */}
+      {activeTab === "terms" && <AdminTermsTab />}
+
       {/* 7. BRANDING CMS TAB */}
       {activeTab === "branding" && (
         <form onSubmit={handleSaveBranding} className="space-y-6 max-w-4xl">
@@ -1404,6 +1662,59 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {activeTab === "seo" && (
+        <form onSubmit={handleSaveBranding} className="space-y-6 max-w-4xl">
+          <div className="flex justify-between items-start mb-6">
+            <div className="text-left">
+              <h2 className="text-2xl font-extrabold text-white">SEO Configuration</h2>
+              <p className="text-sm text-zinc-400 mt-1">Manage global Search Engine Optimization settings to maximize visibility.</p>
+            </div>
+            <button
+              type="submit"
+              className="px-5 py-2.5 text-xs font-bold text-black bg-amber-500 hover:bg-amber-400 rounded-lg transition flex items-center gap-1.5 shadow-lg shadow-amber-500/15 cursor-pointer"
+            >
+              <Save className="w-4 h-4" /> Save SEO Settings
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <label className="block text-xs font-bold text-white mb-3">Global SEO Title</label>
+              <input
+                type="text"
+                value={brandingForm.seoTitle}
+                onChange={(e) => setBrandingForm({ ...brandingForm, seoTitle: e.target.value })}
+                className="w-full max-w-2xl bg-[#1E1E1E] border border-[#333] focus:border-[#555] focus:outline-none rounded-lg p-2.5 text-xs text-white"
+                placeholder="GoChat AI - Next-Gen Intelligence Workspace"
+              />
+              <p className="text-[10px] text-zinc-500 mt-2">This appears as the blue clickable link in search engine results.</p>
+            </div>
+
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <label className="block text-xs font-bold text-white mb-3">Global SEO Description</label>
+              <textarea
+                value={brandingForm.seoDescription}
+                onChange={(e) => setBrandingForm({ ...brandingForm, seoDescription: e.target.value })}
+                className="w-full max-w-2xl h-24 bg-[#1E1E1E] border border-[#333] focus:border-[#555] focus:outline-none rounded-lg p-2.5 text-xs text-white resize-none"
+                placeholder="The luxury standard for multi-modal intelligence workspace solutions."
+              />
+              <p className="text-[10px] text-zinc-500 mt-2">The short paragraph displayed under your title in search results. Keep under 160 characters.</p>
+            </div>
+
+            <div className="bg-[#161616] border border-[#242424] rounded-xl p-5 text-left">
+              <label className="block text-xs font-bold text-white mb-3">Global SEO Keywords</label>
+              <textarea
+                value={brandingForm.seoKeywords}
+                onChange={(e) => setBrandingForm({ ...brandingForm, seoKeywords: e.target.value })}
+                className="w-full max-w-2xl h-20 bg-[#1E1E1E] border border-[#333] focus:border-[#555] focus:outline-none rounded-lg p-2.5 text-xs text-white resize-none"
+                placeholder="AI, Chat, Video Generation, Image Studio, GoChat"
+              />
+              <p className="text-[10px] text-zinc-500 mt-2">Comma separated list of targeted keywords for search crawlers.</p>
             </div>
           </div>
         </form>
@@ -2072,6 +2383,117 @@ export default function AdminPage({ activeTab, setActiveTab }: AdminPageProps) {
         confirmText={isDeletingPlan ? "Deleting..." : "Delete Plan"}
         isDestructive={true}
         onConfirm={handleDeletePlanConfirm}
+      />
+
+      {/* MODAL: CREATE / EDIT TOKEN PACKAGE */}
+      <CommonModal
+        isOpen={isPackageModalOpen}
+        onClose={() => setIsPackageModalOpen(false)}
+        title={packageForm.id ? "Edit Token Package" : "Create Token Package"}
+        confirmText={
+          packageForm.id
+            ? isUpdatingPackage
+              ? "Updating..."
+              : "Update Package"
+            : isCreatingPackage
+            ? "Creating..."
+            : "Create Package"
+        }
+        onConfirm={handleSavePackage}
+      >
+        <div className="space-y-4 text-left">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Package Name *</label>
+            <input
+              type="text"
+              value={packageForm.name}
+              onChange={(e) => setPackageForm({ ...packageForm, name: e.target.value })}
+              placeholder="e.g. Starter Pack, Power Top-Up"
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Description</label>
+            <textarea
+              value={packageForm.description}
+              onChange={(e) => setPackageForm({ ...packageForm, description: e.target.value })}
+              placeholder="Package description, perks or token credits details..."
+              className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white h-16 resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Price (₹) *</label>
+              <input
+                type="number"
+                min={0}
+                value={packageForm.price}
+                onChange={(e) => setPackageForm({ ...packageForm, price: parseFloat(e.target.value) || 0 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tokens Included *</label>
+              <input
+                type="number"
+                min={1}
+                value={packageForm.tokenAmount}
+                onChange={(e) => setPackageForm({ ...packageForm, tokenAmount: parseInt(e.target.value) || 0 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Status</label>
+              <select
+                value={packageForm.status}
+                onChange={(e) => setPackageForm({ ...packageForm, status: e.target.value as any })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] rounded-lg p-2.5 text-xs text-zinc-300"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Sort Order</label>
+              <input
+                type="number"
+                min={1}
+                value={packageForm.sortOrder}
+                onChange={(e) => setPackageForm({ ...packageForm, sortOrder: parseInt(e.target.value) || 1 })}
+                className="w-full bg-[#1A1A1A] border border-[#242424] focus:border-amber-500/40 focus:outline-none rounded-lg p-2.5 text-xs text-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Most Popular</label>
+              <div
+                onClick={() => setPackageForm({ ...packageForm, isPopular: !packageForm.isPopular })}
+                className="flex items-center gap-2 cursor-pointer mt-1"
+              >
+                {packageForm.isPopular
+                  ? <ToggleRight className="w-7 h-7 text-amber-500" />
+                  : <ToggleLeft className="w-7 h-7 text-zinc-600" />
+                }
+                <span className="text-[10px] text-zinc-400 font-medium">{packageForm.isPopular ? "Yes" : "No"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CommonModal>
+
+      {/* CONFIRM MODAL: DELETE TOKEN PACKAGE */}
+      <ConfirmModal
+        isOpen={Boolean(deletePackageId)}
+        onCancel={() => setDeletePackageId(null)}
+        title="Delete Token Package"
+        message="Are you sure you want to delete this token package from MongoDB? This will remove it from user top-up options."
+        confirmText={isDeletingPackage ? "Deleting..." : "Delete Package"}
+        isDestructive={true}
+        onConfirm={handleDeletePackageConfirm}
       />
     </div>
   );

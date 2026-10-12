@@ -1,25 +1,20 @@
 import React, { useState } from "react";
-import { Image as ImageIcon, Sparkles, Download, Maximize2, Trash2, Calendar, HardDrive } from "lucide-react";
-import { useGetAssetsQuery, useDeleteAssetMutation, useGenerateImageMutation, useGetModelsQuery } from "../redux/api/apiSlice";
+import { Sparkles, Trash2 } from "lucide-react";
+import { useGenerateImageMutation, useGetModelsQuery } from "../redux/api/apiSlice";
 import { toast } from "react-hot-toast";
 
 export default function ImagePage() {
   const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [modelType, setModelType] = useState("gemini-3.1-flash-lite-image");
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const { data: allAssets = [] } = useGetAssetsQuery();
   const { data: models = [] } = useGetModelsQuery();
-  const [deleteAsset] = useDeleteAssetMutation();
   const [generateImage, { isLoading: generating }] = useGenerateImageMutation();
 
   const imageModels = models.filter((m: any) => m.type === "image");
   const activeModelType = imageModels.some((m: any) => m.id === modelType) ? modelType : (imageModels[0]?.id || "");
-
-  const assets = allAssets.filter((a: any) => a.type === "image");
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +39,6 @@ export default function ImagePage() {
     } catch (e: any) {
       console.error(e);
       toast.error(e?.data?.message || "Failed to generate image. Please try again.");
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteAsset({ id }).unwrap();
-    } catch (e) {
-      console.error(e);
     }
   };
 
@@ -195,111 +182,8 @@ export default function ImagePage() {
           </div>
         )}
 
-        {/* Gallery Grid of Assets */}
-        <div className="space-y-4 text-left">
-          <div className="flex items-center justify-between pb-2 border-b border-[#1F1F1F]">
-            <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Saved Studio Assets</h4>
-              <p className="text-[10px] text-[#71717A]">High-fidelity PNG files stored on proxy cache</p>
-            </div>
-            <div className="text-[10px] text-zinc-500 flex items-center gap-1">
-              <HardDrive className="w-3.5 h-3.5" /> Total: {assets.length} images
-            </div>
-          </div>
 
-          {assets.length === 0 && !generating ? (
-            <div className="bg-[#111111] border border-[#242424] rounded-2xl py-24 flex flex-col items-center justify-center text-center space-y-3">
-              <ImageIcon className="w-10 h-10 text-zinc-700" />
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-zinc-400">Your visual gallery is clean</p>
-                <p className="text-[10px] text-zinc-600 max-w-xs">Enter a creative description on the sidebar panel to generate custom high-end canvases.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="bg-[#111111] border border-[#242424] hover:border-amber-500/20 rounded-2xl overflow-hidden group transition flex flex-col relative"
-                >
-                  {/* Image Viewport */}
-                  <div className="relative aspect-square overflow-hidden bg-black flex items-center justify-center">
-                    <img
-                      src={asset.content}
-                      alt={asset.title}
-                      className="object-cover w-full h-full transition duration-500 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23111111"/><circle cx="200" cy="160" r="50" fill="%23f59e0b" opacity="0.1"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23f59e0b" font-family="sans-serif" font-size="18" font-weight="bold">AI GENERATED ASSET</text><text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" fill="%23a1a1aa" font-family="sans-serif" font-size="12">${encodeURIComponent(asset.title || "AI Canvas")}</text></svg>`;
-                      }}
-                    />
-
-                    {/* Overlay Actions */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center gap-3">
-                      <button
-                        id={`gallery-btn-view-${asset.id}`}
-                        onClick={() => setLightboxUrl(asset.content)}
-                        className="p-2.5 bg-black/80 hover:bg-black border border-zinc-800 rounded-xl text-white transition"
-                        title="View Fullsize Lightbox"
-                      >
-                        <Maximize2 className="w-4 h-4" />
-                      </button>
-                      <a
-                        href={asset.content}
-                        download={`${asset.title}.png`}
-                        className="p-2.5 bg-black/80 hover:bg-black border border-zinc-800 rounded-xl text-white transition"
-                        title="Download Asset"
-                      >
-                        <Download className="w-4 h-4" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Metadata Banner */}
-                  <div className="p-4 space-y-2 text-left flex-1 flex flex-col justify-between">
-                    <div className="space-y-1">
-                      <h5 className="text-xs font-bold text-zinc-200 truncate group-hover:text-amber-500 transition">
-                        {asset.title}
-                      </h5>
-                      <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
-                        {asset.prompt}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-[#1F1F1F] text-[9px] font-mono text-zinc-600">
-                      <span>{asset.model}</span>
-                      <button
-                        id={`gallery-btn-del-${asset.id}`}
-                        onClick={() => handleDelete(asset.id)}
-                        className="p-1 hover:text-rose-500 transition"
-                        title="Delete asset"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-
-      {/* Lightbox Modal overlay */}
-      {lightboxUrl && (
-        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4" onClick={() => setLightboxUrl(null)}>
-          <div className="relative max-w-4xl max-h-[85vh] overflow-hidden rounded-xl border border-zinc-800" onClick={(e) => e.stopPropagation()}>
-            <img src={lightboxUrl} alt="Artwork Large View" className="max-w-full max-h-[80vh] object-contain" referrerPolicy="no-referrer" />
-            <button
-              id="lightbox-close-btn"
-              onClick={() => setLightboxUrl(null)}
-              className="absolute top-4 right-4 px-3 py-1.5 bg-black/80 hover:bg-black border border-zinc-800 text-white rounded-lg text-[10px] font-bold uppercase transition"
-            >
-              Close View
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

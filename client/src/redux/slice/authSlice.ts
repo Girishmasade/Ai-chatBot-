@@ -8,6 +8,7 @@ const STORAGE_KEY = "gochat_auth";
 
 interface PersistedAuth {
   accessToken: string;
+  refreshToken?: string;
   user: AuthUser;
 }
 
@@ -33,6 +34,7 @@ function clearPersistedAuth(): void {
 
 interface AuthState {
   accessToken: string | null;
+  refreshToken: string | null;
   currentUser: AuthUser | null;
   isAuthenticated: boolean;
 }
@@ -41,6 +43,7 @@ const persisted = loadPersistedAuth();
 
 const initialState: AuthState = {
   accessToken: persisted?.accessToken ?? null,
+  refreshToken: persisted?.refreshToken ?? null,
   currentUser: persisted?.user ?? null,
   isAuthenticated: !!persisted?.accessToken,
 };
@@ -53,20 +56,36 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ accessToken: string; user: AuthUser }>
+      action: PayloadAction<{ accessToken: string; refreshToken?: string; user: AuthUser }>
     ) => {
       state.accessToken = action.payload.accessToken;
+      if (action.payload.refreshToken) {
+        state.refreshToken = action.payload.refreshToken;
+      }
       state.currentUser = action.payload.user;
       state.isAuthenticated = true;
-      persistAuth(action.payload);
+      persistAuth({
+        accessToken: action.payload.accessToken,
+        refreshToken: state.refreshToken || undefined,
+        user: action.payload.user,
+      });
     },
 
     /** Update only the access token (e.g. after silent refresh) */
-    updateAccessToken: (state, action: PayloadAction<string>) => {
-      state.accessToken = action.payload;
+    updateAccessToken: (
+      state,
+      action: PayloadAction<string | { accessToken: string; refreshToken?: string }>
+    ) => {
+      const newToken = typeof action.payload === "string" ? action.payload : action.payload.accessToken;
+      const newRefreshToken = typeof action.payload === "object" ? action.payload.refreshToken : undefined;
+      state.accessToken = newToken;
+      if (newRefreshToken) {
+        state.refreshToken = newRefreshToken;
+      }
       if (state.currentUser) {
         persistAuth({
-          accessToken: action.payload,
+          accessToken: newToken,
+          refreshToken: state.refreshToken || undefined,
           user: state.currentUser,
         });
       }
@@ -75,6 +94,7 @@ const authSlice = createSlice({
     /** Clear auth state on logout */
     logout: (state) => {
       state.accessToken = null;
+      state.refreshToken = null;
       state.currentUser = null;
       state.isAuthenticated = false;
       clearPersistedAuth();
@@ -87,6 +107,7 @@ const authSlice = createSlice({
         if (state.accessToken) {
           persistAuth({
             accessToken: state.accessToken,
+            refreshToken: state.refreshToken || undefined,
             user: state.currentUser,
           });
         }
@@ -101,10 +122,15 @@ const authSlice = createSlice({
       (state, { payload }) => {
         if (payload.success && payload.data) {
           state.accessToken = payload.data.accessToken;
+          const rToken = (payload.data as any).refreshToken;
+          if (rToken) {
+            state.refreshToken = rToken;
+          }
           state.currentUser = payload.data.user;
           state.isAuthenticated = true;
           persistAuth({
             accessToken: payload.data.accessToken,
+            refreshToken: rToken || state.refreshToken || undefined,
             user: payload.data.user,
           });
         }
@@ -116,6 +142,7 @@ const authSlice = createSlice({
       authApi.endpoints.logout.matchFulfilled,
       (state) => {
         state.accessToken = null;
+        state.refreshToken = null;
         state.currentUser = null;
         state.isAuthenticated = false;
         clearPersistedAuth();
@@ -126,6 +153,7 @@ const authSlice = createSlice({
       authApi.endpoints.logoutAllDevices.matchFulfilled,
       (state) => {
         state.accessToken = null;
+        state.refreshToken = null;
         state.currentUser = null;
         state.isAuthenticated = false;
         clearPersistedAuth();

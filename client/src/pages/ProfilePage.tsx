@@ -107,7 +107,7 @@ export default function ProfilePage({ currentUser, onUpdateName }: ProfilePagePr
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Current Avatar</label>
               <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#242424]">
-                <img src={displayAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={displayAvatar} alt="Avatar" loading="lazy" decoding="async" className="w-full h-full object-cover" />
               </div>
             </div>
           )}
@@ -166,7 +166,9 @@ export default function ProfilePage({ currentUser, onUpdateName }: ProfilePagePr
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-zinc-500">Active Membership</span>
-              <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-wider">{currentUser.tier}</span>
+              <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+                {currentUser.isPaid ? (currentUser.planName ? `${currentUser.planName} (PAID)` : "PAID") : `${currentUser.tier} tier`}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-zinc-500">Member Since</span>

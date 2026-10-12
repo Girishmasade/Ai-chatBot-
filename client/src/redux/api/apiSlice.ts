@@ -8,6 +8,8 @@ import type {
   BrandingConfig,
   CookieConsent,
   AIAsset,
+  PrivacyPolicy,
+  TermsAndCondition,
 } from "../../types";
 
 import { env } from "@/src/config/envImport";
@@ -18,15 +20,19 @@ const baseQuery = fetchBaseQuery({
   credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     let token = (getState() as RootState)?.auth?.accessToken;
+    let refreshToken = (getState() as RootState)?.auth?.refreshToken;
     if (!token) {
       try {
         const raw = localStorage.getItem("gochat_auth");
         if (raw) {
-          token = JSON.parse(raw).accessToken;
+          const parsed = JSON.parse(raw);
+          token = parsed.accessToken;
+          refreshToken = parsed.refreshToken;
         }
       } catch (e) {}
     }
     if (token) headers.set("Authorization", `Bearer ${token}`);
+    if (refreshToken) headers.set("x-refresh-token", refreshToken);
     return headers;
   },
 });
@@ -42,21 +48,36 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     }
   }
 
-  // On 401, retry the request once — the backend silentRefresh middleware
-  // will use the httpOnly refresh cookie to issue a fresh access token
+  // On 401, re-authenticate using refresh token and retry
   if (result.error && result.error.status === 401) {
-    // Retry the same request (cookies are sent automatically with credentials: "include")
+    const refreshResult = await baseQuery(
+      { url: "/auth/refresh-token", method: "POST" },
+      api,
+      extraOptions
+    );
+
+    const refreshedToken =
+      refreshResult.meta?.response?.headers.get("x-access-token") ||
+      (refreshResult.data as any)?.data?.accessToken ||
+      (refreshResult.data as any)?.accessToken;
+
+    if (refreshedToken) {
+      api.dispatch(updateAccessToken(refreshedToken));
+      // Retry original request with the fresh token
+      return await baseQuery(args, api, extraOptions);
+    }
+
+    // Fallback retry
     const retryResult = await baseQuery(args, api, extraOptions);
 
     if (retryResult.meta?.response) {
-      const refreshedToken = retryResult.meta.response.headers.get("x-access-token");
-      if (refreshedToken) {
-        api.dispatch(updateAccessToken(refreshedToken));
+      const headerToken = retryResult.meta.response.headers.get("x-access-token");
+      if (headerToken) {
+        api.dispatch(updateAccessToken(headerToken));
       }
     }
 
     if (retryResult.error && retryResult.error.status === 401) {
-      // Both access and refresh tokens are dead — force logout
       api.dispatch(logout());
     }
 
@@ -69,7 +90,7 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["User", "Asset", "Model", "Subscription", "Log", "Config", "TokenWallet"],
+  tagTypes: ["User", "Asset", "Model", "Subscription", "Log", "Config", "TokenWallet", "PrivacyPolicy", "TermsAndCondition"],
   endpoints: (builder) => ({
     // ── Dashboard ─────────────────────────────────────────
     getDashboardStats: builder.query<any, void>({
@@ -215,6 +236,104 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Asset"],
     }),
+
+    // ── Privacy Policy ─────────────────────────────────────
+    getPrivacyPolicy: builder.query<PrivacyPolicy, void>({
+      query: () => "/privacy/current",
+      transformResponse: (res: any) => res?.data?.policy || res?.data,
+      providesTags: ["PrivacyPolicy", "Config"],
+    }),
+    getAdminPrivacyPolicies: builder.query<PrivacyPolicy[], void>({
+      query: () => "/privacy/admin/all",
+      transformResponse: (res: any) => res?.data?.policies || res?.data,
+      providesTags: ["PrivacyPolicy"],
+    }),
+    createPrivacyPolicy: builder.mutation<{ success: boolean; policy: PrivacyPolicy }, FormData | Partial<PrivacyPolicy>>({
+      query: (body) => ({
+        url: "/privacy/admin",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PrivacyPolicy", "Config", "Log"],
+    }),
+    updatePrivacyPolicy: builder.mutation<{ success: boolean; policy: PrivacyPolicy }, { id: string; body: FormData | Partial<PrivacyPolicy> }>({
+      query: ({ id, body }) => ({
+        url: `/privacy/admin/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["PrivacyPolicy", "Config", "Log"],
+    }),
+    setCurrentPrivacyPolicy: builder.mutation<{ success: boolean; policy: PrivacyPolicy }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/privacy/admin/${id}/set-current`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["PrivacyPolicy", "Config", "Log"],
+    }),
+    deletePrivacyPolicy: builder.mutation<{ success: boolean }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/privacy/admin/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["PrivacyPolicy", "Config", "Log"],
+    }),
+    seedPrivacyPolicy: builder.mutation<{ success: boolean; policy: PrivacyPolicy }, void>({
+      query: () => ({
+        url: "/privacy/admin/seed",
+        method: "POST",
+      }),
+      invalidatesTags: ["PrivacyPolicy", "Config", "Log"],
+    }),
+
+    // ── Terms & Conditions ─────────────────────────────────
+    getTermsAndCondition: builder.query<TermsAndCondition, void>({
+      query: () => "/terms/current",
+      transformResponse: (res: any) => res?.data?.terms || res?.data,
+      providesTags: ["TermsAndCondition", "Config"],
+    }),
+    getAdminTermsAndConditions: builder.query<TermsAndCondition[], void>({
+      query: () => "/terms/admin/all",
+      transformResponse: (res: any) => res?.data?.terms || res?.data,
+      providesTags: ["TermsAndCondition"],
+    }),
+    createTermsAndCondition: builder.mutation<{ success: boolean; terms: TermsAndCondition }, FormData | Partial<TermsAndCondition>>({
+      query: (body) => ({
+        url: "/terms/admin",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["TermsAndCondition", "Config", "Log"],
+    }),
+    updateTermsAndCondition: builder.mutation<{ success: boolean; terms: TermsAndCondition }, { id: string; body: FormData | Partial<TermsAndCondition> }>({
+      query: ({ id, body }) => ({
+        url: `/terms/admin/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["TermsAndCondition", "Config", "Log"],
+    }),
+    setCurrentTermsAndCondition: builder.mutation<{ success: boolean; terms: TermsAndCondition }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/terms/admin/${id}/set-current`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["TermsAndCondition", "Config", "Log"],
+    }),
+    deleteTermsAndCondition: builder.mutation<{ success: boolean }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/terms/admin/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["TermsAndCondition", "Config", "Log"],
+    }),
+    seedTermsAndCondition: builder.mutation<{ success: boolean; terms: TermsAndCondition }, void>({
+      query: () => ({
+        url: "/terms/admin/seed",
+        method: "POST",
+      }),
+      invalidatesTags: ["TermsAndCondition", "Config", "Log"],
+    }),
   }),
 });
 
@@ -244,4 +363,18 @@ export const {
   useLazyGetChatSessionByIdQuery,
   useSaveChatMessageMutation,
   useDeleteChatSessionMutation,
+  useGetPrivacyPolicyQuery,
+  useGetAdminPrivacyPoliciesQuery,
+  useCreatePrivacyPolicyMutation,
+  useUpdatePrivacyPolicyMutation,
+  useSetCurrentPrivacyPolicyMutation,
+  useDeletePrivacyPolicyMutation,
+  useSeedPrivacyPolicyMutation,
+  useGetTermsAndConditionQuery,
+  useGetAdminTermsAndConditionsQuery,
+  useCreateTermsAndConditionMutation,
+  useUpdateTermsAndConditionMutation,
+  useSetCurrentTermsAndConditionMutation,
+  useDeleteTermsAndConditionMutation,
+  useSeedTermsAndConditionMutation,
 } = apiSlice;

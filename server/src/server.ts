@@ -13,6 +13,8 @@ import { allowedCorsType } from "./config/cors.config.js";
 import { startWorkers, shutdownWorkers } from "./redis/worker/index.js";
 import { registerRepeatableJobs, closeAllQueues } from "./redis/scheduler/index.js";
 import dotenv from "dotenv";
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 dotenv.config();
 
 const PORT = Number(process.env.PORT) || 5500;
@@ -31,7 +33,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-refresh-token"],
+  exposedHeaders: ["x-access-token", "set-cookie"],
 };
 
 app.use(cors(corsOptions));
@@ -55,6 +58,10 @@ app.use("/api/v1", RouterFile);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
 app.get("/.well-known/appspecific/com.chrome.devtools.json", (req, res) => {
