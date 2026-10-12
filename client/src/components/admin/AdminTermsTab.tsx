@@ -452,237 +452,259 @@ export default function AdminTermsTab() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingTerms ? `Edit Terms Revision (v${version})` : "Create New Terms and Conditions"}
+        maxWidth="max-w-5xl xl:max-w-6xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-5 text-left text-xs max-h-[80vh] overflow-y-auto pr-1">
-          {/* Row 1: Title, Version */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-2">
-              <label className="block text-zinc-400 mb-1 font-semibold">Agreement Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                className="w-full bg-[#181818] border border-[#282828] focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
-                placeholder="GoChat AI Terms and Conditions"
-              />
-            </div>
-
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Version *</label>
-              <input
-                type="text"
-                value={version}
-                onChange={(e) => setVersion(e.target.value)}
-                required
-                className="w-full bg-[#181818] border border-[#282828] focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none font-mono"
-                placeholder="1.0.0"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Status & Current Live Toggle */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-[#161616] rounded-xl border border-[#222222]">
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Publishing Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-                className="w-full bg-[#1C1C1C] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
-              >
-                <option value="published">Published (Ready for users)</option>
-                <option value="draft">Draft (Admin internal work)</option>
-                <option value="archived">Archived (Deprecated revision)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-3 pt-4 sm:pt-6">
-              <label className="relative flex items-center gap-2 cursor-pointer select-none">
+        <form onSubmit={handleSubmit} className="space-y-5 text-left text-xs">
+          {/* Card 1: Agreement Metadata & Publication Status */}
+          <div className="p-4 bg-[#181818]/90 rounded-2xl border border-[#252525] space-y-4 shadow-inner">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#242424] gap-2">
+              <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                <Gavel className="w-4 h-4 text-amber-500" />
+                <span>Agreement Metadata & Publishing Status</span>
+              </div>
+              <label className="inline-flex items-center gap-2.5 px-3 py-1.5 bg-[#141414] hover:bg-[#1C1C1C] border border-[#2A2A2A] rounded-xl cursor-pointer transition select-none">
                 <input
                   type="checkbox"
                   checked={isCurrent}
                   onChange={(e) => setIsCurrent(e.target.checked)}
                   className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
                 />
-                <span className="text-zinc-300 font-semibold">Set as Active Live Agreement</span>
+                <span className={`text-xs font-semibold ${isCurrent ? "text-amber-400" : "text-zinc-400"}`}>
+                  {isCurrent ? "✓ Active Live Agreement" : "Set as Active Live Agreement"}
+                </span>
               </label>
             </div>
-          </div>
 
-          {/* Row 3: Banner Image Upload */}
-          <div className="space-y-2 p-3 bg-[#161616] rounded-xl border border-[#222222]">
-            <label className="block text-zinc-300 font-semibold flex items-center gap-1.5">
-              <Upload className="w-3.5 h-3.5 text-amber-500" />
-              <span>Cover Banner Image</span>
-            </label>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBannerFileChange}
-                className="text-zinc-400 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer"
-              />
-              <input
-                type="text"
-                value={bannerCaption}
-                onChange={(e) => setBannerCaption(e.target.value)}
-                placeholder="Banner Caption (e.g. Terms Agreement & Generative Usage Charter)"
-                className="flex-1 bg-[#1C1C1C] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none text-xs"
-              />
-            </div>
-            {bannerPreview && (
-              <div className="mt-2 w-full h-32 rounded-xl overflow-hidden border border-[#282828] relative group">
-                <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBannerFile(null);
-                    setBannerPreview("");
-                  }}
-                  className="absolute top-2 right-2 p-1 bg-black/70 hover:bg-black text-rose-400 rounded-full transition"
-                  title="Remove banner"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Agreement Title *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                  placeholder="GoChat AI Terms and Conditions"
+                />
               </div>
-            )}
+
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Version *</label>
+                <input
+                  type="text"
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value)}
+                  required
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 rounded-xl px-3.5 py-2.5 text-white outline-none font-mono transition"
+                  placeholder="1.0.0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Publishing Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as any)}
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition cursor-pointer"
+                >
+                  <option value="published">Published (Ready for users)</option>
+                  <option value="draft">Draft (Admin internal work)</option>
+                  <option value="archived">Archived (Deprecated revision)</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Row 4: Summary */}
-          <div>
-            <label className="block text-zinc-400 mb-1 font-semibold">Agreement Overview / Summary</label>
-            <textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={2}
-              className="w-full bg-[#181818] border border-[#282828] focus:border-amber-500 rounded-xl p-3 text-white outline-none"
-              placeholder="High-level manifesto summarizing binding user agreement terms..."
-            />
-          </div>
+          {/* Card 2: Cover Banner & Agreement Overview Side-by-Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Banner Image Card */}
+            <div className="p-4 bg-[#181818]/90 rounded-2xl border border-[#252525] space-y-3 flex flex-col justify-between">
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-2 flex items-center gap-1.5">
+                  <Upload className="w-4 h-4 text-amber-500" />
+                  <span>Cover Banner Image</span>
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerFileChange}
+                    className="w-full text-zinc-400 text-xs file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer transition"
+                  />
+                  <input
+                    type="text"
+                    value={bannerCaption}
+                    onChange={(e) => setBannerCaption(e.target.value)}
+                    placeholder="Banner Caption (e.g. Terms Agreement & Generative Usage Charter)"
+                    className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none text-xs transition"
+                  />
+                </div>
+              </div>
+              {bannerPreview && (
+                <div className="mt-3 w-full h-36 rounded-xl overflow-hidden border border-[#282828] relative group">
+                  <img src={bannerPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerFile(null);
+                      setBannerPreview("");
+                    }}
+                    className="absolute top-2 right-2 p-1.5 bg-black/80 hover:bg-black text-rose-400 rounded-lg transition"
+                    title="Remove banner"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
 
-          {/* Row 5: Sections Builder */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-zinc-300 font-semibold flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-amber-500" />
-                <span>Agreement Clauses / Sections ({sections.length})</span>
+            {/* Agreement Overview Card */}
+            <div className="p-4 bg-[#181818]/90 rounded-2xl border border-[#252525] space-y-2 flex flex-col">
+              <label className="block text-zinc-300 font-semibold flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-amber-500" />
+                <span>Agreement Overview / Summary</span>
               </label>
+              <textarea
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                rows={bannerPreview ? 6 : 4}
+                className="w-full flex-1 min-h-[96px] bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl p-3.5 text-white outline-none leading-relaxed resize-y transition"
+                placeholder="High-level manifesto summarizing binding user agreement terms, computational licensing, and acceptable use policy..."
+              />
+            </div>
+          </div>
+
+          {/* Card 3: Clauses / Sections Builder */}
+          <div className="p-4 bg-[#181818]/90 rounded-2xl border border-[#252525] space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#242424]">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-500" />
+                <span className="text-white font-semibold text-sm">Agreement Clauses & Sections ({sections.length})</span>
+              </div>
               <button
                 type="button"
                 onClick={handleAddSection}
-                className="px-2.5 py-1 text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-lg transition flex items-center gap-1"
+                className="px-3 py-1.5 text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Add Section</span>
               </button>
             </div>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {sections.map((section, idx) => (
-                <div key={idx} className="p-3 bg-[#151515] border border-[#242424] rounded-xl space-y-2 relative">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono text-zinc-500 font-bold">#{idx + 1}</span>
-                    <input
-                      type="text"
-                      value={section.title}
-                      onChange={(e) => handleUpdateSection(idx, "title", e.target.value)}
-                      placeholder="Clause Title"
-                      className="flex-1 bg-[#1C1C1C] border border-[#2A2A2A] rounded-lg px-2.5 py-1.5 text-white font-semibold text-xs outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSection(idx)}
-                      className="text-zinc-500 hover:text-rose-400 p-1 transition"
-                      title="Remove section"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <textarea
-                    value={section.content}
-                    onChange={(e) => handleUpdateSection(idx, "content", e.target.value)}
-                    rows={2}
-                    placeholder="Clause content description..."
-                    className="w-full bg-[#1C1C1C] border border-[#2A2A2A] rounded-lg p-2 text-zinc-300 text-xs outline-none"
-                  />
+            <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1.5 custom-scrollbar">
+              {sections.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-[#282828] rounded-xl text-zinc-500">
+                  No clauses yet. Click "+ Add Section" above to define terms and conditions.
                 </div>
-              ))}
+              ) : (
+                sections.map((section, idx) => (
+                  <div key={idx} className="p-3.5 sm:p-4 bg-[#131313] border border-[#252525] rounded-xl space-y-2.5 hover:border-[#353535] transition">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md text-xs font-mono font-bold shrink-0">
+                        #{idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={section.title}
+                        onChange={(e) => handleUpdateSection(idx, "title", e.target.value)}
+                        placeholder="Clause Title (e.g. 1. Acceptance of Terms & Eligibility)"
+                        className="flex-1 bg-[#1A1A1A] border border-[#2C2C2C] focus:border-amber-500 rounded-xl px-3 py-2 text-white font-semibold text-xs outline-none transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSection(idx)}
+                        className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                        title="Remove clause"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <textarea
+                      value={section.content}
+                      onChange={(e) => handleUpdateSection(idx, "content", e.target.value)}
+                      rows={3}
+                      placeholder="Detailed clause content, terms, and binding agreements..."
+                      className="w-full bg-[#181818] border border-[#282828] focus:border-amber-500 rounded-xl p-3 text-zinc-200 text-xs outline-none leading-relaxed transition"
+                    />
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Row 6: Key Highlights & Prohibited Conduct */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Key Highlights (comma-separated)</label>
+          {/* Card 4: Highlights & Prohibited Activities */}
+          <div className="p-4 bg-[#181818]/90 rounded-2xl border border-[#252525] space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Key Highlights (comma-separated)</label>
+                <input
+                  type="text"
+                  value={keyHighlightsInput}
+                  onChange={(e) => setKeyHighlightsInput(e.target.value)}
+                  placeholder="Non-refundable credits, User output ownership"
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Prohibited Conduct (comma-separated)</label>
+                <input
+                  type="text"
+                  value={prohibitedActivitiesInput}
+                  onChange={(e) => setProhibitedActivitiesInput(e.target.value)}
+                  placeholder="Prompt injection, Reverse engineering, Scraping"
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#242424]">
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Governing Law / Jurisdiction</label>
+                <input
+                  type="text"
+                  value={governingLaw}
+                  onChange={(e) => setGoverningLaw(e.target.value)}
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                  placeholder="Laws of India / Standard Enterprise Jurisdiction"
+                />
+              </div>
+              <div>
+                <label className="block text-zinc-400 mb-1.5 font-semibold">Legal Contact Email</label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                  placeholder="legal@gochat.ai"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#242424]">
+              <label className="block text-zinc-400 mb-1.5 font-semibold">Changelog Notes</label>
               <input
                 type="text"
-                value={keyHighlightsInput}
-                onChange={(e) => setKeyHighlightsInput(e.target.value)}
-                placeholder="Non-refundable credits, User output ownership"
-                className="w-full bg-[#181818] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Prohibited Conduct (comma-separated)</label>
-              <input
-                type="text"
-                value={prohibitedActivitiesInput}
-                onChange={(e) => setProhibitedActivitiesInput(e.target.value)}
-                placeholder="Prompt injection, Reverse engineering"
-                className="w-full bg-[#181818] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
+                value={changelog}
+                onChange={(e) => setChangelog(e.target.value)}
+                className="w-full bg-[#121212] border border-[#282828] focus:border-amber-500 rounded-xl px-3.5 py-2.5 text-white outline-none transition"
+                placeholder="What was amended in this revision (e.g. Revised token billing terms)..."
               />
             </div>
           </div>
 
-          {/* Row 7: Governing Law & Contact */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Governing Law / Jurisdiction</label>
-              <input
-                type="text"
-                value={governingLaw}
-                onChange={(e) => setGoverningLaw(e.target.value)}
-                className="w-full bg-[#181818] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
-                placeholder="Laws of India / Standard Enterprise Jurisdiction"
-              />
-            </div>
-            <div>
-              <label className="block text-zinc-400 mb-1 font-semibold">Legal Contact Email</label>
-              <input
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                className="w-full bg-[#181818] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
-                placeholder="legal@gochat.ai"
-              />
-            </div>
-          </div>
-
-          {/* Row 8: Changelog */}
-          <div>
-            <label className="block text-zinc-400 mb-1 font-semibold">Changelog Notes</label>
-            <input
-              type="text"
-              value={changelog}
-              onChange={(e) => setChangelog(e.target.value)}
-              className="w-full bg-[#181818] border border-[#282828] rounded-xl px-3 py-2 text-white outline-none"
-              placeholder="What was amended in this revision..."
-            />
-          </div>
-
-          {/* Submit Buttons */}
+          {/* Action Buttons */}
           <div className="pt-4 border-t border-[#242424] flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-zinc-400 hover:text-white transition"
+              className="px-4 py-2 text-zinc-400 hover:text-white transition font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isCreating || isUpdating}
-              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition shadow-lg shadow-amber-500/20 disabled:opacity-50"
+              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
             >
               {isCreating || isUpdating
                 ? "Saving..."
